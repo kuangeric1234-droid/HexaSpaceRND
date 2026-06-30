@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Plus, Trash2, Check } from 'lucide-react'
+import { XERO_ACCOUNTS, DEFAULT_XERO_ACCOUNTS } from './spaces/shared.jsx'
 
 const MENU = [
   {
@@ -23,6 +24,12 @@ const MENU = [
     items: [
       { key: 'billing-rules', label: 'Billing Rules' },
       { key: 'invoicing', label: 'Invoicing' },
+    ],
+  },
+  {
+    section: 'Integrations',
+    items: [
+      { key: 'xero', label: 'Xero' },
     ],
   },
 ]
@@ -842,6 +849,66 @@ function EmailTemplatesSection({ settings, updateSettings }) {
   )
 }
 
+// ── Xero Integration ──────────────────────────────────────────────────────────
+function XeroSection({ settings, updateSettings }) {
+  const [tab, setTab] = useState('revenue')
+  const [form, setForm] = useState(() => ({ ...DEFAULT_XERO_ACCOUNTS, ...(settings.xero?.revenueAccounts ?? {}) }))
+  const [saved, setSaved] = useState(false)
+
+  function save() {
+    updateSettings({ xero: { ...(settings.xero ?? {}), revenueAccounts: form } })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+  function set(f) { return (v) => setForm((p) => ({ ...p, [f]: v })) }
+
+  const ACCOUNT_ROWS = [
+    ['deposits',      'Deposits',              'System account for refundable deposits'],
+    ['membershipL45', 'Membership Fees',       'Default account for membership fees (Level 4 & 5)'],
+    ['oneOffL45',     'One-off Fees',          'Default account for one-off fees (Level 4 & 5)'],
+    ['bookingL45',    'Booking Fees',          'Meeting rooms, event space & media studios'],
+    ['orderL45',      'Order Fees',            'Default account for order fees'],
+    ['membershipL2',  'Level 2 Membership Fees', 'Revenue / income for Level 2 members'],
+    ['parkingL2',     'Level 2 Parking Fees',  'Parking space & other for Level 2'],
+  ]
+
+  return (
+    <div>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">Xero</h1>
+      <p className="text-sm text-gray-500 mb-6">Map Hexa Space charges to your Xero revenue accounts. Level 2 bills to its own accounts, separate from Level 4 &amp; 5.</p>
+
+      <TabBar
+        tabs={[['revenue', 'Revenue Accounts'], ['payment', 'Payment Accounts'], ['tax', 'Tax Rates']]}
+        active={tab}
+        onSelect={setTab}
+      />
+
+      {tab === 'revenue' && (
+        <>
+          {ACCOUNT_ROWS.map(([key, label, desc]) => (
+            <FormRow key={key} label={label} description={desc}>
+              <select
+                value={form[key] ?? ''}
+                onChange={(e) => set(key)(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {XERO_ACCOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </FormRow>
+          ))}
+          <SaveButton onClick={save} saved={saved} />
+        </>
+      )}
+
+      {tab !== 'revenue' && (
+        <div className="py-12 text-center text-sm text-gray-400">
+          {tab === 'payment' ? 'Payment account mapping' : 'Tax rate mapping'} — coming with the live Xero connection.
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main Settings ─────────────────────────────────────────────────────────────
 export default function Settings() {
   const { settings, updateSettings } = useOutletContext()
@@ -855,6 +922,7 @@ export default function Settings() {
     'billing-rules': <BillingRulesSection settings={settings} updateSettings={updateSettings} />,
     'invoicing': <InvoicingSection settings={settings} updateSettings={updateSettings} />,
     'email-templates': <EmailTemplatesSection settings={settings} updateSettings={updateSettings} />,
+    'xero': <XeroSection settings={settings} updateSettings={updateSettings} />,
   }
 
   return (

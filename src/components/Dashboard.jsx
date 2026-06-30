@@ -39,6 +39,18 @@ export default function Dashboard() {
   const activeLeases = leases.filter((l) => l.status === 'active')
   const occupiedSpaces = spaces.filter((s) => s.status === 'occupied')
   const vacantSpaces = spaces.filter((s) => s.status === 'vacant')
+  // Vacant-space widgets list private offices only — meeting rooms, virtual
+  // offices, desks etc. aren't leased month-to-month the same way.
+  const vacantOffices = vacantSpaces.filter((s) => s.type === 'office')
+
+  // Offices in chronological order: Office 1–10 (L4), 11–15 (L5), then Suite 1–30 (L2).
+  const floorRank = (f) => ({ l4: 0, l5: 1, l2: 2 }[f] ?? 9)
+  const firstNum = (s) => { const m = String(s.unitNumber).match(/\d+/); return m ? +m[0] : 9999 }
+  const officeList = spaces.filter((s) => s.type === 'office')
+    .sort((a, b) => floorRank(a.floor) - floorRank(b.floor) || firstNum(a) - firstNum(b))
+  const officeOccupant = (s) => s.occupantTenantId
+    ? (tenants.find((t) => t.id === s.occupantTenantId)?.businessName ?? '')
+    : (s.occupantName || '')
   const occupancyRate = spaces.length ? Math.round((occupiedSpaces.length / spaces.length) * 100) : 0
   const mrr = activeLeases.reduce((sum, l) => sum + Number(l.monthlyRent || 0), 0)
 
@@ -107,9 +119,9 @@ export default function Dashboard() {
           sub="Requires renewal action" color={expiringSoon.length > 0 ? 'amber' : 'gray'} />
         <KPICard icon={DollarSign} label="Annual Run Rate" value={fmtAud(mrr * 12)}
           sub="Based on current MRR" color="gray" />
-        <KPICard icon={Building2} label="Vacant Spaces" value={vacantSpaces.length}
-          sub={vacantSpaces.map((s) => s.unitNumber).join(', ') || 'All occupied'}
-          color={vacantSpaces.length > 0 ? 'green' : 'gray'} />
+        <KPICard icon={Building2} label="Vacant Offices" value={vacantOffices.length}
+          sub={vacantOffices.map((s) => s.unitNumber).join(', ') || 'All occupied'}
+          color={vacantOffices.length > 0 ? 'green' : 'gray'} />
       </div>
 
       {/* MRR banner */}
@@ -201,14 +213,14 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Vacant spaces */}
-      {vacantSpaces.length > 0 && (
+      {/* Vacant private offices */}
+      {vacantOffices.length > 0 && (
         <div className="mt-6">
           <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-            Vacant Spaces — Available Now ({vacantSpaces.length})
+            Vacant Offices — Available Now ({vacantOffices.length})
           </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {vacantSpaces.map((space) => (
+            {vacantOffices.map((space) => (
               <div key={space.id} className="rounded-md border border-green-200 bg-green-50 p-3 text-sm">
                 <div className="font-semibold text-green-900">{space.unitNumber}</div>
                 <div className="text-xs text-green-700 mt-0.5 capitalize">{space.type}</div>
@@ -255,21 +267,28 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Space grid */}
+      {/* Offices — occupancy (Office 1–15 then Suite 1–30) */}
       <div className="mt-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">All Spaces</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {spaces.map((space) => (
-            <div key={space.id} className={`rounded-md border p-3 text-sm ${
-              space.status === 'occupied' ? 'border-gray-300 bg-gray-900 text-white'
-              : space.status === 'reserved' ? 'border-amber-300 bg-amber-50 text-amber-900'
-              : 'border-green-200 bg-green-50 text-green-900'
-            }`}>
-              <div className="font-semibold">{space.unitNumber}</div>
-              <div className={`text-xs mt-0.5 capitalize ${space.status === 'occupied' ? 'text-gray-400' : 'text-gray-500'}`}>{space.status}</div>
-              <div className={`text-xs mt-1 ${space.status === 'occupied' ? 'text-gray-300' : 'text-gray-400'}`}>{fmtAud(space.monthlyRate)}/mo</div>
-            </div>
-          ))}
+        <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Offices</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {officeList.map((space) => {
+            const occ = officeOccupant(space)
+            return (
+              <div key={space.id} className={`rounded-md border p-3 text-sm flex items-center justify-between gap-3 ${
+                space.status === 'occupied' ? 'border-gray-300 bg-gray-900 text-white' : 'border-green-200 bg-green-50 text-green-900'
+              }`}>
+                <div className="min-w-0">
+                  <div className="font-semibold">{space.unitNumber}</div>
+                  <div className={`text-xs mt-0.5 truncate ${space.status === 'occupied' ? 'text-gray-300' : 'text-green-700'}`}>
+                    {occ || 'Vacant'}
+                  </div>
+                </div>
+                <div className={`text-xs whitespace-nowrap ${space.status === 'occupied' ? 'text-gray-300' : 'text-gray-400'}`}>
+                  {fmtAud(space.monthlyRate)}/mo
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

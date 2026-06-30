@@ -1,5 +1,123 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Hexa Space brand system — used by the member portal (src/portal/*).
+   Mirrors the marketing site (hexaspace.com.au): Rework Micro headings,
+   Big Daily Short display serif, GT America body, ink/paper/bone/hexa-green.
+   Additive only — the admin app keeps its existing default-Tailwind look.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'Rework Micro';
+  src: url('/fonts/ReworkMicro-Semibold.otf') format('opentype');
+  font-weight: 400 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Big Daily Short';
+  src: url('/fonts/BigDailyShort-ExtraLight.otf') format('opentype');
+  font-weight: 200 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'GT America';
+  src: url('/fonts/GT-America-Standard-Thin.otf') format('opentype');
+  font-weight: 200 400; font-style: normal; font-display: swap;
+}
+
+@theme {
+  --color-ink: #000000;
+  --color-paper: #ffffff;
+  --color-hexa-green: #7F8B2F;
+  --color-hexa-grey: #EFEDF2;
+  --color-bone: #F6F5F1;
+  --color-stone: #E8E6E0;
+  --color-charcoal: #161614;
+  --color-muted: #6B6B66;
+
+  --font-display: 'Big Daily Short', 'Times New Roman', serif;
+  --font-heading: 'Rework Micro', Arial, sans-serif;
+  --font-body: 'GT America', Arial, sans-serif;
+
+  --tracking-nav: 0.18em;
+  --tracking-label: 0.24em;
+
+  --ease-lux: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Portal brand utility classes (mirror the website's globals.css) ───────── */
+.hx-eyebrow {
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+.hx-h {
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  font-size: clamp(1.4rem, 2.6vw, 2.1rem);
+  color: var(--color-ink);
+}
+.hx-display {
+  font-family: var(--font-display);
+  font-weight: 200;
+  line-height: 1.02;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  color: var(--color-ink);
+}
+.hx-lead {
+  font-family: var(--font-display);
+  font-weight: 200;
+  line-height: 1.3;
+  font-size: clamp(1.15rem, 2vw, 1.6rem);
+  color: var(--color-charcoal);
+}
+.hx-prose {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--color-muted);
+}
+.hx-label {
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 11px;
+}
+/* Quiet-luxury button — outline that fills on hover */
+.hx-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
+  font-family: var(--font-heading); text-transform: uppercase;
+  letter-spacing: 0.18em; font-size: 11px;
+  padding: 0.85rem 1.8rem; border: 1px solid var(--color-ink); color: var(--color-ink);
+  background: transparent; cursor: pointer;
+  transition: background-color .5s var(--ease-lux), color .5s var(--ease-lux);
+}
+.hx-btn:hover { background: var(--color-ink); color: var(--color-paper); }
+.hx-btn-light { border-color: var(--color-paper); color: var(--color-paper); }
+.hx-btn-light:hover { background: var(--color-paper); color: var(--color-ink); }
+.hx-btn-ghost {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-family: var(--font-heading); text-transform: uppercase;
+  letter-spacing: 0.18em; font-size: 11px; color: var(--color-ink);
+  border-bottom: 1px solid rgba(0,0,0,.3); padding-bottom: 2px;
+  background: transparent; cursor: pointer;
+  transition: border-color .5s var(--ease-lux);
+}
+.hx-btn-ghost:hover { border-color: var(--color-ink); }
+/* Card surface */
+.hx-card { background: var(--color-paper); border: 1px solid rgba(0,0,0,.10); }
+.hx-input {
+  width: 100%; border: 1px solid rgba(0,0,0,.18); background: var(--color-paper);
+  padding: 0.6rem 0.85rem; font-family: var(--font-body); font-size: 14px; color: var(--color-ink);
+  outline: none; transition: border-color .3s var(--ease-lux);
+}
+.hx-input:focus { border-color: var(--color-hexa-green); }
+.hx-rise { animation: hx-rise 0.8s cubic-bezier(0.16,1,0.3,1) both; }
+@keyframes hx-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .hx-rise { animation: none; } }
+
 /* ── Mobile table scroll ──────────────────────────────────────────────────── */
 .table-scroll {
   overflow-x: auto;

@@ -1,158 +1,130 @@
 import { Link } from 'react-router-dom'
-import { format, parseISO } from 'date-fns'
-import { Receipt, FileText, ArrowRight, Calendar } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import { Page, Card, Eyebrow, StatusBadge, fmt, money, to12, bookingName } from './ui.jsx'
 
 function calcTotal(invoice) {
-  let taxable = 0
-  let exempt = 0
+  let taxable = 0, exempt = 0
   for (const li of invoice.lineItems ?? []) {
     const price = (li.unitPrice ?? 0) * (li.qty ?? 1)
     const disc = price * ((li.discountPct ?? 0) / 100)
-    if (li.vatExempt) exempt += price - disc
-    else taxable += price - disc
+    if (li.vatExempt) exempt += price - disc; else taxable += price - disc
   }
   const gst = invoice.vatEnabled ? taxable * 0.1 : 0
   return taxable + exempt + gst
 }
 
-function StatusBadge({ status }) {
-  const cls = {
-    paid: 'bg-green-50 text-green-700 border-green-200',
-    pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    overdue: 'bg-red-50 text-red-700 border-red-200',
-    voided: 'bg-gray-100 text-gray-500 border-gray-200',
-    draft: 'bg-gray-100 text-gray-500 border-gray-200',
-  }
-  return (
-    <span className={`text-xs font-semibold px-2 py-0.5 rounded border capitalize ${cls[status] ?? cls.draft}`}>
-      {status}
-    </span>
-  )
-}
-
-function fmt(dateStr) {
-  try { return format(parseISO(dateStr), 'dd/MM/yyyy') } catch { return '—' }
-}
-
-export default function PortalDashboard({ tenant, invoices, leases }) {
+export default function PortalDashboard({ data }) {
+  const { company, member, leases, invoices, bookings, spaces } = data
+  const activeLeases = leases.filter(l => l.status === 'active')
   const sorted = [...invoices].sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate))
   const recent = sorted.slice(0, 4)
-  const activeLeases = leases.filter(l => l.status === 'active')
-  const overdueCount = invoices.filter(i => i.status === 'overdue').length
-  const pendingCount = invoices.filter(i => i.status === 'pending').length
+  const nextDue = invoices
+    .filter(i => i.status === 'pending' || i.status === 'overdue')
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0]
+  const todayStr = new Date().toISOString().split('T')[0]
+  const upcoming = [...bookings]
+    .filter(b => b.date && b.date >= todayStr && b.status !== 'Cancelled')
+    .sort((a, b) => (a.date + (a.startTime || '')).localeCompare(b.date + (b.startTime || '')))
+    .slice(0, 3)
+  const credits = member?.credits
+
+  const who = (member?.name || company?.contactName || company?.businessName || '').split(' ')[0]
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <Page>
       {/* Hero */}
-      <div className="bg-black text-white rounded-xl px-8 py-10">
-        <p className="text-sm text-gray-400 mb-1">Welcome back</p>
-        <h1 className="text-2xl font-bold">{tenant.businessName}</h1>
-        <p className="text-gray-500 text-sm mt-2">build locally, scale sustainably</p>
+      <div className="bg-charcoal text-paper px-8 md:px-12 py-12 md:py-16">
+        <p className="hx-eyebrow text-paper/50">Welcome back{who ? `, ${who}` : ''}</p>
+        <h1 className="hx-display text-paper mt-4">{company?.businessName}</h1>
+        <p className="font-display font-extralight text-xl text-paper/70 mt-4">Your space, beautifully serviced.</p>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Active Contracts</div>
-          <div className="text-3xl font-black text-gray-900">{activeLeases.length}</div>
-          {activeLeases[0]?.endDate && (
-            <div className="text-xs text-gray-400 mt-1">
-              Expires {fmt(activeLeases[0].endDate)}
-            </div>
-          )}
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Pending</div>
-          <div className="text-3xl font-black text-gray-900">{pendingCount}</div>
-          <div className="text-xs text-gray-400 mt-1">invoices awaiting payment</div>
-        </div>
-        <div className={`rounded-lg border p-4 ${overdueCount > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
-          <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Overdue</div>
-          <div className={`text-3xl font-black ${overdueCount > 0 ? 'text-red-600' : 'text-gray-900'}`}>
-            {overdueCount}
-          </div>
-          {overdueCount > 0 && (
-            <Link to="/billing" className="text-xs text-red-600 hover:underline mt-1 block">
-              View invoices →
-            </Link>
-          )}
-        </div>
+      {/* Stats */}
+      <div className="grid sm:grid-cols-3 gap-px bg-ink/10 mt-px">
+        <Card className="p-7">
+          <Eyebrow>Membership</Eyebrow>
+          <div className="hx-display text-3xl mt-3">{activeLeases.length || '—'}</div>
+          <p className="hx-prose mt-1">
+            {activeLeases.length === 1 ? 'active agreement' : 'active agreements'}
+            {activeLeases[0]?.endDate ? ` · to ${fmt(activeLeases[0].endDate)}` : ''}
+          </p>
+        </Card>
+        <Card className="p-7">
+          <Eyebrow>Next invoice</Eyebrow>
+          <div className="hx-display text-3xl mt-3">{nextDue ? money(calcTotal(nextDue)) : '—'}</div>
+          <p className="hx-prose mt-1">{nextDue ? `due ${fmt(nextDue.dueDate)}` : 'nothing outstanding'}</p>
+        </Card>
+        <Card className="p-7">
+          <Eyebrow>Allowance</Eyebrow>
+          <div className="hx-display text-3xl mt-3">{credits != null ? credits : '—'}</div>
+          <p className="hx-prose mt-1">{credits != null ? 'credits remaining' : 'no credits on file'}</p>
+        </Card>
       </div>
 
       {/* Recent invoices */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-            <Receipt size={15} className="text-gray-400" />
-            Recent Invoices
-          </div>
-          <Link to="/billing" className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700">
-            View all <ArrowRight size={12} />
-          </Link>
+      <div className="mt-10">
+        <div className="flex items-center justify-between mb-4">
+          <Eyebrow>Recent invoices</Eyebrow>
+          <Link to="/billing" className="hx-btn-ghost">View all <ArrowRight size={12} /></Link>
         </div>
-        {recent.length === 0 ? (
-          <div className="px-5 py-8 text-sm text-gray-400 text-center">No invoices yet.</div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {recent.map(inv => (
-              <div key={inv.id} className="flex items-center justify-between px-5 py-3">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{inv.number}</div>
-                  <div className="text-xs text-gray-400">
-                    Due {inv.dueDate ? fmt(inv.dueDate) : '—'}
+        <Card>
+          {recent.length === 0 ? (
+            <div className="px-6 py-10 text-center hx-prose">No invoices yet.</div>
+          ) : (
+            <div className="divide-y divide-ink/5">
+              {recent.map(inv => (
+                <div key={inv.id} className="flex items-center justify-between px-6 py-4">
+                  <div>
+                    <div className="font-heading uppercase tracking-nav text-[11px] text-ink">{inv.number}</div>
+                    <div className="hx-prose text-[13px]">Due {fmt(inv.dueDate)}</div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="font-display font-extralight text-xl">{money(calcTotal(inv))}</span>
+                    <StatusBadge status={inv.status} />
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-gray-900">
-                    A${calcTotal(inv).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                  <StatusBadge status={inv.status} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
 
-      {/* Active contracts */}
-      {activeLeases.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 text-sm font-semibold text-gray-900">
-            <FileText size={15} className="text-gray-400" />
-            Active Contracts
-          </div>
-          <div className="divide-y divide-gray-100">
-            {activeLeases.map(lease => (
-              <div key={lease.id} className="flex items-center justify-between px-5 py-3">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{lease.contractNumber ?? lease.id}</div>
-                  <div className="text-xs text-gray-400">
-                    {lease.startDate ? fmt(lease.startDate) : '—'} → {lease.endDate ? fmt(lease.endDate) : 'ongoing'}
+      {/* Upcoming bookings + quick links */}
+      <div className="grid md:grid-cols-2 gap-6 mt-10">
+        <div>
+          <Eyebrow className="mb-4">Upcoming bookings</Eyebrow>
+          <Card>
+            {upcoming.length === 0 ? (
+              <div className="px-6 py-10 text-center hx-prose">No upcoming bookings.</div>
+            ) : (
+              <div className="divide-y divide-ink/5">
+                {upcoming.map((b, i) => (
+                  <div key={b.id ?? i} className="px-6 py-4">
+                    <div className="font-heading uppercase tracking-nav text-[11px] text-ink">{bookingName(spaces, b)}</div>
+                    <div className="hx-prose text-[13px]">{fmt(b.date)}{b.startTime ? ` · ${to12(b.startTime)}` : ''}</div>
                   </div>
-                </div>
-                <div className="text-sm font-semibold text-gray-900">
-                  A${Number(lease.monthlyRent ?? 0).toLocaleString('en-AU')}/mo
-                </div>
+                ))}
               </div>
+            )}
+          </Card>
+        </div>
+        <div>
+          <Eyebrow className="mb-4">Quick links</Eyebrow>
+          <div className="grid grid-cols-2 gap-px bg-ink/10">
+            {[
+              { to: '/meeting-rooms', label: 'Book a room' },
+              { to: '/studios', label: 'Studios' },
+              { to: '/messages', label: 'Message us' },
+              { to: '/events', label: 'Events' },
+            ].map(q => (
+              <Link key={q.to} to={q.to} className="hx-card p-6 hover:bg-bone transition-colors">
+                <span className="font-heading uppercase tracking-nav text-[11px] text-ink">{q.label}</span>
+                <ArrowRight size={13} className="mt-3 text-hexa-green" />
+              </Link>
             ))}
           </div>
         </div>
-      )}
-
-      {/* Quick links */}
-      <div className="grid grid-cols-2 gap-4">
-        <Link to="/messages" className="bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-colors">
-          <div className="text-sm font-semibold text-gray-900 mb-1">Send a Message</div>
-          <div className="text-xs text-gray-400">Contact the Hexa Space team</div>
-        </Link>
-        <Link to="/events" className="bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-colors">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-1">
-            <Calendar size={14} />
-            Upcoming Events
-          </div>
-          <div className="text-xs text-gray-400">Community events &amp; updates</div>
-        </Link>
       </div>
-    </div>
+    </Page>
   )
 }

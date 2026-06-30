@@ -1,285 +1,279 @@
 import { useState } from 'react'
-import { format, parseISO } from 'date-fns'
-import { jsPDF } from 'jspdf'
-import { Building2, FileText, Lock } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Lock, Plus, FileText, X, Coins } from 'lucide-react'
 import { supabase } from '../lib/supabase.js'
+import { Page, PageHeader, Card, SubTabs, Segmented, StatusBadge, Empty, Eyebrow, Field, Monogram, fmt, to12, bookingName } from './ui.jsx'
 
-function fmt(dateStr) {
-  try { return format(parseISO(dateStr), 'dd/MM/yyyy') } catch { return '—' }
-}
+// ── Profile ──────────────────────────────────────────────────────────────────
+function ProfileTab({ company, member }) {
+  const [form, setForm] = useState({
+    name: member?.name ?? '', phone: member?.phone ?? '', bio: member?.bio ?? '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState(null)
 
-function Field({ label, value }) {
+  async function save(e) {
+    e.preventDefault()
+    if (!member) return setMsg({ type: 'error', text: 'Profile editing is available to members only.' })
+    setSaving(true); setMsg(null)
+    const updated = { ...member, ...form }
+    const { error } = await supabase.from('members').upsert({ id: member.id, data: updated, updated_at: new Date().toISOString() })
+    setSaving(false)
+    setMsg(error ? { type: 'error', text: error.message } : { type: 'success', text: 'Profile updated.' })
+  }
+
   return (
-    <div>
-      <div className="text-xs text-gray-400 mb-0.5">{label}</div>
-      <div className="text-sm text-gray-900">{value || '—'}</div>
+    <div className="space-y-8 max-w-2xl">
+      <form onSubmit={save}>
+        <Eyebrow className="mb-4">Personal</Eyebrow>
+        <Card className="p-7 space-y-5">
+          <div className="flex items-center gap-4">
+            <Monogram name={form.name || company.businessName} className="h-16 w-16" />
+            <div className="font-display font-extralight text-2xl">{form.name || '—'}</div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-5">
+            <div><label className="hx-eyebrow block mb-1.5">Name</label><input className="hx-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
+            <div><label className="hx-eyebrow block mb-1.5">Phone</label><input className="hx-input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
+          </div>
+          <div><label className="hx-eyebrow block mb-1.5">Bio</label><textarea rows={3} className="hx-input" value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} /></div>
+          <Field label="Email" value={member?.email || company.email} />
+          {msg && <div className={`text-sm px-3 py-2 border ${msg.type === 'success' ? 'text-hexa-green bg-hexa-green/5 border-hexa-green/30' : 'text-red-700 bg-red-50 border-red-200'}`}>{msg.text}</div>}
+          <button type="submit" disabled={saving} className="hx-btn disabled:opacity-50">{saving ? 'Saving…' : 'Save changes'}</button>
+        </Card>
+      </form>
+
+      <div>
+        <Eyebrow className="mb-4">Company</Eyebrow>
+        <Card className="p-7 grid sm:grid-cols-2 gap-5">
+          <Field label="Business name" value={company.businessName} />
+          <Field label="ABN" value={company.abn} />
+          <Field label="Industry" value={company.industry} />
+          <Field label="Phone" value={company.phone} />
+        </Card>
+      </div>
+
+      <ChangePassword />
     </div>
   )
 }
 
-function downloadAgreementPDF(lease, tenant) {
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-  const W = 210, M = 20
-
-  doc.setFillColor(0, 0, 0)
-  doc.rect(0, 0, W, 28, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(14)
-  doc.setTextColor(255, 255, 255)
-  doc.text('HEXA SPACE', M, 12)
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(180, 180, 180)
-  doc.text('Hexa Space Pty Ltd  ·  Level 4, 830 Whitehorse Road, Box Hill VIC 3128', M, 19)
-  doc.text('info@hexaspace.com.au  ·  hexaspace.com.au', M, 24)
-
-  doc.setFontSize(18)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(20, 20, 20)
-  doc.text('Licence Agreement Summary', M, 46)
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(100, 100, 100)
-  doc.text(lease.contractNumber ?? 'Contract', M, 54)
-
-  let y = 68
-  const row = (label, value, bold = false) => {
-    doc.setFontSize(8)
-    doc.setTextColor(120, 120, 120)
-    doc.text(label, M, y)
-    doc.setTextColor(20, 20, 20)
-    doc.setFont('helvetica', bold ? 'bold' : 'normal')
-    doc.text(String(value ?? '—'), M + 50, y)
-    doc.setFont('helvetica', 'normal')
-    y += 7
-  }
-
-  doc.setFillColor(245, 245, 245)
-  doc.rect(M, y - 4, W - M * 2, 8, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(8)
-  doc.setTextColor(60, 60, 60)
-  doc.text('TENANT DETAILS', M + 2, y + 1)
-  y += 9
-
-  row('Business Name', tenant.businessName)
-  row('Contact', tenant.contactName)
-  row('ABN', tenant.abn)
-  row('Email', tenant.email)
-  y += 4
-
-  doc.setFillColor(245, 245, 245)
-  doc.rect(M, y - 4, W - M * 2, 8, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(8)
-  doc.setTextColor(60, 60, 60)
-  doc.text('CONTRACT DETAILS', M + 2, y + 1)
-  doc.setFont('helvetica', 'normal')
-  y += 9
-
-  row('Contract Number', lease.contractNumber)
-  row('Document Type', lease.documentType ?? 'Licence Agreement')
-  row('Status', (lease.status ?? '').toUpperCase(), true)
-  row('Signature', lease.signatureStatus === 'e_signed' ? 'E-Signed' : lease.signatureStatus === 'manually_signed' ? 'Manually Signed' : 'Not Signed')
-  row('Start Date', fmt(lease.startDate))
-  row('End Date', fmt(lease.endDate))
-  row('Monthly Rent', `A$${Number(lease.monthlyRent ?? 0).toLocaleString('en-AU')} + GST`)
-  row('Bond / Deposit', `A$${Number(lease.bondAmount ?? 0).toLocaleString('en-AU')}`)
-  row('Notice Period', `${lease.noticePeriodMonths ?? 2} months`)
-  y += 8
-
-  doc.setFontSize(8)
-  doc.setTextColor(120, 120, 120)
-  doc.setFont('helvetica', 'italic')
-  const note = 'This document is a summary only. For a copy of the full signed agreement, please contact info@hexaspace.com.au'
-  const lines = doc.splitTextToSize(note, W - M * 2)
-  doc.text(lines, M, y)
-
-  doc.setFillColor(0, 0, 0)
-  doc.rect(0, 287, W, 10, 'F')
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7)
-  doc.setTextColor(180, 180, 180)
-  doc.text('Hexa Space Pty Ltd  ·  build locally, scale sustainably  ·  hexaspace.com.au', W / 2, 293, { align: 'center' })
-
-  doc.save(`${lease.contractNumber ?? 'agreement'}.pdf`)
-}
-
-function ChangePasswordSection() {
+function ChangePassword() {
   const [form, setForm] = useState({ password: '', confirm: '' })
   const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState(null) // { type: 'success'|'error', text }
-
-  async function handleSubmit(e) {
+  const [msg, setMsg] = useState(null)
+  async function submit(e) {
     e.preventDefault()
     if (form.password.length < 8) return setMsg({ type: 'error', text: 'Password must be at least 8 characters.' })
     if (form.password !== form.confirm) return setMsg({ type: 'error', text: 'Passwords do not match.' })
-    setSaving(true)
-    setMsg(null)
+    setSaving(true); setMsg(null)
     const { error } = await supabase.auth.updateUser({ password: form.password })
-    if (error) setMsg({ type: 'error', text: error.message })
-    else { setMsg({ type: 'success', text: 'Password updated successfully.' }); setForm({ password: '', confirm: '' }) }
     setSaving(false)
+    if (error) setMsg({ type: 'error', text: error.message })
+    else { setMsg({ type: 'success', text: 'Password updated.' }); setForm({ password: '', confirm: '' }) }
   }
-
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-      <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 text-sm font-semibold text-gray-900">
-        <Lock size={15} className="text-gray-400" />
-        Change Password
-      </div>
-      <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4 max-w-sm">
-        {msg && (
-          <div className={`text-sm rounded px-3 py-2 ${msg.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-            {msg.text}
-          </div>
-        )}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">New Password</label>
-          <input
-            type="password"
-            value={form.password}
-            onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-            required
-            minLength={8}
-            placeholder="At least 8 characters"
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
-          <input
-            type="password"
-            value={form.confirm}
-            onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))}
-            required
-            placeholder="Repeat your password"
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={saving}
-          className="bg-black text-white text-sm font-semibold px-4 py-2 rounded hover:bg-gray-800 disabled:opacity-50"
-        >
-          {saving ? 'Saving…' : 'Update Password'}
-        </button>
-      </form>
+    <div>
+      <Eyebrow className="mb-4">Security</Eyebrow>
+      <Card className="p-7">
+        <div className="flex items-center gap-2 mb-5"><Lock size={15} className="text-muted" /><span className="font-heading uppercase tracking-nav text-[11px]">Change password</span></div>
+        <form onSubmit={submit} className="space-y-4 max-w-sm">
+          {msg && <div className={`text-sm px-3 py-2 border ${msg.type === 'success' ? 'text-hexa-green bg-hexa-green/5 border-hexa-green/30' : 'text-red-700 bg-red-50 border-red-200'}`}>{msg.text}</div>}
+          <div><label className="hx-eyebrow block mb-1.5">New password</label><input type="password" className="hx-input" value={form.password} minLength={8} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required /></div>
+          <div><label className="hx-eyebrow block mb-1.5">Confirm password</label><input type="password" className="hx-input" value={form.confirm} onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))} required /></div>
+          <button type="submit" disabled={saving} className="hx-btn disabled:opacity-50">{saving ? 'Saving…' : 'Update password'}</button>
+        </form>
+      </Card>
     </div>
   )
 }
 
-export default function PortalAccount({ tenant, leases }) {
-  const activeLeases = leases.filter(l => l.status === 'active')
-  const pastLeases = leases.filter(l => l.status !== 'active')
+// ── Team Members ─────────────────────────────────────────────────────────────
+function TeamTab({ company, members }) {
+  const team = members.filter(m => m.companyId === company.id).sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  const [adding, setAdding] = useState(false)
+  const [form, setForm] = useState({ name: '', email: '' })
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  async function invite(e) {
+    e.preventDefault()
+    setBusy(true); setMsg(null)
+    try {
+      const id = `m${Date.now()}`
+      const record = { id, name: form.name, email: form.email, companyId: company.id, status: 'invited', portalAccess: true, createdAt: new Date().toISOString().split('T')[0] }
+      await supabase.from('members').upsert({ id, data: record, updated_at: new Date().toISOString() })
+      const res = await fetch('/api/auth/invite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.email }) })
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}))
+        throw new Error(b.error || 'Invite email could not be sent (will work once deployed).')
+      }
+      setMsg({ type: 'success', text: `Invitation sent to ${form.email}.` })
+      setForm({ name: '', email: '' }); setAdding(false)
+    } catch (err) {
+      setMsg({ type: 'error', text: err.message })
+    } finally { setBusy(false) }
+  }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
-      <h1 className="text-xl font-bold text-gray-900">Account</h1>
-
-      {/* Company info */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 text-sm font-semibold text-gray-900">
-          <Building2 size={15} className="text-gray-400" />
-          Company Information
-        </div>
-        <div className="px-5 py-5 grid grid-cols-2 gap-5">
-          <Field label="Business Name" value={tenant.businessName} />
-          <Field label="ABN" value={tenant.abn} />
-          <Field label="Contact Name" value={tenant.contactName} />
-          <Field label="Industry" value={tenant.industry} />
-          <Field label="Email" value={tenant.email} />
-          <Field label="Phone" value={tenant.phone} />
-        </div>
-        <div className="px-5 pb-4 border-t border-gray-50">
-          <p className="text-xs text-gray-400 mt-4">
-            To update your company details, please contact{' '}
-            <a href="mailto:info@hexaspace.com.au" className="text-gray-600 hover:underline">
-              info@hexaspace.com.au
-            </a>
-          </p>
-        </div>
+    <div className="max-w-3xl space-y-5">
+      {msg && <div className={`text-sm px-3 py-2 border ${msg.type === 'success' ? 'text-hexa-green bg-hexa-green/5 border-hexa-green/30' : 'text-amber-700 bg-amber-50 border-amber-200'}`}>{msg.text}</div>}
+      <div className="flex items-center justify-between">
+        <Eyebrow>{team.length} team {team.length === 1 ? 'member' : 'members'}</Eyebrow>
+        {!adding && <button onClick={() => setAdding(true)} className="hx-btn inline-flex"><Plus size={13} /> Add member</button>}
       </div>
 
-      {/* Active contracts */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 text-sm font-semibold text-gray-900">
-          <FileText size={15} className="text-gray-400" />
-          Active Agreements
-        </div>
-        {activeLeases.length === 0 ? (
-          <div className="px-5 py-8 text-sm text-gray-400 text-center">No active agreements.</div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {activeLeases.map(lease => (
-              <div key={lease.id} className="px-5 py-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-semibold text-gray-900 text-sm">{lease.contractNumber ?? 'Contract'}</span>
-                      <span className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded font-medium">Active</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 text-xs">
-                      <div>
-                        <div className="text-gray-400 mb-0.5">Start Date</div>
-                        <div className="text-gray-900">{fmt(lease.startDate)}</div>
-                      </div>
-                      <div>
-                        <div className="text-gray-400 mb-0.5">End Date</div>
-                        <div className="text-gray-900">{fmt(lease.endDate)}</div>
-                      </div>
-                      <div>
-                        <div className="text-gray-400 mb-0.5">Monthly Rent</div>
-                        <div className="text-gray-900 font-semibold">
-                          A${Number(lease.monthlyRent ?? 0).toLocaleString('en-AU')}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => downloadAgreementPDF(lease, tenant)}
-                    className="shrink-0 text-xs font-medium px-3 py-1.5 rounded border border-gray-300 hover:bg-gray-50 text-gray-700 flex items-center gap-1.5"
-                  >
-                    <FileText size={12} /> Download
-                  </button>
+      {adding && (
+        <Card className="p-6">
+          <form onSubmit={invite} className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
+            <div><label className="hx-eyebrow block mb-1.5">Name</label><input className="hx-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required /></div>
+            <div><label className="hx-eyebrow block mb-1.5">Email</label><input type="email" className="hx-input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required /></div>
+            <button type="submit" disabled={busy} className="hx-btn disabled:opacity-50">{busy ? 'Sending…' : 'Invite'}</button>
+          </form>
+          <p className="hx-prose text-[12px] mt-3">They'll receive an email to set their password and access the portal.</p>
+        </Card>
+      )}
+
+      {team.length === 0 ? <Empty label="No team members yet." /> : (
+        <Card className="overflow-hidden">
+          <div className="divide-y divide-ink/5">
+            {team.map(m => (
+              <div key={m.id} className="flex items-center gap-4 px-5 py-4">
+                <Monogram name={m.name} className="h-10 w-10 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-heading uppercase tracking-nav text-[11px] text-ink truncate">{m.name}</div>
+                  <div className="hx-prose text-[13px] truncate">{m.email}</div>
                 </div>
+                <StatusBadge status={m.status === 'invited' ? 'pending' : 'active'} />
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </Card>
+      )}
+    </div>
+  )
+}
 
-      {/* Past contracts */}
-      {pastLeases.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 text-sm font-semibold text-gray-900">
-            <FileText size={15} className="text-gray-400" />
-            Past Agreements
-          </div>
-          <div className="divide-y divide-gray-100">
-            {pastLeases.map(lease => (
-              <div key={lease.id} className="px-5 py-3 flex items-center justify-between">
+// ── Bookings ─────────────────────────────────────────────────────────────────
+function BookingsTab({ bookings, spaces }) {
+  const [when, setWhen] = useState('upcoming')
+  const todayStr = new Date().toISOString().split('T')[0]
+  const list = [...bookings]
+    .filter(b => b.date && (when === 'upcoming' ? b.date >= todayStr : b.date < todayStr))
+    .sort((a, b) => (a.date + (a.startTime || '')).localeCompare(b.date + (b.startTime || '')) * (when === 'upcoming' ? 1 : -1))
+  return (
+    <div className="max-w-3xl space-y-5">
+      <Segmented options={[{ key: 'upcoming', label: 'Upcoming' }, { key: 'past', label: 'Past' }]} active={when} onChange={setWhen} />
+      {list.length === 0 ? <Empty label="No bookings to show." /> : (
+        <Card className="overflow-hidden">
+          <div className="divide-y divide-ink/5">
+            {list.map((b, i) => (
+              <div key={b.id ?? i} className="flex items-center justify-between px-5 py-4">
                 <div>
-                  <div className="text-sm font-medium text-gray-700">{lease.contractNumber ?? 'Contract'}</div>
-                  <div className="text-xs text-gray-400">{fmt(lease.startDate)} – {fmt(lease.endDate)}</div>
+                  <div className="font-heading uppercase tracking-nav text-[11px] text-ink">{bookingName(spaces, b)}</div>
+                  <div className="hx-prose text-[13px]">{fmt(b.date)}{b.startTime ? ` · ${to12(b.startTime)}${b.endTime ? `–${to12(b.endTime)}` : ''}` : ''}</div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400 capitalize border border-gray-200 px-2 py-0.5 rounded">{lease.status}</span>
-                  <button
-                    onClick={() => downloadAgreementPDF(lease, tenant)}
-                    className="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1"
-                  >
-                    <FileText size={12} /> Download
-                  </button>
-                </div>
+                {b.status && <StatusBadge status={b.status} />}
               </div>
             ))}
+          </div>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+// ── Allowance ────────────────────────────────────────────────────────────────
+function AllowanceTab({ member }) {
+  const credits = member?.credits
+  if (credits == null) return <Empty label="No allowance on file." sub="Credits included with your membership will appear here." />
+  return (
+    <div className="max-w-md">
+      <Card className="p-8 text-center">
+        <Coins size={22} className="mx-auto text-hexa-green" />
+        <div className="hx-display text-4xl mt-4">{credits}</div>
+        <p className="hx-prose mt-1">credits remaining</p>
+        <p className="hx-prose text-[12px] mt-4 border-t border-ink/10 pt-4">Applies to meeting rooms, studios and one-off services.</p>
+      </Card>
+    </div>
+  )
+}
+
+// ── Tickets ──────────────────────────────────────────────────────────────────
+function TicketsTab() {
+  return (
+    <div className="max-w-2xl">
+      <Empty label="No tickets to show." sub="Need a hand? Send us a message and we'll take care of it." />
+      <div className="mt-5"><Link to="/messages" className="hx-btn inline-flex">Submit a ticket</Link></div>
+    </div>
+  )
+}
+
+// ── Terms & Conditions ───────────────────────────────────────────────────────
+function TermsTab({ templates }) {
+  const docs = (templates ?? []).filter(t => t.type === 'terms' || t.type === 'house-rules')
+  const [view, setView] = useState(null)
+  if (docs.length === 0) return <Empty label="No documents on file." />
+  return (
+    <div className="max-w-3xl">
+      <Card className="overflow-hidden">
+        <div className="divide-y divide-ink/5">
+          {docs.map(t => (
+            <button key={t.id} onClick={() => setView(t)} className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-bone transition-colors">
+              <div className="flex items-center gap-3">
+                <FileText size={15} className="text-muted" />
+                <div>
+                  <div className="font-heading uppercase tracking-nav text-[11px] text-ink">{t.name}</div>
+                  <div className="hx-prose text-[12px]">Version {t.version} · updated {fmt(t.updatedAt)}</div>
+                </div>
+              </div>
+              <span className="hx-btn-ghost">View</span>
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {view && (
+        <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" onClick={() => setView(null)}>
+          <div className="bg-paper max-w-2xl w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-ink/10 sticky top-0 bg-paper">
+              <div>
+                <div className="font-heading uppercase tracking-nav text-[12px]">{view.name}</div>
+                <div className="hx-prose text-[12px]">Version {view.version}</div>
+              </div>
+              <button onClick={() => setView(null)} className="text-muted hover:text-ink"><X size={18} /></button>
+            </div>
+            <div className="template-html-body px-6 py-6" dangerouslySetInnerHTML={{ __html: view.content }} />
           </div>
         </div>
       )}
-
-      {/* Change password */}
-      <ChangePasswordSection />
     </div>
+  )
+}
+
+export default function PortalAccount({ data }) {
+  const { company, member, members, bookings, templates, spaces } = data
+  const [tab, setTab] = useState('profile')
+  return (
+    <Page>
+      <PageHeader kicker="Account" title="Account" />
+      <SubTabs
+        tabs={[
+          { key: 'profile', label: 'Profile' },
+          { key: 'team', label: 'Team Members' },
+          { key: 'bookings', label: 'Bookings' },
+          { key: 'allowance', label: 'Allowance' },
+          { key: 'tickets', label: 'Tickets' },
+          { key: 'terms', label: 'Terms & Conditions' },
+        ]}
+        active={tab}
+        onChange={setTab}
+      />
+      {tab === 'profile' && <ProfileTab company={company} member={member} />}
+      {tab === 'team' && <TeamTab company={company} members={members} />}
+      {tab === 'bookings' && <BookingsTab bookings={bookings} spaces={spaces} />}
+      {tab === 'allowance' && <AllowanceTab member={member} />}
+      {tab === 'tickets' && <TicketsTab />}
+      {tab === 'terms' && <TermsTab templates={templates} />}
+    </Page>
   )
 }

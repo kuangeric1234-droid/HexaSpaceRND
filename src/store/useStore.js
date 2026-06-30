@@ -65,6 +65,19 @@ const DEFAULT_SETTINGS = {
     taxRate: 10,
     multiLocationBilling: false,
   },
+  xero: {
+    // Revenue-account mapping for the Xero integration. Level 2 bills to its
+    // own accounts, separate from Level 4 & 5.
+    revenueAccounts: {
+      deposits:      'Deposit in Advance (810)',
+      membershipL45: 'L4&5 Membership Fees - Offices, Hotdesks, Virtual Offices (201)',
+      oneOffL45:     'L4&5 Membership Fees - Parking Space & Other (202)',
+      bookingL45:    'L4&5 Membership Fees - Meeting Rooms, Event Space & Media Studios (203)',
+      orderL45:      'L4&5 Membership Fees - Meeting Rooms, Event Space & Media Studios (203)',
+      membershipL2:  'L2 Membership Fees - Offices, Hotdesks, Virtual Offices (201.1)',
+      parkingL2:     'L2 Membership Fees - Parking Space & Other (202.2)',
+    },
+  },
   invoicing: {
     proration: true,
     autoGenerate: true,
@@ -257,25 +270,79 @@ const SAMPLE_TEMPLATES = [
 
 const SAMPLE_TENANTS = []
 
+// ── Private offices — generated from the real suite list ────────────────────
+// Pricing per pax: L4 external $600 / internal $500 · L2 external $500 / internal $400.
+const _OFFICE_PP = { l2: { external: 500, internal: 400 }, l4: { external: 600, internal: 500 } }
+function _office(floor, n, pax, placement) {
+  return {
+    id: `hx_${floor}_s${n}`,
+    unitNumber: `Suite ${n}`,
+    type: 'office',
+    floor,
+    pax,
+    placement,                       // 'external' | 'internal'
+    size: `${pax} pax${placement === 'internal' ? ' internal' : ''}`,
+    monthlyRate: pax * _OFFICE_PP[floor][placement],
+    status: 'vacant',
+    location: 'whitehorse',
+    address: '830 Whitehorse Rd, Box Hill',
+    attributes: '',
+  }
+}
+const _L4_OFFICES = [
+  _office('l4', 1, 8, 'external'), _office('l4', 2, 5, 'external'), _office('l4', 3, 2, 'external'), _office('l4', 4, 6, 'external'),
+  ...[5, 6, 7, 8, 9, 10].map((n) => _office('l4', n, 4, 'external')),
+  _office('l4', 11, 8, 'external'), _office('l4', 12, 11, 'external'), _office('l4', 13, 11, 'external'),
+  _office('l4', 14, 4, 'internal'), _office('l4', 15, 4, 'internal'),
+]
+const _L2_OFFICES = [
+  _office('l2', 1, 5, 'external'), _office('l2', 2, 5, 'external'),
+  ...[3, 4, 5, 6, 7, 8].map((n) => _office('l2', n, 4, 'external')),
+  ...[9, 10, 11, 12, 13, 14, 15, 16].map((n) => _office('l2', n, 5, 'external')),
+  _office('l2', 17, 3, 'external'), _office('l2', 18, 3, 'external'),
+  ...[19, 20, 21, 22].map((n) => _office('l2', n, 2, 'internal')),
+  ...[23, 24, 25].map((n) => _office('l2', n, 6, 'internal')),
+  _office('l2', 27, 3, 'internal'),
+  _office('l2', 28, 3, 'internal'),
+  _office('l2', 29, 1, 'internal'),
+]
+
 const SAMPLE_SPACES = [
-  // ── Hexa Space — Box Hill (pin onto Level 2/4/5 in the Plan view) ─────────
-  { id: 'hx_off_1pax',   unitNumber: '1 Pax',        type: 'office',  size: '1 desk',  monthlyRate: 700,   status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '1 person internal private office.' },
-  { id: 'hx_off_2pax',   unitNumber: '2 Pax',        type: 'office',  size: '2 pax',   monthlyRate: 1800,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '2 person external private office.' },
-  { id: 'hx_off_4pax_e', unitNumber: '4 Pax Ext',    type: 'office',  size: '4 pax',   monthlyRate: 2800,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '4 person external private office.' },
-  { id: 'hx_off_4pax_i', unitNumber: '4 Pax Int',    type: 'office',  size: '4 pax',   monthlyRate: 2800,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '4 person internal private office.' },
-  { id: 'hx_off_5pax',   unitNumber: '5 Pax',        type: 'office',  size: '5 pax',   monthlyRate: 4500,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '5 person external private office.' },
-  { id: 'hx_off_6pax',   unitNumber: '6 Pax',        type: 'office',  size: '6 pax',   monthlyRate: 5400,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '6 person external private office.' },
-  { id: 'hx_off_8pax',   unitNumber: '8 Pax',        type: 'office',  size: '8 pax',   monthlyRate: 7200,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '8 person external private office.' },
-  { id: 'hx_suite_12',   unitNumber: '12 Pax Suite', type: 'office',  size: '12 pax',  monthlyRate: 10800, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '12 person external suite.' },
-  { id: 'hx_suite_26',   unitNumber: '26 Pax Ent',   type: 'office',  size: '26 pax',  monthlyRate: 20000, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '26 person enterprise suite.' },
-  { id: 'hx_mr_sky',     unitNumber: 'Sky',          type: 'meeting', size: 'Up to 4',  monthlyRate: 0, hourlyRate: 20,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'Sky (Tian) consulting room · $20/hr · up to 4.' },
-  { id: 'hx_mr_earth',   unitNumber: 'Earth',        type: 'meeting', size: 'Up to 4',  monthlyRate: 0, hourlyRate: 20,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'Earth (Di) · $20/hr · up to 4.' },
-  { id: 'hx_mr_north',   unitNumber: 'North',        type: 'meeting', size: 'Up to 8',  monthlyRate: 0, hourlyRate: 60,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'North (Bei) · $60/hr · up to 8.' },
-  { id: 'hx_mr_south',   unitNumber: 'South',        type: 'meeting', size: 'Up to 4',  monthlyRate: 0, hourlyRate: 60,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'South (Nan) · $60/hr · up to 4.' },
-  { id: 'hx_mr_east',    unitNumber: 'East',         type: 'meeting', size: 'Up to 6',  monthlyRate: 0, hourlyRate: 80,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'East (Dong) Chinese tearoom · $80/hr · up to 6.' },
-  { id: 'hx_mr_west',    unitNumber: 'West',         type: 'meeting', size: 'Up to 8',  monthlyRate: 0, hourlyRate: 80,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'West (Xi) · $80/hr · up to 8.' },
-  { id: 'hx_mr_central', unitNumber: 'Central',      type: 'meeting', size: 'Up to 14', monthlyRate: 0, hourlyRate: 80,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'Central (Zhong) · $80/hr · up to 14.' },
-  { id: 'hx_func',       unitNumber: 'Function',     type: 'meeting', size: '20–100',   monthlyRate: 0, hourlyRate: 250, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'Hexa Function Space · $250/hr · 20–100 guests.' },
+  // ── Private Offices — Level 4 (Suites 1–15) & Level 2 (Suites 1–27) ────────
+  ..._L4_OFFICES,
+  ..._L2_OFFICES,
+  // ── Meeting Rooms (Level 4) ────────────────────────────────────────────────
+  { id: 'hx_mr_sky',     unitNumber: 'Sky',          type: 'meeting', size: 'Up to 4',  monthlyRate: 0, hourlyRate: 20,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: 'Sky (Tian) consulting room · $20/hr · up to 4.' },
+  { id: 'hx_mr_earth',   unitNumber: 'Earth',        type: 'meeting', size: 'Up to 4',  monthlyRate: 0, hourlyRate: 20,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: 'Earth (Di) · $20/hr · up to 4.' },
+  { id: 'hx_mr_north',   unitNumber: 'North',        type: 'meeting', size: 'Up to 8',  monthlyRate: 0, hourlyRate: 60,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: 'North (Bei) · $60/hr · up to 8.' },
+  { id: 'hx_mr_south',   unitNumber: 'South',        type: 'meeting', size: 'Up to 4',  monthlyRate: 0, hourlyRate: 60,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: 'South (Nan) · $60/hr · up to 4.' },
+  { id: 'hx_mr_east',    unitNumber: 'East',         type: 'meeting', size: 'Up to 6',  monthlyRate: 0, hourlyRate: 80,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: 'East (Dong) Chinese tearoom · $80/hr · up to 6.' },
+  { id: 'hx_mr_west',    unitNumber: 'West',         type: 'meeting', size: 'Up to 8',  monthlyRate: 0, hourlyRate: 80,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: 'West (Xi) · $80/hr · up to 8.' },
+  { id: 'hx_mr_central', unitNumber: 'Central',      type: 'meeting', size: 'Up to 14', monthlyRate: 0, hourlyRate: 80,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: 'Central (Zhong) · $80/hr · up to 14.' },
+  { id: 'hx_func',       unitNumber: 'Function',     type: 'meeting', size: '20–100',   monthlyRate: 0, hourlyRate: 250, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: 'Hexa Function Space · $250/hr · 20–100 guests.' },
+
+  // ── Media Studios & Podcast (Level 5) ──────────────────────────────────────
+  { id: 'hx_studio_1',  unitNumber: 'Media Studio 1', type: 'studio',  size: '90 m²', monthlyRate: 0, rate: 120, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l5', attributes: 'Green-screen photography & video studio.' },
+  { id: 'hx_studio_2',  unitNumber: 'Media Studio 2', type: 'studio',  size: '60 m²', monthlyRate: 0, rate: 100, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l5', attributes: 'Content / livestream studio.' },
+  { id: 'hx_podcast_1', unitNumber: 'Podcast Room 1', type: 'podcast', size: '4 seats', monthlyRate: 0, rate: 80, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l5', attributes: 'Acoustically treated 4-mic podcast booth.' },
+
+  // ── Parking Slots (Level 2 / basement) ─────────────────────────────────────
+  { id: 'hx_park_1', unitNumber: 'P1', type: 'parking', monthlyRate: 0, rate: 300, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l2', attributes: '' },
+  { id: 'hx_park_2', unitNumber: 'P2', type: 'parking', monthlyRate: 0, rate: 300, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l2', attributes: '' },
+  { id: 'hx_park_3', unitNumber: 'P3', type: 'parking', monthlyRate: 0, rate: 300, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l2', attributes: '' },
+  { id: 'hx_park_4', unitNumber: 'P4', type: 'parking', monthlyRate: 0, rate: 300, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l2', attributes: '' },
+
+  // ── Virtual Offices (suite numbers auto-increment from 403) ────────────────
+  { id: 'hx_vo_403', unitNumber: 'Suite 403', type: 'virtual', monthlyRate: 0, rate: 150, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: 'Virtual office — mail & business address.' },
+  { id: 'hx_vo_404', unitNumber: 'Suite 404', type: 'virtual', monthlyRate: 0, rate: 150, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: 'Virtual office — mail & business address.' },
+
+  // ── Dedicated Desks (Level 4 coworking) ────────────────────────────────────
+  { id: 'hx_desk_1', unitNumber: 'Dedicated Desk 1', type: 'desk', monthlyRate: 0, rate: 650, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: '' },
+  { id: 'hx_desk_2', unitNumber: 'Dedicated Desk 2', type: 'desk', monthlyRate: 0, rate: 650, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: '' },
+  { id: 'hx_desk_3', unitNumber: 'Dedicated Desk 3', type: 'desk', monthlyRate: 0, rate: 650, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: '' },
+  { id: 'hx_desk_4', unitNumber: 'Dedicated Desk 4', type: 'desk', monthlyRate: 0, rate: 650, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: '' },
+  { id: 'hx_desk_5', unitNumber: 'Dedicated Desk 5', type: 'desk', monthlyRate: 0, rate: 650, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: '' },
+  { id: 'hx_desk_6', unitNumber: 'Dedicated Desk 6', type: 'desk', monthlyRate: 0, rate: 650, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: '' },
 ]
 
 // Huntingdale sample data removed for the Hexa Space RND — kept out of the seed.
@@ -1389,6 +1456,19 @@ export function useStore() {
     ])
   }, [])
 
+  // ── Re-sync Spaces only ────────────────────────────────────────────────────
+  // Replaces every Spaces row with the latest Hexa Space layout (offices,
+  // meeting rooms, studios, parking, virtual offices, desks) WITHOUT touching
+  // tenants, contracts, invoices or any other table.
+  const resyncSpaces = useCallback(async () => {
+    if (!window.confirm('Replace all Spaces with the latest Hexa Space layout?\n\nOffices, meeting rooms, studios, parking, virtual offices and desks will be reset. Tenants, contracts and invoices are NOT affected.')) return
+    const { data } = await supabase.from('spaces').select('id')
+    const ids = (data ?? []).map((r) => r.id)
+    if (ids.length) await supabase.from('spaces').delete().in('id', ids)
+    await seedTable('spaces', SAMPLE_SPACES)
+    setSpaces(SAMPLE_SPACES)
+  }, [])
+
   // runAutoBillRun is now handled inside the load useEffect — kept as no-op for compatibility
   const runAutoBillRun = useCallback(() => {}, [])
 
@@ -1427,6 +1507,6 @@ export function useStore() {
     commissions, recordDealClose, updateCommission, deleteCommission,
     settings, updateSettings,
     currentUserRole, currentUserEmail,
-    resetSampleData,
+    resetSampleData, resyncSpaces,
   }
 }
