@@ -202,7 +202,6 @@ create policy "auth all documents" on documents for all to authenticated using (
 
 -- ==== esign-schema.sql ====
 -- Run this in Supabase SQL Editor
-drop policy if exists "public all" on esign_requests;
 drop table if exists esign_requests;
 
 create table esign_requests (
