@@ -553,6 +553,7 @@ export function useStore() {
   const [tenants, setTenants] = useState([])
   const [members, setMembers] = useState([])
   const [fees, setFees] = useState([])
+  const [bookings, setBookings] = useState([])
   const [spaces, setSpaces] = useState([])
   const [leases, setLeases] = useState([])
   const [templates, setTemplates] = useState([])
@@ -581,7 +582,7 @@ export function useStore() {
           { data: maintData }, { data: settData }, { data: metaData },
           { data: leadData }, { data: stageData }, { data: regData },
           { data: campData }, { data: refData }, { data: commData },
-          { data: memData }, { data: feeData },
+          { data: memData }, { data: feeData }, { data: bkData },
         ] = await Promise.all([
           supabase.from('tenants').select('data'),
           supabase.from('spaces').select('data'),
@@ -600,6 +601,7 @@ export function useStore() {
           supabase.from('commissions').select('data'),
           supabase.from('members').select('data'),
           supabase.from('fees').select('data'),
+          supabase.from('bookings').select('data'),
         ])
 
         // 'seeded' flag — once set, we NEVER fall back to sample data again
@@ -620,6 +622,7 @@ export function useStore() {
         const loadedCommissions   = commData?.length ? extractRows(commData) : []
         const loadedMembers       = memData?.length ? extractRows(memData) : []
         const loadedFees          = feeData?.length ? extractRows(feeData) : []
+        const loadedBookings      = bkData?.length ? extractRows(bkData) : []
         const loadedSettings    = settData?.[0]?.data ?? DEFAULT_SETTINGS
         const lastBillRun     = metaData?.find((m) => m.key === 'last_bill_run')?.value ?? null
 
@@ -643,6 +646,7 @@ export function useStore() {
         setTenants(loadedTenants)
         setMembers(loadedMembers)
         setFees(loadedFees)
+        setBookings(loadedBookings)
         setSpaces(loadedSpaces)
         setLeases(loadedLeases)
         setTemplates(loadedTemplates)
@@ -865,6 +869,30 @@ export function useStore() {
   const deleteFee = useCallback((id) => {
     setFees((prev) => prev.filter((x) => x.id !== id))
     deleteRow('fees', id)
+  }, [])
+
+  // ── Bookings ──────────────────────────────────────────────────────────────
+  const addBooking = useCallback((booking) => {
+    const ref = Array.from({ length: 7 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
+    const item = { reference: ref, ...booking, id: `bk${Date.now()}`, createdAt: new Date().toISOString() }
+    setBookings((prev) => [...prev, item])
+    syncRow('bookings', item.id, item)
+    logAudit('create', 'booking', item.id, item.reference)
+    return item
+  }, [])
+
+  const updateBooking = useCallback((id, updates) => {
+    setBookings((prev) => {
+      const next = prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
+      const updated = next.find((b) => b.id === id)
+      if (updated) syncRow('bookings', id, updated)
+      return next
+    })
+  }, [])
+
+  const deleteBooking = useCallback((id) => {
+    setBookings((prev) => prev.filter((x) => x.id !== id))
+    deleteRow('bookings', id)
   }, [])
 
   // ── Spaces ────────────────────────────────────────────────────────────────
@@ -1384,6 +1412,7 @@ export function useStore() {
     tenants, addTenant, updateTenant, deleteTenant,
     members, addMember, updateMember, deleteMember,
     fees, addFee, updateFee, deleteFee,
+    bookings, addBooking, updateBooking, deleteBooking,
     spaces, addSpace, updateSpace, deleteSpace,
     leases, addLease, updateLease, deleteLease,
     templates, addTemplate, updateTemplate, deleteTemplate,

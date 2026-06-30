@@ -274,3 +274,13 @@ do $$ declare t text; begin
     execute format('create policy "allow all auth" on %I for all to authenticated using (true) with check (true)', t);
   end loop;
 end $$;
+
+-- ==== bookings (added with the Bookings section) ====
+create table if not exists bookings ( id text primary key, data jsonb not null, updated_at timestamptz default now() );
+alter table bookings enable row level security;
+do $$ begin
+  execute 'drop policy if exists "allow all" on bookings';
+  execute 'drop policy if exists "allow all auth" on bookings';
+  execute 'create policy "allow all" on bookings for all to anon using (true) with check (true)';
+  execute 'create policy "allow all auth" on bookings for all to authenticated using (true) with check (true)';
+end $$;
