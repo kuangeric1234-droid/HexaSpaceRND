@@ -249,3 +249,14 @@ CREATE POLICY "authenticated_all_event_insurance"
 ON storage.objects FOR ALL TO authenticated
 USING (bucket_id = 'event-insurance')
 WITH CHECK (bucket_id = 'event-insurance');
+
+-- ==== authenticated-role policies (logged-in admin acts as 'authenticated') ====
+do $$
+declare t text;
+begin
+  foreach t in array array['tenants','spaces','leases','templates','invoices','discounts','settings','meta','leads','lead_pipeline_stages','referrers','event_bookings','maintenance','portal_messages','portal_events','audit_log','documents','email_log','esign_requests','members']
+  loop
+    execute format('drop policy if exists "allow all auth" on %I', t);
+    execute format('create policy "allow all auth" on %I for all to authenticated using (true) with check (true)', t);
+  end loop;
+end $$;

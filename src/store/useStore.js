@@ -551,6 +551,7 @@ function extractRows(data) {
 export function useStore() {
   const [loading, setLoading] = useState(true)
   const [tenants, setTenants] = useState([])
+  const [members, setMembers] = useState([])
   const [spaces, setSpaces] = useState([])
   const [leases, setLeases] = useState([])
   const [templates, setTemplates] = useState([])
@@ -579,6 +580,7 @@ export function useStore() {
           { data: maintData }, { data: settData }, { data: metaData },
           { data: leadData }, { data: stageData }, { data: regData },
           { data: campData }, { data: refData }, { data: commData },
+          { data: memData },
         ] = await Promise.all([
           supabase.from('tenants').select('data'),
           supabase.from('spaces').select('data'),
@@ -595,6 +597,7 @@ export function useStore() {
           supabase.from('campaigns').select('data'),
           supabase.from('referrers').select('data'),
           supabase.from('commissions').select('data'),
+          supabase.from('members').select('data'),
         ])
 
         // 'seeded' flag — once set, we NEVER fall back to sample data again
@@ -613,6 +616,7 @@ export function useStore() {
         const loadedCampaigns     = campData?.length ? extractRows(campData) : []
         const loadedReferrers     = refData?.length ? extractRows(refData) : []
         const loadedCommissions   = commData?.length ? extractRows(commData) : []
+        const loadedMembers       = memData?.length ? extractRows(memData) : []
         const loadedSettings    = settData?.[0]?.data ?? DEFAULT_SETTINGS
         const lastBillRun     = metaData?.find((m) => m.key === 'last_bill_run')?.value ?? null
 
@@ -634,6 +638,7 @@ export function useStore() {
         if (!stageData?.length) await seedTable('lead_pipeline_stages', DEFAULT_STAGES)
 
         setTenants(loadedTenants)
+        setMembers(loadedMembers)
         setSpaces(loadedSpaces)
         setLeases(loadedLeases)
         setTemplates(loadedTemplates)
@@ -810,6 +815,29 @@ export function useStore() {
   const deleteTenant = useCallback((id) => {
     setTenants((prev) => { const t = prev.find((x) => x.id === id); logAudit('delete', 'tenant', id, t?.businessName ?? id); return prev.filter((x) => x.id !== id) })
     deleteRow('tenants', id)
+  }, [])
+
+  // ── Members ───────────────────────────────────────────────────────────────
+  const addMember = useCallback((member) => {
+    const item = { ...member, id: `m${Date.now()}`, createdAt: new Date().toISOString().split('T')[0] }
+    setMembers((prev) => [...prev, item])
+    syncRow('members', item.id, item)
+    logAudit('create', 'member', item.id, item.name)
+    return item
+  }, [])
+
+  const updateMember = useCallback((id, updates) => {
+    setMembers((prev) => {
+      const next = prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
+      const updated = next.find((m) => m.id === id)
+      if (updated) syncRow('members', id, updated)
+      return next
+    })
+  }, [])
+
+  const deleteMember = useCallback((id) => {
+    setMembers((prev) => { const m = prev.find((x) => x.id === id); logAudit('delete', 'member', id, m?.name ?? id); return prev.filter((x) => x.id !== id) })
+    deleteRow('members', id)
   }, [])
 
   // ── Spaces ────────────────────────────────────────────────────────────────
@@ -1327,6 +1355,7 @@ export function useStore() {
   return {
     loading,
     tenants, addTenant, updateTenant, deleteTenant,
+    members, addMember, updateMember, deleteMember,
     spaces, addSpace, updateSpace, deleteSpace,
     leases, addLease, updateLease, deleteLease,
     templates, addTemplate, updateTemplate, deleteTemplate,
