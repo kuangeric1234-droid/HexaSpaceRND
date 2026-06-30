@@ -552,6 +552,7 @@ export function useStore() {
   const [loading, setLoading] = useState(true)
   const [tenants, setTenants] = useState([])
   const [members, setMembers] = useState([])
+  const [fees, setFees] = useState([])
   const [spaces, setSpaces] = useState([])
   const [leases, setLeases] = useState([])
   const [templates, setTemplates] = useState([])
@@ -580,7 +581,7 @@ export function useStore() {
           { data: maintData }, { data: settData }, { data: metaData },
           { data: leadData }, { data: stageData }, { data: regData },
           { data: campData }, { data: refData }, { data: commData },
-          { data: memData },
+          { data: memData }, { data: feeData },
         ] = await Promise.all([
           supabase.from('tenants').select('data'),
           supabase.from('spaces').select('data'),
@@ -598,6 +599,7 @@ export function useStore() {
           supabase.from('referrers').select('data'),
           supabase.from('commissions').select('data'),
           supabase.from('members').select('data'),
+          supabase.from('fees').select('data'),
         ])
 
         // 'seeded' flag — once set, we NEVER fall back to sample data again
@@ -617,6 +619,7 @@ export function useStore() {
         const loadedReferrers     = refData?.length ? extractRows(refData) : []
         const loadedCommissions   = commData?.length ? extractRows(commData) : []
         const loadedMembers       = memData?.length ? extractRows(memData) : []
+        const loadedFees          = feeData?.length ? extractRows(feeData) : []
         const loadedSettings    = settData?.[0]?.data ?? DEFAULT_SETTINGS
         const lastBillRun     = metaData?.find((m) => m.key === 'last_bill_run')?.value ?? null
 
@@ -639,6 +642,7 @@ export function useStore() {
 
         setTenants(loadedTenants)
         setMembers(loadedMembers)
+        setFees(loadedFees)
         setSpaces(loadedSpaces)
         setLeases(loadedLeases)
         setTemplates(loadedTemplates)
@@ -838,6 +842,29 @@ export function useStore() {
   const deleteMember = useCallback((id) => {
     setMembers((prev) => { const m = prev.find((x) => x.id === id); logAudit('delete', 'member', id, m?.name ?? id); return prev.filter((x) => x.id !== id) })
     deleteRow('members', id)
+  }, [])
+
+  // ── Fees ──────────────────────────────────────────────────────────────────
+  const addFee = useCallback((fee) => {
+    const item = { ...fee, id: `f${Date.now()}`, createdAt: new Date().toISOString().split('T')[0] }
+    setFees((prev) => [...prev, item])
+    syncRow('fees', item.id, item)
+    logAudit('create', 'fee', item.id, item.name)
+    return item
+  }, [])
+
+  const updateFee = useCallback((id, updates) => {
+    setFees((prev) => {
+      const next = prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
+      const updated = next.find((f) => f.id === id)
+      if (updated) syncRow('fees', id, updated)
+      return next
+    })
+  }, [])
+
+  const deleteFee = useCallback((id) => {
+    setFees((prev) => prev.filter((x) => x.id !== id))
+    deleteRow('fees', id)
   }, [])
 
   // ── Spaces ────────────────────────────────────────────────────────────────
@@ -1356,6 +1383,7 @@ export function useStore() {
     loading,
     tenants, addTenant, updateTenant, deleteTenant,
     members, addMember, updateMember, deleteMember,
+    fees, addFee, updateFee, deleteFee,
     spaces, addSpace, updateSpace, deleteSpace,
     leases, addLease, updateLease, deleteLease,
     templates, addTemplate, updateTemplate, deleteTemplate,

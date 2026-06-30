@@ -260,3 +260,17 @@ begin
     execute format('create policy "allow all auth" on %I for all to authenticated using (true) with check (true)', t);
   end loop;
 end $$;
+
+-- ==== members + fees (added with the Operations build) ====
+create table if not exists members ( id text primary key, data jsonb not null, updated_at timestamptz default now() );
+create table if not exists fees    ( id text primary key, data jsonb not null, updated_at timestamptz default now() );
+alter table members enable row level security;
+alter table fees    enable row level security;
+do $$ declare t text; begin
+  foreach t in array array['members','fees'] loop
+    execute format('drop policy if exists "allow all" on %I', t);
+    execute format('drop policy if exists "allow all auth" on %I', t);
+    execute format('create policy "allow all" on %I for all to anon using (true) with check (true)', t);
+    execute format('create policy "allow all auth" on %I for all to authenticated using (true) with check (true)', t);
+  end loop;
+end $$;
