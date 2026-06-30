@@ -4,26 +4,47 @@ import {
   LayoutDashboard, Users, Warehouse, FileText,
   RefreshCw, BookOpen, Receipt, Settings, LogOut,
   Wrench, BarChart2, Menu, X, Calendar, MessageSquare,
-  ClipboardList, Megaphone,
+  ClipboardList, Megaphone, Building2, User, Tag, DollarSign,
+  CalendarCheck, Activity,
 } from 'lucide-react'
 import { logout } from '../lib/auth.js'
 import { supabase } from '../lib/supabase.js'
 
-const nav = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/tenants', icon: Users, label: 'Tenants' },
-  { to: '/spaces', icon: Warehouse, label: 'Spaces' },
-  { to: '/leases', icon: FileText, label: 'Contracts' },
-  { to: '/billing', icon: Receipt, label: 'Billing' },
-  { to: '/renewals', icon: RefreshCw, label: 'Renewals' },
-  { to: '/maintenance', icon: Wrench, label: 'Maintenance' },
-  { to: '/reports', icon: BarChart2, label: 'Reports' },
-  { to: '/marketing', icon: Megaphone, label: 'Marketing' },
-  { to: '/messages', icon: MessageSquare, label: 'Messages' },
-  { to: '/events', icon: Calendar, label: 'Events' },
-  { to: '/event-bookings', icon: ClipboardList, label: 'Pop-up Bookings' },
-  { to: '/templates', icon: BookOpen, label: 'Templates' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+const GROUPS = [
+  { items: [{ to: '/', icon: LayoutDashboard, label: 'Dashboard' }] },
+  {
+    heading: 'Operations',
+    items: [
+      { to: '/companies', icon: Building2, label: 'Companies' },
+      { to: '/members', icon: User, label: 'Members' },
+      { to: '/leases', icon: FileText, label: 'Contracts' },
+      { to: '/memberships', icon: Tag, label: 'Memberships' },
+      { to: '/fees', icon: DollarSign, label: 'Fees' },
+      { to: '/bookings', icon: CalendarCheck, label: 'Bookings' },
+      { to: '/activity', icon: Activity, label: 'Activity Log' },
+    ],
+  },
+  {
+    heading: 'Workspace',
+    items: [
+      { to: '/spaces', icon: Warehouse, label: 'Spaces' },
+      { to: '/billing', icon: Receipt, label: 'Billing' },
+      { to: '/renewals', icon: RefreshCw, label: 'Renewals' },
+    ],
+  },
+  {
+    heading: 'More',
+    items: [
+      { to: '/maintenance', icon: Wrench, label: 'Maintenance' },
+      { to: '/reports', icon: BarChart2, label: 'Reports' },
+      { to: '/marketing', icon: Megaphone, label: 'Marketing' },
+      { to: '/messages', icon: MessageSquare, label: 'Messages' },
+      { to: '/events', icon: Calendar, label: 'Events' },
+      { to: '/event-bookings', icon: ClipboardList, label: 'Pop-up Bookings' },
+      { to: '/templates', icon: BookOpen, label: 'Templates' },
+    ],
+  },
+  { items: [{ to: '/settings', icon: Settings, label: 'Settings' }] },
 ]
 
 export default function Layout({ store, onLogout }) {
@@ -55,28 +76,37 @@ export default function Layout({ store, onLogout }) {
         </button>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {nav.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            onClick={() => setOpen(false)}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
-                isActive
-                  ? 'bg-white text-black font-semibold'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              }`
-            }
-          >
-            <Icon size={16} />
-            <span className="flex-1">{label}</span>
-            {to === '/messages' && unreadMessages > 0 && (
-              <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
-                {unreadMessages}
-              </span>
+        {GROUPS.map((group, gi) => (
+          <div key={gi} className={gi > 0 ? 'pt-4' : ''}>
+            {group.heading && (
+              <div className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+                {group.heading}
+              </div>
             )}
-          </NavLink>
+            {group.items.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
+                    isActive
+                      ? 'bg-white text-black font-semibold'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  }`
+                }
+              >
+                <Icon size={16} />
+                <span className="flex-1">{label}</span>
+                {to === '/messages' && unreadMessages > 0 && (
+                  <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
+                    {unreadMessages}
+                  </span>
+                )}
+              </NavLink>
+            ))}
+          </div>
         ))}
       </nav>
       <div className="px-5 py-4 border-t border-gray-800 text-xs text-gray-500 shrink-0">

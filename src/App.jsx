@@ -16,6 +16,11 @@ import Events from './components/Events.jsx'
 import Marketing from './components/Marketing.jsx'
 import EventBookings from './components/EventBookings.jsx'
 import AdminMessages from './components/AdminMessages.jsx'
+import Members from './components/Members.jsx'
+import Memberships from './components/Memberships.jsx'
+import Fees from './components/Fees.jsx'
+import Bookings from './components/Bookings.jsx'
+import ActivityLog from './components/ActivityLog.jsx'
 import Login from './components/Login.jsx'
 import SignPage from './components/SignPage.jsx'
 import EventBookingSignPage from './components/EventBookingSignPage.jsx'
@@ -90,7 +95,13 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Layout store={store} onLogout={() => setAuthed(false)} />}>
           <Route index element={<Dashboard />} />
+          <Route path="companies" element={<Tenants />} />
           <Route path="tenants" element={<Tenants />} />
+          <Route path="members" element={<Members />} />
+          <Route path="memberships" element={<Memberships />} />
+          <Route path="fees" element={<Fees />} />
+          <Route path="bookings" element={<Bookings />} />
+          <Route path="activity" element={<ActivityLog />} />
           <Route path="spaces" element={<Spaces />} />
           <Route path="leases" element={<Leases />} />
           <Route path="billing" element={<Billing />} />
