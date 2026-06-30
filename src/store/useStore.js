@@ -281,6 +281,25 @@ const SAMPLE_TENANTS = [
 ]
 
 const SAMPLE_SPACES = [
+  // ── Hexa Space — Box Hill (pin onto Level 2/4/5 in the Plan view) ─────────
+  { id: 'hx_off_1pax',   unitNumber: '1 Pax',        type: 'office',  size: '1 desk',  monthlyRate: 700,   status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '1 person internal private office.' },
+  { id: 'hx_off_2pax',   unitNumber: '2 Pax',        type: 'office',  size: '2 pax',   monthlyRate: 1800,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '2 person external private office.' },
+  { id: 'hx_off_4pax_e', unitNumber: '4 Pax Ext',    type: 'office',  size: '4 pax',   monthlyRate: 2800,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '4 person external private office.' },
+  { id: 'hx_off_4pax_i', unitNumber: '4 Pax Int',    type: 'office',  size: '4 pax',   monthlyRate: 2800,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '4 person internal private office.' },
+  { id: 'hx_off_5pax',   unitNumber: '5 Pax',        type: 'office',  size: '5 pax',   monthlyRate: 4500,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '5 person external private office.' },
+  { id: 'hx_off_6pax',   unitNumber: '6 Pax',        type: 'office',  size: '6 pax',   monthlyRate: 5400,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '6 person external private office.' },
+  { id: 'hx_off_8pax',   unitNumber: '8 Pax',        type: 'office',  size: '8 pax',   monthlyRate: 7200,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '8 person external private office.' },
+  { id: 'hx_suite_12',   unitNumber: '12 Pax Suite', type: 'office',  size: '12 pax',  monthlyRate: 10800, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '12 person external suite.' },
+  { id: 'hx_suite_26',   unitNumber: '26 Pax Ent',   type: 'office',  size: '26 pax',  monthlyRate: 20000, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: '26 person enterprise suite.' },
+  { id: 'hx_mr_sky',     unitNumber: 'Sky',          type: 'meeting', size: 'Up to 4',  monthlyRate: 0, hourlyRate: 20,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'Sky (Tian) consulting room · $20/hr · up to 4.' },
+  { id: 'hx_mr_earth',   unitNumber: 'Earth',        type: 'meeting', size: 'Up to 4',  monthlyRate: 0, hourlyRate: 20,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'Earth (Di) · $20/hr · up to 4.' },
+  { id: 'hx_mr_north',   unitNumber: 'North',        type: 'meeting', size: 'Up to 8',  monthlyRate: 0, hourlyRate: 60,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'North (Bei) · $60/hr · up to 8.' },
+  { id: 'hx_mr_south',   unitNumber: 'South',        type: 'meeting', size: 'Up to 4',  monthlyRate: 0, hourlyRate: 60,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'South (Nan) · $60/hr · up to 4.' },
+  { id: 'hx_mr_east',    unitNumber: 'East',         type: 'meeting', size: 'Up to 6',  monthlyRate: 0, hourlyRate: 80,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'East (Dong) Chinese tearoom · $80/hr · up to 6.' },
+  { id: 'hx_mr_west',    unitNumber: 'West',         type: 'meeting', size: 'Up to 8',  monthlyRate: 0, hourlyRate: 80,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'West (Xi) · $80/hr · up to 8.' },
+  { id: 'hx_mr_central', unitNumber: 'Central',      type: 'meeting', size: 'Up to 14', monthlyRate: 0, hourlyRate: 80,  status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'Central (Zhong) · $80/hr · up to 14.' },
+  { id: 'hx_func',       unitNumber: 'Function',     type: 'meeting', size: '20–100',   monthlyRate: 0, hourlyRate: 250, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', attributes: 'Hexa Function Space · $250/hr · 20–100 guests.' },
+
   // ── Distribution Circuit — Block B ────────────────────────────────────────
   {
     id: 'so5',

@@ -6,7 +6,7 @@ import InteractiveFloorPlan from './InteractiveFloorPlan.jsx'
 import ContractForm from './ContractForm.jsx'
 import PriceListImport from './PriceListImport.jsx'
 
-const SPACE_TYPES = ['warehouse', 'storage', 'desk', 'office', 'popup']
+const SPACE_TYPES = ['warehouse', 'storage', 'desk', 'office', 'meeting', 'popup']
 const LOCATIONS = ['huntingdale', 'lonsdale', 'whitehorse']
 const STATUSES = ['vacant', 'occupied', 'reserved']
 
@@ -33,6 +33,7 @@ const TYPE_LABEL = {
   storage: 'Storage Unit',
   desk: 'Coworking Desk',
   office: 'Private Office',
+  meeting: 'Meeting Room',
   popup: 'Pop-up / Retail Bay',
 }
 

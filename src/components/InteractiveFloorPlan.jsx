@@ -7,13 +7,9 @@ import { X, MapPin, Crosshair, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
 // record as `pos: { x, y }` (percent of image). Drop the plan image at the `src`
 // path below (a friendly placeholder shows until you do).
 const FLOORPLANS = [
-  {
-    id: 'hexa-l4',
-    label: 'Hexa Space — Level 4',
-    src: '/floorplans/hexa-l4.png',
-    location: 'whitehorse',
-    description: 'Level 4, 830 Whitehorse Road, Box Hill VIC 3128',
-  },
+  { id: 'hexa-l2', floor: 'l2', label: 'Level 2', src: '/floorplans/hexa-l2.png', location: 'whitehorse', description: '830 Whitehorse Road, Box Hill VIC 3128' },
+  { id: 'hexa-l4', floor: 'l4', label: 'Level 4', src: '/floorplans/hexa-l4.png', location: 'whitehorse', description: '830 Whitehorse Road, Box Hill VIC 3128' },
+  { id: 'hexa-l5', floor: 'l5', label: 'Level 5', src: '/floorplans/hexa-l5.png', location: 'whitehorse', description: '830 Whitehorse Road, Box Hill VIC 3128' },
 ]
 
 const ZOOM_STEPS = [0.75, 1, 1.25, 1.5, 2]
@@ -34,7 +30,9 @@ export default function InteractiveFloorPlan({ spaces, leases, tenants, updateSp
 
   const plan = FLOORPLANS.find((p) => p.id === planId)
   const planSpaces = spaces.filter((s) => (s.location || 'whitehorse') === plan.location)
-  const placed = planSpaces.filter((s) => s.pos && typeof s.pos.x === 'number')
+  // pinned to THIS floor
+  const placed = planSpaces.filter((s) => s.pos && typeof s.pos.x === 'number' && s.floor === plan.floor)
+  // not yet pinned anywhere — can be dropped onto any floor
   const unplaced = planSpaces.filter((s) => !s.pos || typeof s.pos.x !== 'number')
 
   const getActiveLease = (spaceId) => leases.find((l) => l.spaceId === spaceId && l.status === 'active')
@@ -52,7 +50,7 @@ export default function InteractiveFloorPlan({ spaces, leases, tenants, updateSp
     const rect = imgWrapRef.current.getBoundingClientRect()
     const x = ((e.clientX - rect.left) / rect.width) * 100
     const y = ((e.clientY - rect.top) / rect.height) * 100
-    updateSpace(placingId, { pos: { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 } })
+    updateSpace(placingId, { pos: { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 }, floor: plan.floor })
     setPlacingId(null)
   }
 
@@ -188,7 +186,7 @@ export default function InteractiveFloorPlan({ spaces, leases, tenants, updateSp
             </div>
           )}
           <div className="pt-3 mt-1 border-t border-gray-100">
-            <button onClick={() => { updateSpace(selected.id, { pos: null }); setSelectedId(null) }} className="text-xs text-gray-400 hover:text-red-600">Unpin from plan</button>
+            <button onClick={() => { updateSpace(selected.id, { pos: null, floor: null }); setSelectedId(null) }} className="text-xs text-gray-400 hover:text-red-600">Unpin from plan</button>
           </div>
         </div>
       )}
