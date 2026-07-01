@@ -210,29 +210,34 @@ export default function ContractDetail({
       if (y + needed > H - 15) { doc.addPage(); y = 20 }
     }
 
-      // ── Black header bar ──────────────────────────────────────
-      doc.setFillColor(0, 0, 0)
-      doc.rect(0, 0, W, 18, 'F')
-      doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255)
-      doc.text('HEXA HUB', ml, 11.5)
-      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(180, 180, 180)
-      doc.text('LICENCE AGREEMENT', mr, 11.5, { align: 'right' })
-      y = 26
-
-      // ── Contract details row ──────────────────────────────────
+      // ── Header: LICENCE AGREEMENT / HEXA SPACE (matches template) ──
       const companyName = settings?.billing?.businessName ?? settings?.company?.name ?? 'Hexa Space Pty Ltd'
       const billingAddress = settings?.billing?.address ?? 'Level 4, 830 Whitehorse Road, Box Hill VIC 3128'
-      doc.setTextColor(0); doc.setFontSize(8.5); doc.setFont('helvetica', 'normal')
-      doc.text(`Agreement:`, ml, y); doc.setFont('helvetica', 'bold'); doc.text(contractNum, ml + 22, y)
+      const addrComma = billingAddress.indexOf(',')
+      const addrLine1 = addrComma > -1 ? billingAddress.slice(0, addrComma).trim() : billingAddress
+      const addrLine2 = addrComma > -1 ? billingAddress.slice(addrComma + 1).trim() : ''
+
+      doc.setTextColor(0)
+      doc.setFontSize(15); doc.setFont('helvetica', 'bold')
+      doc.text('LICENCE AGREEMENT', ml, y)
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+      doc.text('HEXA SPACE', mr, y, { align: 'right' })
+      y += 10
+
+      // ── Agreement info (left) + Business Centre Address (right) ──
+      doc.setFontSize(8.5); doc.setFont('helvetica', 'normal')
+      const agLabel = 'Agreement ID: '
+      doc.text(agLabel, ml, y); doc.setFont('helvetica', 'bold'); doc.text(contractNum, ml + doc.getTextWidth(agLabel), y)
       doc.setFont('helvetica', 'normal')
       doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, ml, y + 5)
-      doc.setFont('helvetica', 'bold')
-      doc.text(companyName, mr, y, { align: 'right' })
+
+      doc.setFont('helvetica', 'bold'); doc.text('Business Centre Address', mr, y, { align: 'right' })
       doc.setFont('helvetica', 'normal'); doc.setTextColor(80)
-      doc.text(billingAddress, mr, y + 5, { align: 'right' })
-      doc.text('Found Huntingdale, VIC 3166', mr, y + 10, { align: 'right' })
-      y += 18
-      doc.setDrawColor(0); doc.setLineWidth(0.5); doc.setTextColor(0)
+      doc.text(addrLine1, mr, y + 5, { align: 'right' })
+      if (addrLine2) doc.text(addrLine2, mr, y + 10, { align: 'right' })
+      doc.text('Australia, Victoria', mr, y + (addrLine2 ? 15 : 10), { align: 'right' })
+      y += addrLine2 ? 22 : 17
+      doc.setDrawColor(200); doc.setLineWidth(0.3); doc.setTextColor(0)
       doc.line(ml, y, mr, y); y += 8
 
       // Company + Contact (two columns)
@@ -275,7 +280,7 @@ export default function ContractDetail({
       doc.setFillColor(20, 20, 20)
       doc.rect(ml, y - 3.5, mr - ml, 7, 'F')
       doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255)
-      doc.text('UNIT', cols.office, y + 0.5)
+      doc.text('OFFICE', cols.office, y + 0.5)
       doc.text('START DATE', cols.start, y + 0.5)
       doc.text('END DATE', cols.end, y + 0.5)
       doc.text('MONTHLY TOTAL', cols.total, y + 0.5, { align: 'right' })
@@ -315,46 +320,38 @@ export default function ContractDetail({
       const gst = Math.round(deposit * (taxRatePct / 100) * 100) / 100
       const totalInit = Math.round((deposit + gst) * 100) / 100
 
-      // ── Key Details section header ────────────────────────────
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(80)
-      doc.text('KEY DETAILS', ml, y); doc.text('INITIAL PAYMENTS', colMid + 2, y); doc.setTextColor(0)
-      doc.setDrawColor(180); doc.setLineWidth(0.3)
-      doc.line(ml, y + 2, colMid - 4, y + 2)
-      doc.line(colMid + 2, y + 2, mr, y + 2)
-      y += 7
-
+      // ── Summary: notice/dates (left) + payments (right) ───────
       const sumRows = [
-        [`Notice Period:`, `${lease.noticePeriodMonths ?? 1} month(s)`],
-        [`Start Date:`, lease.startDate ? format(parseISO(lease.startDate), 'dd/MM/yyyy') : '—'],
-        [`End Date:`, lease.endDate ? format(parseISO(lease.endDate), 'dd/MM/yyyy') : '—'],
+        ['Minimum Notice Period:', `${lease.noticePeriodMonths ?? 1} (M), 0 (W), 0 (D)`],
+        ['Start Date:', lease.startDate ? format(parseISO(lease.startDate), 'dd/MM/yyyy') : '—'],
+        ['End Date:', lease.endDate ? format(parseISO(lease.endDate), 'dd/MM/yyyy') : '—'],
       ]
       const payRows = [
-        [`Security Deposit:`, `$${deposit.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
-        [`GST (${taxRatePct}%):`, `$${gst.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
-        [`Total Due:`, `$${totalInit.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
+        ['Initial payment:', `${deposit.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
+        [`GST ${taxRatePct} %:`, `${gst.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
+        ['Total initial payment:', `${totalInit.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
+        ['Deposit', `${deposit.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
       ]
       const maxSumRows = Math.max(sumRows.length, payRows.length)
-      doc.setFontSize(8)
+      doc.setFontSize(8); doc.setTextColor(80)
       for (let i = 0; i < maxSumRows; i++) {
         checkPage()
-        if (i % 2 === 0) {
-          doc.setFillColor(248, 248, 248)
-          doc.rect(ml, y - 2, colMid - ml - 4, 7, 'F')
-          doc.rect(colMid + 2, y - 2, mr - colMid - 2, 7, 'F')
-        }
         if (sumRows[i]) {
           doc.setFont('helvetica', 'bold'); doc.text(sumRows[i][0], ml, y + 3)
           doc.setFont('helvetica', 'normal'); doc.text(sumRows[i][1], colMid - 6, y + 3, { align: 'right' })
+          doc.setDrawColor(220); doc.setLineWidth(0.2); doc.line(ml, y + 5, colMid - 4, y + 5)
         }
         if (payRows[i]) {
           doc.setFont('helvetica', 'bold'); doc.text(payRows[i][0], colMid + 2, y + 3)
           doc.setFont('helvetica', 'normal'); doc.text(payRows[i][1], mr, y + 3, { align: 'right' })
+          doc.setDrawColor(220); doc.setLineWidth(0.2); doc.line(colMid + 2, y + 5, mr, y + 5)
         }
         y += 7
       }
-      y += 6
+      doc.setTextColor(0)
+      y += 4
       doc.setFontSize(6.5); doc.setTextColor(130)
-      doc.text('* All amounts exclude GST unless otherwise stated. Minimum term subject to notice period above.', ml, y)
+      doc.text('*Minimum Term is subject to written notice from either party. Minimum notice period as specified above.', ml, y)
       y += 10; doc.setTextColor(0)
 
       // ── Signature blocks ──────────────────────────────────────
@@ -410,9 +407,9 @@ export default function ContractDetail({
       const licenseeDate = sigData?.licensee_date ?? (sigData?.licensee_signed_at ? format(parseISO(sigData.licensee_signed_at), 'dd/MM/yyyy') : '')
       const licensorDate = sigData?.licensor_signed_at ? format(parseISO(sigData.licensor_signed_at), 'dd/MM/yyyy') : ''
 
-      drawSigBlock(sigLeft, 'Licensee', tenant?.businessName ?? 'The Licensee',
+      drawSigBlock(sigLeft, 'You The Licensee', tenant?.businessName ?? 'The Licensee',
         sigData?.licensee_signer_name, sigData?.licensee_title, licenseeDate, sigData?.licensee_signature_data)
-      drawSigBlock(sigRight, 'Licensor', companyName,
+      drawSigBlock(sigRight, 'Us The Licensor', companyName,
         sigData?.licensor_signer_name, null, licensorDate, sigData?.licensor_signature_data)
 
       y += 72
@@ -795,7 +792,7 @@ export default function ContractDetail({
                 <span className="text-gray-300 text-xs mt-0.5">📍</span>
                 <div>
                   <p className="text-xs font-medium text-gray-500">Location</p>
-                  <p className="text-sm text-gray-800">Found Huntingdale</p>
+                  <p className="text-sm text-gray-800">{settings?.billing?.address ?? 'Level 4, 830 Whitehorse Road, Box Hill VIC 3128'}</p>
                 </div>
               </div>
 
