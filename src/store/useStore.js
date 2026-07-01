@@ -759,6 +759,10 @@ export function useStore() {
             )
             if (alreadyBilled) continue
 
+            // Prepaid members (e.g. annual, paid in full) are skipped until their
+            // paid period ends — no monthly invoice while paidUntil still covers it.
+            if (lease.paidInFull && lease.paidUntil && new Date(lease.paidUntil) >= monthStart) continue
+
             const leaseStart = new Date(lease.startDate)
             const leaseEnd = new Date(lease.endDate)
             const space = loadedSpaces.find((sp) => sp.id === lease.spaceId)
