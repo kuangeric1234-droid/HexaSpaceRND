@@ -10,6 +10,7 @@ import {
   resolveBondRefundCopy, bondRefundEmailHtml,
   provisionSaltoAccess, revokeSaltoAccess,
 } from '../lib/onboarding.js'
+import { CREDIT_VALUE, computeMonthlyAllowance, effectiveAllowance, round2 } from '../lib/credits.js'
 
 // All spaces a lease occupies (primary + any bundled items, e.g. parking).
 function leaseSpaceIds(lease) {
@@ -727,6 +728,7 @@ export function useStore() {
   const spacesRef = useRef([]);   useEffect(() => { spacesRef.current = spaces }, [spaces])
   const membersRef = useRef([]);  useEffect(() => { membersRef.current = members }, [members])
   const tenantsRef = useRef([]);  useEffect(() => { tenantsRef.current = tenants }, [tenants])
+  const feesRef = useRef([]);     useEffect(() => { feesRef.current = fees }, [fees])
   // Late-bound ref so updateLease can invoke offboardLease without a dependency cycle.
   const offboardLeaseRef = useRef(null)
 
@@ -869,6 +871,17 @@ export function useStore() {
           })
 
           const newInvoices = []
+          // Unbilled fees (booking overages, one-offs) to fold into the month-end
+          // bill — grouped by company, added once to that company's first invoice.
+          const isBillableFee = (f) => f.companyId && Number(f.price) > 0 && !['Paid', 'Waived', 'Invoiced'].includes(f.status)
+          const unbilledFeesByTenant = {}
+          for (const f of loadedFees) {
+            if (!isBillableFee(f)) continue
+            ;(unbilledFeesByTenant[f.companyId] ??= []).push(f)
+          }
+          const feeBilledTenants = new Set()
+          const billedFeeIds = new Set()
+
           for (const lease of activeLeases) {
             const alreadyBilled = loadedInvoices.some(
               (inv) => inv.leaseId === lease.id && inv.status !== 'voided' && inv.periodStart?.startsWith(currentMonthKey)
@@ -906,6 +919,24 @@ export function useStore() {
             const dueDate = new Date(monthStart.getTime())
             dueDate.setDate(dueDate.getDate() + dueDateDays)
 
+            // Fold this company's unbilled fees onto its first invoice of the run.
+            const feeLines = []
+            if (!feeBilledTenants.has(lease.tenantId)) {
+              const tf = unbilledFeesByTenant[lease.tenantId] ?? []
+              if (tf.length) {
+                feeBilledTenants.add(lease.tenantId)
+                tf.forEach((f) => {
+                  feeLines.push({
+                    id: `li_fee_${f.id}`,
+                    description: `${f.name}${f.date ? ` (${f.date})` : ''}`,
+                    revenueAccount: 'Meeting Room & Booking Fees',
+                    unitPrice: Number(f.price) || 0, qty: 1, discountPct: 0,
+                  })
+                  billedFeeIds.add(f.id)
+                })
+              }
+            }
+
             newInvoices.push({
               id: `inv${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
               number: invTemplate.replace('{{number}}', String(nextNum).padStart(4, '0')),
@@ -915,10 +946,22 @@ export function useStore() {
               periodStart: fmt(periodStart), periodEnd: fmt(periodEnd),
               reference: '', paymentMethod: '', discountPct: 0,
               vatEnabled: true, xeroSync: false, isProrated,
-              lineItems: [{ id: `li${Date.now()}`, description: desc, revenueAccount: 'Membership Fees', unitPrice: amount, qty: 1, discountPct: 0 }],
+              lineItems: [
+                { id: `li${Date.now()}`, description: desc, revenueAccount: 'Membership Fees', unitPrice: amount, qty: 1, discountPct: 0 },
+                ...feeLines,
+              ],
               payments: [], comments: [], creditNoteForId: null,
               createdAt: fmt(today),
             })
+          }
+
+          // Mark the folded-in fees as Invoiced so they're not billed again.
+          if (billedFeeIds.size > 0) {
+            const todayStr = today.toISOString().split('T')[0]
+            loadedFees.forEach((f) => {
+              if (billedFeeIds.has(f.id)) { f.status = 'Invoiced'; f.invoicedAt = todayStr; syncRow('fees', f.id, f) }
+            })
+            setFees([...loadedFees])
           }
 
           // ── Deposit invoices for signed contracts ─────────────────────
@@ -1004,6 +1047,18 @@ export function useStore() {
   useEffect(() => {
     if (loading || reconciledRef.current) return
     reconciledRef.current = true
+
+    // ── Monthly credit reset ────────────────────────────────────────────────
+    // Top each company's booking allowance back up at the start of a new month.
+    // Allowance = sum of its active memberships' credits (or a manual override).
+    const monthKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` })()
+    tenants.forEach((tenant) => {
+      if (tenant.creditsPeriod === monthKey) return
+      const computed = computeMonthlyAllowance(tenant.id, leases, spaces)
+      const allowance = effectiveAllowance(tenant, computed)
+      updateTenant(tenant.id, { creditsRemaining: allowance, monthlyAllowance: allowance, creditsPeriod: monthKey })
+    })
+
     leases.forEach((lease) => {
       const space = spaces.find((s) => s.id === lease.spaceId)
       const alreadyOccupied = space?.status === 'occupied'
@@ -1094,6 +1149,11 @@ export function useStore() {
     setFees((prev) => prev.filter((x) => x.id !== id))
     deleteRow('fees', id)
   }, [])
+
+  // Booking-credit arithmetic lives in the booking UIs (admin Calendar / portal),
+  // computed against the freshest company balance they hold, and persisted via
+  // updateTenant + addFee/deleteFee. This avoids stale-ref double-charging when a
+  // single edit refunds the old spend and applies a new one in the same tick.
 
   // ── Bookings ──────────────────────────────────────────────────────────────
   const addBooking = useCallback((booking) => {

@@ -57,7 +57,7 @@ export default function Tenants() {
           tenant={selectedTenant}
           leases={leases} invoices={invoices} spaces={spaces} settings={settings}
           members={members} addMember={addMember} updateMember={updateMember} deleteMember={deleteMember}
-          addLease={addLease} updateLease={updateLease}
+          addLease={addLease} updateLease={updateLease} updateTenant={updateTenant}
           onBack={() => setSelectedTenant(null)}
           onEdit={() => openEdit(selectedTenant)}
           onSelectContract={(lease) => navigate('/leases', { state: { openLeaseId: lease.id } })}

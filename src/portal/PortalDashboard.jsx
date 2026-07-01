@@ -26,7 +26,8 @@ export default function PortalDashboard({ data }) {
     .filter(b => b.date && b.date >= todayStr && b.status !== 'Cancelled')
     .sort((a, b) => (a.date + (a.startTime || '')).localeCompare(b.date + (b.startTime || '')))
     .slice(0, 3)
-  const credits = member?.credits
+  // Booking allowance is the company's monthly credit pool.
+  const credits = company?.creditsRemaining ?? company?.monthlyAllowance ?? null
 
   const who = (member?.name || company?.contactName || company?.businessName || '').split(' ')[0]
 

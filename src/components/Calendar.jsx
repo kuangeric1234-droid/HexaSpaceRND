@@ -24,7 +24,7 @@ const round2 = (n) => Math.round(n * 100) / 100
 const ROOM_COLORS = ['#7c8b2f', '#10b981', '#7c3aed', '#b45309', '#1d4ed8', '#d97706', '#374151', '#9d174d']
 
 export default function Calendar() {
-  const { bookings = [], spaces = [], members = [], tenants = [], addBooking, updateBooking, deleteBooking, updateMember, addMember } = useOutletContext()
+  const { bookings = [], spaces = [], members = [], tenants = [], addBooking, updateBooking, deleteBooking, updateMember, addMember, updateTenant, addFee, deleteFee } = useOutletContext()
   const [day, setDay] = useState(new Date())
   const [resType, setResType] = useState('meeting')
   const [modal, setModal] = useState(null) // { mode:'new'|'edit', ...booking/slot }
@@ -43,14 +43,21 @@ export default function Calendar() {
     setModal({ mode: 'new', resourceId, date: dayStr, startTime: fromDec(hour), endTime: fromDec(hour + 1) })
   const openBooking = (b) => setModal({ mode: 'edit', ...b })
 
-  // Refund the old credit charge (if any) and apply the new one, returning what the
-  // booking should now record. Keeps member.credits in sync with every change.
+  // Refund the old credit charge (if any) and apply the new one against the
+  // COMPANY's monthly allowance. Any shortfall becomes a Booking Fee (billed at
+  // month end). Computed locally against the fresh tenant balance so an edit that
+  // refunds-then-reapplies in one tick can't double-charge. Returns what the
+  // booking should now record.
   function reconcile(oldB, next) {
-    const deltas = {}
-    const add = (mid, v) => { if (mid) deltas[mid] = (deltas[mid] || 0) + v }
-    if (oldB && oldB.paidBy === 'credits' && oldB.creditsUsed) add(oldB.memberId, oldB.creditsUsed)
+    const companyId = next?.companyId || oldB?.companyId || members.find((m) => m.id === (next?.memberId || oldB?.memberId))?.companyId
+    const tenant = tenants.find((t) => t.id === companyId)
 
-    let creditsUsed = 0, paidBy = 'unpaid'
+    // Start from the current balance, refund the old spend, drop its overage fee.
+    let available = Number(tenant?.creditsRemaining ?? 0)
+    if (oldB?.creditsUsed) available = round2(available + oldB.creditsUsed)
+    if (oldB?.feeId) deleteFee?.(oldB.feeId)
+
+    let creditsUsed = 0, paidBy = 'free', feeAmount = 0, feeId = null
     if (next) {
       if (next.status === 'Cancelled') paidBy = 'cancelled'
       else if (next.free) paidBy = 'free'
@@ -60,20 +67,28 @@ export default function Calendar() {
         const need = round2(hrs * (room?.hourlyRate || 0) / CREDIT_VALUE)
         if (need <= 0) paidBy = 'free'
         else {
-          creditsUsed = need
-          const m = members.find((x) => x.id === next.memberId)
-          const avail = Number(m?.credits || 0) + (deltas[next.memberId] || 0) // include refund
-          if (m && avail >= need) { paidBy = 'credits'; add(next.memberId, -need) }
-          else paidBy = 'unpaid' // shortfall billed via Stripe
+          creditsUsed = Math.max(0, Math.min(available, need))
+          const shortfall = round2(Math.max(0, need - available))
+          available = round2(available - creditsUsed)
+          if (shortfall > 0) {
+            feeAmount = round2(shortfall * CREDIT_VALUE)
+            const fee = addFee?.({
+              name: `Meeting room — ${room?.unitNumber ?? ''} · ${next.date} (over allowance)`,
+              type: 'Booking Fee', memberId: next.memberId ?? null, companyId,
+              date: next.date || new Date().toISOString().split('T')[0],
+              price: feeAmount, status: 'Not Paid',
+              notes: `${need} credits needed · ${creditsUsed} from allowance · ${shortfall} over`,
+            })
+            feeId = fee?.id ?? null
+          }
+          paidBy = feeAmount > 0 ? (creditsUsed > 0 ? 'part_credits' : 'fee') : 'credits'
         }
       }
     }
-    for (const [mid, d] of Object.entries(deltas)) {
-      if (!d) continue
-      const m = members.find((x) => x.id === mid); if (!m) continue
-      updateMember(mid, { credits: round2(Number(m.credits || 0) + d) })
-    }
-    return { creditsUsed, paidBy }
+
+    // Persist the company's new balance once (absolute value).
+    if (companyId && tenant) updateTenant?.(companyId, { creditsRemaining: available })
+    return { creditsUsed, paidBy, feeAmount, feeId }
   }
 
   function handleSave(payload) {
@@ -81,17 +96,17 @@ export default function Calendar() {
     const member = members.find((m) => m.id === payload.memberId)
     const companyId = payload.companyId || member?.companyId || ''
     if (modal.mode === 'edit') {
-      const { creditsUsed, paidBy } = reconcile(modal, { ...payload, status })
-      updateBooking(modal.id, { ...payload, companyId, status, creditsUsed, paidBy })
+      const { creditsUsed, paidBy, feeAmount, feeId } = reconcile(modal, { ...payload, companyId, status })
+      updateBooking(modal.id, { ...payload, companyId, status, creditsUsed, paidBy, feeAmount, feeId })
     } else {
-      const { creditsUsed, paidBy } = reconcile(null, { ...payload, status })
-      addBooking({ ...payload, companyId, status, creditsUsed, paidBy, source: 'Admin', createdBy: 'Admin' })
+      const { creditsUsed, paidBy, feeAmount, feeId } = reconcile(null, { ...payload, companyId, status })
+      addBooking({ ...payload, companyId, status, creditsUsed, paidBy, feeAmount, feeId, source: 'Admin', createdBy: 'Admin' })
     }
     setModal(null)
   }
   function handleCancel() {
     reconcile(modal, { ...modal, status: 'Cancelled' })
-    updateBooking(modal.id, { status: 'Cancelled', creditsUsed: 0, paidBy: 'cancelled' })
+    updateBooking(modal.id, { status: 'Cancelled', creditsUsed: 0, paidBy: 'cancelled', feeAmount: 0, feeId: null })
     setModal(null)
   }
   function handleDelete() {
@@ -175,7 +190,7 @@ export default function Calendar() {
         </div>
       )}
 
-      <p className="text-xs text-gray-400 mt-3">Click a slot to book · click a booking to edit. Credits = ${CREDIT_VALUE}/credit · also bookable from the website & members portal (paid via Stripe when out of credits).</p>
+      <p className="text-xs text-gray-400 mt-3">Click a slot to book · click a booking to edit. Credits = ${CREDIT_VALUE}/credit · deducted from the company's monthly allowance · overage billed as a fee on the month-end invoice.</p>
 
       {modal && (
         <BookingModal
@@ -229,7 +244,9 @@ function BookingModal({ init, rooms, roomLabel = 'Room', members, tenants, addMe
   const hrs = Math.max(0, toDec(f.endTime) - toDec(f.startTime))
   const cost = f.free ? 0 : hrs * (room?.hourlyRate || 0)
   const credits = round2(cost / CREDIT_VALUE)
-  const bal = Number(member?.credits || 0)
+  // Balance is the COMPANY's monthly allowance pool, not the individual member.
+  const company = tenants.find((t) => t.id === (f.companyId || member?.companyId))
+  const bal = Number(company?.creditsRemaining ?? 0)
 
   function pickCompany(e) {
     const companyId = e.target.value
@@ -332,9 +349,9 @@ function BookingModal({ init, rooms, roomLabel = 'Room', members, tenants, addMe
           <div className="bg-gray-50 border border-gray-200 rounded-md p-3 text-xs space-y-1">
             <div className="flex justify-between"><span className="text-gray-500 flex items-center gap-1"><Users size={12} /> Booking Fee</span>
               <span className="font-semibold text-gray-900">{f.free ? 'Free' : `${credits} credit${credits !== 1 ? 's' : ''} · A$${cost.toLocaleString('en-AU')}`}</span></div>
-            {member && !f.free && (
-              <div className="flex justify-between"><span className="text-gray-500">{member.name} balance</span>
-                <span className={bal >= credits ? 'text-green-700 font-semibold' : 'text-amber-700 font-semibold'}>{bal} credit{bal !== 1 ? 's' : ''}{bal < credits ? ' — shortfall via Stripe' : ''}</span></div>
+            {company && !f.free && (
+              <div className="flex justify-between"><span className="text-gray-500">{company.businessName ?? 'Company'} allowance</span>
+                <span className={bal >= credits ? 'text-green-700 font-semibold' : 'text-amber-700 font-semibold'}>{bal} credit{bal !== 1 ? 's' : ''}{bal < credits ? ' — overage billed as a fee' : ''}</span></div>
             )}
             {edit && <div className="flex justify-between"><span className="text-gray-500">Booking Reference</span><span className="font-mono text-gray-700">{init.reference || '—'}</span></div>}
           </div>

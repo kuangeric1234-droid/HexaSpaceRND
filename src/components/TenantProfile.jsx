@@ -5,6 +5,7 @@ import InvoiceForm from './InvoiceForm.jsx'
 import DocumentsPanel from './DocumentsPanel.jsx'
 import { jsPDF } from 'jspdf'
 import { supabase } from '../lib/supabase.js'
+import { computeMonthlyAllowance, effectiveAllowance } from '../lib/credits.js'
 
 const SIG_BADGE = {
   manually_signed:   { label: 'Signed',       cls: 'bg-green-100 text-green-700' },
@@ -44,12 +45,18 @@ function Section({ title, action, children }) {
   )
 }
 
-export default function TenantProfile({ tenant, leases, invoices, spaces, settings, members = [], addMember, updateMember, deleteMember, addLease, updateLease, onBack, onEdit, onSelectInvoice, onSelectContract, onAddInvoice }) {
+export default function TenantProfile({ tenant, leases, invoices, spaces, settings, members = [], addMember, updateMember, deleteMember, addLease, updateLease, updateTenant, onBack, onEdit, onSelectInvoice, onSelectContract, onAddInvoice }) {
   const [showInvoiceForm, setShowInvoiceForm] = useState(false)
   const [memberModal, setMemberModal] = useState(null)   // null | {} (new) | member (edit)
   const [showMembership, setShowMembership] = useState(false)
   const tenantLeases = leases.filter((l) => l.tenantId === tenant.id)
   const companyMembers = members.filter((m) => m.companyId === tenant.id)
+
+  // Booking-credit allowance (company pool). Computed from active memberships;
+  // an admin can override the monthly allowance or top up the remaining balance.
+  const computedAllowance = computeMonthlyAllowance(tenant.id, leases, spaces)
+  const effAllowance = effectiveAllowance(tenant, computedAllowance)
+  const creditsRemaining = Number(tenant.creditsRemaining ?? effAllowance)
 
   function generateStatement() {
     const taxRate = (settings?.billingRules?.taxRate ?? 10) / 100
@@ -259,6 +266,17 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
                   </tbody>
                 </table>
               )}
+            </Section>
+
+            {/* ── Booking Credits ── */}
+            <Section title="Booking Credits">
+              <CreditsCard
+                tenant={tenant}
+                computed={computedAllowance}
+                effAllowance={effAllowance}
+                remaining={creditsRemaining}
+                updateTenant={updateTenant}
+              />
             </Section>
 
             {/* ── Members ── */}
@@ -629,6 +647,66 @@ function MemberModal({ member, tenant, onClose, onSave }) {
           <button onClick={() => form.name.trim() && onSave(form)} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">{member ? 'Save' : 'Add member'}</button>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── Booking-credit allowance card ───────────────────────────────────────────────
+// Shows the company's monthly meeting-room credit pool. Allowance auto-computes
+// from active memberships (Flexible Desk 4 · Dedicated Desk 8 · Private Office
+// 5/pax); an admin can override it or top up the remaining balance for this month.
+function CreditsCard({ tenant, computed, effAllowance, remaining, updateTenant }) {
+  const hasOverride = tenant.creditAllowanceOverride === 0 || !!tenant.creditAllowanceOverride
+  const [allowance, setAllowance] = useState(String(effAllowance))
+  const [rem, setRem] = useState(String(remaining))
+  const [saved, setSaved] = useState(false)
+
+  function save() {
+    const a = Number(allowance)
+    const r = Number(rem)
+    const patch = {
+      creditAllowanceOverride: Number.isFinite(a) ? a : undefined,
+      monthlyAllowance: Number.isFinite(a) ? a : effAllowance,
+      creditsRemaining: Number.isFinite(r) ? r : remaining,
+    }
+    updateTenant?.(tenant.id, patch)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+  function resetToComputed() {
+    setAllowance(String(computed))
+    setRem(String(computed))
+    updateTenant?.(tenant.id, { creditAllowanceOverride: undefined, monthlyAllowance: computed, creditsRemaining: computed })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const input = 'w-28 border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-black'
+  return (
+    <div className="px-5 py-4">
+      <div className="flex flex-wrap items-end gap-6">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Monthly allowance</label>
+          <input type="number" min="0" step="0.5" value={allowance} onChange={(e) => setAllowance(e.target.value)} className={input} />
+          <span className="text-xs text-gray-400 ml-2">credits{hasOverride ? ' · overridden' : ' · auto'}</span>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Remaining this month</label>
+          <input type="number" min="0" step="0.5" value={rem} onChange={(e) => setRem(e.target.value)} className={input} />
+          <span className="text-xs text-gray-400 ml-2">of {effAllowance}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={save} className="bg-black text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-gray-800">
+            {saved ? 'Saved' : 'Save'}
+          </button>
+          <button onClick={resetToComputed} className="text-xs text-gray-500 hover:text-gray-800 underline">
+            Reset to plan
+          </button>
+        </div>
+      </div>
+      <p className="text-xs text-gray-400 mt-3">
+        From active memberships: <span className="font-medium text-gray-600">{computed} credits/mo</span>. Bookings deduct from Remaining; overage is billed as a fee on the month-end invoice. Resets on the 1st.
+      </p>
     </div>
   )
 }

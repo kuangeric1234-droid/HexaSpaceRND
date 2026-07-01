@@ -22,6 +22,15 @@ export default function PortalCalendar({ resources, allBookings, member, company
   const [day, setDay] = useState(new Date())
   const [bookings, setBookings] = useState(allBookings ?? [])
   const [modal, setModal] = useState(null) // { resourceId, date, startTime, endTime }
+  // Live company credit balance (deducted as bookings are made this session).
+  // On a new month the pool tops back up to the company's monthly allowance —
+  // mirrors the admin app's monthly reset, keyed on creditsPeriod so the two agree.
+  const monthKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` })()
+  const [remaining, setRemaining] = useState(() =>
+    company?.creditsPeriod === monthKey
+      ? Number(company?.creditsRemaining ?? 0)
+      : Number(company?.monthlyAllowance ?? company?.creditsRemaining ?? 0)
+  )
 
   const dayStr = format(day, 'yyyy-MM-dd')
   const dayBookings = bookings.filter((b) => b.date === dayStr)
@@ -94,16 +103,16 @@ export default function PortalCalendar({ resources, allBookings, member, company
 
       {modal && (
         <BookingModal
-          slot={modal} resources={resources} bookings={bookings} member={member} company={company}
+          slot={modal} resources={resources} bookings={bookings} member={member} company={company} remaining={remaining}
           onClose={() => setModal(null)}
-          onBooked={(created) => { setBookings((prev) => [...prev, ...created]); setModal(null) }}
+          onBooked={(created, newRemaining) => { setBookings((prev) => [...prev, ...created]); if (newRemaining != null) setRemaining(newRemaining); setModal(null) }}
         />
       )}
     </>
   )
 }
 
-function BookingModal({ slot, resources, bookings, member, company, onClose, onBooked }) {
+function BookingModal({ slot, resources, bookings, member, company, remaining, onClose, onBooked }) {
   const [f, setF] = useState({ resourceId: slot.resourceId, date: slot.date, startTime: slot.startTime, endTime: slot.endTime, title: '', repeat: 'none', occurrences: 4 })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -116,7 +125,8 @@ function BookingModal({ slot, resources, bookings, member, company, onClose, onB
   const count = f.repeat === 'none' ? 1 : Math.max(1, Math.min(12, Number(f.occurrences) || 1))
   const totalCost = perCost * count
   const totalCredits = Math.round((totalCost / CREDIT_VALUE) * 100) / 100
-  const balance = Number(member?.credits ?? 0)
+  // Balance is the COMPANY's monthly allowance pool.
+  const balance = Number(remaining ?? company?.creditsRemaining ?? 0)
 
   function occurrenceDates() {
     const base = new Date(f.date + 'T00:00:00')
@@ -150,12 +160,48 @@ function BookingModal({ slot, resources, bookings, member, company, onClose, onB
       })
     }
     if (created.length === 0) return setError('Those times are already booked. Please choose another slot.')
+
+    // Deduct the company's credit allowance per booking; any overage becomes a
+    // Booking Fee added to the month-end bill.
+    let bal = Number(remaining ?? company?.creditsRemaining ?? 0)
+    const perCredits = Math.round((perCost / CREDIT_VALUE) * 100) / 100
+    let shortfallCredits = 0
+    created.forEach((b) => {
+      const used = Math.max(0, Math.min(bal, perCredits))
+      bal = Math.round((bal - used) * 100) / 100
+      shortfallCredits = Math.round((shortfallCredits + Math.max(0, perCredits - used)) * 100) / 100
+      b.creditsUsed = used
+      b.paidBy = perCredits - used > 0 ? (used > 0 ? 'part_credits' : 'fee') : 'credits'
+    })
+
     setSaving(true)
-    const { error: dbErr } = await supabase.from('bookings').upsert(created.map((b) => ({ id: b.id, data: b, updated_at: new Date().toISOString() })))
+    const nowIso = new Date().toISOString()
+    const writes = [
+      supabase.from('bookings').upsert(created.map((b) => ({ id: b.id, data: b, updated_at: nowIso }))),
+    ]
+    if (company?.id) {
+      const mk = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+      writes.push(supabase.from('tenants').upsert({ id: company.id, data: { ...company, creditsRemaining: bal, creditsPeriod: mk }, updated_at: nowIso }))
+    }
+    if (shortfallCredits > 0 && company?.id) {
+      const feeId = `f_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+      const room = resources.find((r) => r.id === f.resourceId)
+      const fee = {
+        id: feeId, name: `Meeting room — ${room?.unitNumber ?? ''} (over allowance)`,
+        type: 'Booking Fee', memberId: member?.id ?? null, companyId: company.id,
+        date: new Date().toISOString().split('T')[0],
+        price: Math.round(shortfallCredits * CREDIT_VALUE * 100) / 100,
+        status: 'Not Paid', notes: `Portal booking · ${shortfallCredits} credits over allowance`,
+        createdAt: new Date().toISOString().split('T')[0],
+      }
+      writes.push(supabase.from('fees').upsert({ id: feeId, data: fee, updated_at: nowIso }))
+    }
+    const results = await Promise.all(writes)
     setSaving(false)
+    const dbErr = results.find((r) => r.error)?.error
     if (dbErr) return setError(dbErr.message)
     if (skipped.length) setError('')
-    onBooked(created)
+    onBooked(created, bal)
   }
 
   return (
@@ -208,9 +254,9 @@ function BookingModal({ slot, resources, bookings, member, company, onClose, onB
           <div className="bg-bone border border-ink/10 p-4 text-[13px] space-y-1.5">
             <div className="flex justify-between"><span className="hx-prose text-[13px]">{count > 1 ? `${count} bookings × ${hrs}h` : `${hrs} hour${hrs !== 1 ? 's' : ''}`}</span>
               <span className="font-heading uppercase tracking-nav text-[11px]">{totalCost ? `A$${totalCost.toLocaleString('en-AU')} · ${totalCredits} cr` : 'Free'}</span></div>
-            {member && totalCost > 0 && (
-              <div className="flex justify-between"><span className="hx-prose text-[13px]">Your balance</span>
-                <span className={`font-heading uppercase tracking-nav text-[11px] ${balance >= totalCredits ? 'text-hexa-green' : 'text-amber-700'}`}>{balance} cr{balance < totalCredits ? ' · shortfall billed' : ''}</span></div>
+            {company && totalCost > 0 && (
+              <div className="flex justify-between"><span className="hx-prose text-[13px]">Allowance remaining</span>
+                <span className={`font-heading uppercase tracking-nav text-[11px] ${balance >= totalCredits ? 'text-hexa-green' : 'text-amber-700'}`}>{balance} cr{balance < totalCredits ? ' · overage billed as a fee' : ''}</span></div>
             )}
           </div>
 
