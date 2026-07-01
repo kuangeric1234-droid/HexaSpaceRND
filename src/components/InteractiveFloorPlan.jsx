@@ -29,7 +29,8 @@ export default function InteractiveFloorPlan({ spaces, leases, tenants, updateSp
   const imgWrapRef = useRef(null)
 
   const plan = FLOORPLANS.find((p) => p.id === planId)
-  const planSpaces = spaces.filter((s) => (s.location || 'whitehorse') === plan.location)
+  // Floor plan is for private offices only — not virtual, desks, parking or studios.
+  const planSpaces = spaces.filter((s) => (s.location || 'whitehorse') === plan.location && s.type === 'office')
   // pinned to THIS floor
   const placed = planSpaces.filter((s) => s.pos && typeof s.pos.x === 'number' && s.floor === plan.floor)
   // not yet pinned anywhere — can be dropped onto any floor
