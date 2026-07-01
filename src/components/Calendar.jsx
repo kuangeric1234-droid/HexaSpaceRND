@@ -16,7 +16,6 @@ const RESOURCE_TYPES = [
   { label: 'Podcast Rooms', type: 'podcast' },
   { label: 'Hotdesks', type: 'desk' },
 ]
-const BOOKABLE = ['meeting', 'studio', 'podcast', 'desk']
 
 const t12 = (h) => `${h % 12 || 12}:00 ${h >= 12 ? 'pm' : 'am'}`
 const toDec = (t) => { const [h, m] = (t || '0:0').split(':').map(Number); return h + m / 60 }
@@ -32,8 +31,13 @@ export default function Calendar() {
 
   const dayStr = format(day, 'yyyy-MM-dd')
   const rooms = spaces.filter((s) => s.type === resType)
-  const bookableRooms = spaces.filter((s) => BOOKABLE.includes(s.type))
   const dayBookings = bookings.filter((b) => b.date === dayStr)
+
+  // The room dropdown in the modal is scoped to the section's resource type
+  // (Meeting Rooms shows only meeting rooms, Studios only studios, etc.).
+  const modalType = modal ? (modal.mode === 'edit' ? (spaces.find((s) => s.id === modal.resourceId)?.type || resType) : resType) : resType
+  const modalRooms = spaces.filter((s) => s.type === modalType)
+  const modalLabel = (RESOURCE_TYPES.find((r) => r.type === modalType)?.label || 'Room').replace(/s$/, '')
 
   const openSlot = (resourceId, hour) =>
     setModal({ mode: 'new', resourceId, date: dayStr, startTime: fromDec(hour), endTime: fromDec(hour + 1) })
@@ -177,7 +181,8 @@ export default function Calendar() {
         <BookingModal
           key={modal.id || 'new'}
           init={modal}
-          rooms={bookableRooms}
+          rooms={modalRooms}
+          roomLabel={modalLabel}
           members={members}
           tenants={tenants}
           addMember={addMember}
@@ -194,7 +199,7 @@ export default function Calendar() {
 const ic = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black'
 const lbl = 'block text-xs font-medium text-gray-600 mb-1'
 
-function BookingModal({ init, rooms, members, tenants, addMember, onClose, onSave, onCancelBooking, onDelete }) {
+function BookingModal({ init, rooms, roomLabel = 'Room', members, tenants, addMember, onClose, onSave, onCancelBooking, onDelete }) {
   const edit = init.mode === 'edit'
   const [f, setF] = useState({
     companyId: init.companyId || '',
@@ -290,7 +295,7 @@ function BookingModal({ init, rooms, members, tenants, addMember, onClose, onSav
 
           {/* Meeting room */}
           <label className="block">
-            <span className={lbl}>Meeting Room</span>
+            <span className={lbl}>{roomLabel}</span>
             <select value={f.resourceId} onChange={up('resourceId')} className={ic}>
               {rooms.map((r) => <option key={r.id} value={r.id}>{r.unitNumber}{r.size ? ` · ${r.size}` : ''}{r.hourlyRate ? ` — $${r.hourlyRate}/hr` : ''}</option>)}
             </select>
