@@ -3,8 +3,8 @@ import { useOutletContext } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
 
-const DAY_START = 8
-const DAY_END = 19
+const DAY_START = 9
+const DAY_END = 17
 const HOUR_H = 52
 const CREDIT_VALUE = 40 // $40 per credit
 const HOURS = Array.from({ length: DAY_END - DAY_START }, (_, i) => DAY_START + i)
