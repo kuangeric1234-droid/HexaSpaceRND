@@ -34,8 +34,9 @@ function generateContractNumber(leases) {
   const nums = leases
     .map((l) => l.contractNumber)
     .filter(Boolean)
-    .map((n) => parseInt(n.replace(/\D/g, ''), 10))
-    .filter((n) => !isNaN(n) && n > 0)
+    .map((n) => parseInt(String(n).replace(/\D/g, ''), 10))
+    // ignore blanks and any implausibly large value (e.g. a stray timestamp)
+    .filter((n) => !isNaN(n) && n > 0 && n < 100000)
   const max = nums.length > 0 ? Math.max(...nums) : 0
   return template.replace('{{number}}', String(max + 1).padStart(3, '0'))
 }
@@ -550,7 +551,15 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                         >
                           <option value="">Select Resource</option>
                           {spaces
-                            .filter((s) => s.status === 'vacant' || s.id === item.spaceId)
+                            .filter((s) => {
+                              if (s.id === item.spaceId) return true // keep current selection
+                              // Private offices: only show units not already leased/assigned.
+                              if (s.type === 'office') {
+                                if (s.assignedCompanyId) return false
+                                return !leases.some((l) => l.spaceId === s.id && (l.status === 'active' || l.status === 'pending'))
+                              }
+                              return s.status === 'vacant'
+                            })
                             .map((s) => (
                               <option key={s.id} value={s.id}>
                                 {s.unitNumber} — {s.size}
