@@ -34,14 +34,20 @@ const GROUPS = [
     ],
   },
   {
-    heading: 'More',
+    heading: 'Growth',
     items: [
-      { to: '/maintenance', icon: Wrench, label: 'Maintenance' },
-      { to: '/reports', icon: BarChart2, label: 'Reports' },
+      { to: '/crm', icon: Users, label: 'CRM' },
       { to: '/marketing', icon: Megaphone, label: 'Marketing' },
-      { to: '/messages', icon: MessageSquare, label: 'Messages' },
       { to: '/events', icon: Calendar, label: 'Events' },
       { to: '/event-bookings', icon: ClipboardList, label: 'Pop-up Bookings' },
+    ],
+  },
+  {
+    heading: 'More',
+    items: [
+      { to: '/messages', icon: MessageSquare, label: 'Messages' },
+      { to: '/maintenance', icon: Wrench, label: 'Maintenance' },
+      { to: '/reports', icon: BarChart2, label: 'Reports' },
       { to: '/templates', icon: BookOpen, label: 'Templates' },
     ],
   },
@@ -51,6 +57,7 @@ const GROUPS = [
 export default function Layout({ store, onLogout }) {
   const [open, setOpen] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const unreadEnquiries = (store?.leads ?? []).filter((l) => !l.read).length
 
   useEffect(() => {
     loadUnread()
@@ -103,6 +110,11 @@ export default function Layout({ store, onLogout }) {
                 {to === '/messages' && unreadMessages > 0 && (
                   <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
                     {unreadMessages}
+                  </span>
+                )}
+                {to === '/crm' && unreadEnquiries > 0 && (
+                  <span className="bg-blue-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
+                    {unreadEnquiries}
                   </span>
                 )}
               </NavLink>
