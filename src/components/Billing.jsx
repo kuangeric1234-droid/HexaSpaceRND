@@ -33,10 +33,13 @@ function calcAmountDue(invoice, taxRate = 0.1) {
 
 export default function Billing() {
   const {
-    invoices, addInvoice, updateInvoice, voidInvoice, deleteInvoice, addPaymentToInvoice, addCommentToInvoice,
+    invoices, addInvoice, updateInvoice, voidInvoice, deleteInvoice, addPaymentToInvoice, addCommentToInvoice, approveBondRefund,
     discounts, addDiscount, updateDiscount, deleteDiscount,
     tenants, leases, spaces, settings, currentUserRole,
   } = useOutletContext()
+
+  // Bond-refund credit notes awaiting an admin's approval before the tenant is notified.
+  const pendingBondRefunds = invoices.filter((i) => i.invoiceType === 'bond_refund' && i.approvalStatus === 'pending')
 
   const [subTab, setSubTab] = useState('invoices')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -355,6 +358,36 @@ export default function Billing() {
       {/* ── Invoices ── */}
       {subTab === 'invoices' && (
         <>
+          {/* Bond refunds pending approval */}
+          {pendingBondRefunds.length > 0 && (
+            <div className="mb-4 border border-amber-200 bg-amber-50 rounded-md p-4">
+              <h3 className="text-sm font-semibold text-amber-900 mb-2">
+                Bond refunds pending approval ({pendingBondRefunds.length})
+              </h3>
+              <div className="space-y-2">
+                {pendingBondRefunds.map((inv) => {
+                  const tenant = tenants.find((t) => t.id === inv.tenantId)
+                  const amount = Math.abs((inv.lineItems ?? []).reduce((s, l) => s + l.unitPrice * l.qty, 0))
+                  return (
+                    <div key={inv.id} className="flex items-center justify-between bg-white border border-amber-200 rounded px-3 py-2">
+                      <div className="text-sm text-gray-700">
+                        <span className="font-medium">{inv.number}</span> · {tenant?.businessName ?? '—'} ·{' '}
+                        <span className="font-semibold">${amount.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD</span>
+                        <span className="text-gray-400"> · {inv.reference}</span>
+                      </div>
+                      <button
+                        onClick={() => approveBondRefund(inv.id)}
+                        className="flex items-center gap-1.5 text-xs bg-black text-white rounded px-3 py-1.5 font-medium hover:bg-gray-800"
+                      >
+                        <Check size={13} /> Approve &amp; notify
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Filter tabs + actions */}
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div className="flex gap-1 bg-gray-100 rounded-md p-0.5">

@@ -782,14 +782,33 @@ const EMAIL_TEMPLATE_DEFS = [
   { key: 'receipt',  label: 'Payment Receipt',         vars: '{{number}}, {{amount}}' },
   { key: 'renewal',  label: 'Renewal Notice',          vars: '{{contract}}, {{expiryDate}}' },
   { key: 'esign',    label: 'eSign Invitation',        vars: '{{contract}}, {{company}}' },
+  { key: 'onboarding', label: 'Onboarding / Welcome',  vars: '{{company}}, {{unit}}, {{startDate}}, {{contract}}, {{tenantName}}' },
+  { key: 'bondRefund', label: 'Bond Refund',           vars: '{{company}}, {{amount}}, {{unit}}, {{number}}, {{tenantName}}' },
 ]
+
+// Fallback copy so newly-added templates are readable/editable even on installs
+// whose saved settings predate them (e.g. Onboarding).
+const EMAIL_TEMPLATE_FALLBACKS = {
+  onboarding: {
+    subject: 'Welcome to {{company}} — your space is ready',
+    intro: 'Your agreement is signed and settled. Welcome aboard — here is everything you need to get started.',
+  },
+  bondRefund: {
+    subject: 'Bond refund approved — {{number}}',
+    intro: 'Good news — your security deposit refund of {{amount}} for {{unit}} has been approved and a credit note ({{number}}) has been issued.',
+  },
+}
 
 function EmailTemplatesSection({ settings, updateSettings }) {
   const defaults = settings.emailTemplates ?? {}
   const [form, setForm] = useState(() => {
     const f = {}
     EMAIL_TEMPLATE_DEFS.forEach(({ key }) => {
-      f[key] = { subject: defaults[key]?.subject ?? '', intro: defaults[key]?.intro ?? '' }
+      const fb = EMAIL_TEMPLATE_FALLBACKS[key] ?? { subject: '', intro: '' }
+      f[key] = {
+        subject: defaults[key]?.subject ?? fb.subject,
+        intro: defaults[key]?.intro ?? fb.intro,
+      }
     })
     return f
   })

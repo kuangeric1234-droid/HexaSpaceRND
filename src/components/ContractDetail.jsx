@@ -170,7 +170,10 @@ export default function ContractDetail({
           licensor_signed_at: now,
         }).eq('token', tokenMatch[1])
       }
-      if (onUpdateLease) onUpdateLease(lease.id, { signatureStatus: 'e_signed', signedAt: now, signerName: lease.tenantSignerName ?? tenant?.contactName })
+      // Both parties have now signed → activate the contract. The space is only
+      // taken up (reserved → occupied) once the deposit + first invoice are paid
+      // and the commencement date is reached (handled by the store reconcile).
+      if (onUpdateLease) onUpdateLease(lease.id, { signatureStatus: 'e_signed', signedAt: now, signerName: lease.tenantSignerName ?? tenant?.contactName, status: 'active', activatedAt: now })
       setESignData((prev) => ({ ...prev, status: 'fully_signed', licensor_signature_data: signatureData, licensor_signer_name: licensorName, licensor_signed_at: now }))
       setShowCountersignModal(false)
       logAudit('sign', 'lease', lease.id, contractNum, `Countersigned by ${licensorName}`)

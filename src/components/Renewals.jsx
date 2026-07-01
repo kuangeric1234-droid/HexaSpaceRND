@@ -11,6 +11,25 @@ export default function Renewals() {
   const [renewLease, setRenewLease] = useState(null) // lease to renew (opens ContractForm)
   const today = new Date()
 
+  // Leases that auto-renewed (rolled forward past their end date) and are awaiting
+  // an admin decision. Billing continues in the meantime so no invoices are missed.
+  const pendingRenewal = leases
+    .filter((l) => l.pendingRenewalApproval && l.status === 'active')
+    .sort((a, b) => String(a.autoRenewedAt ?? '').localeCompare(String(b.autoRenewedAt ?? '')))
+
+  function approveRenewal(lease) {
+    updateLease(lease.id, { pendingRenewalApproval: false, renewalApprovedAt: new Date().toISOString() })
+  }
+  function declineRenewal(lease) {
+    if (!window.confirm('Decline the renewal and end this lease?\n\nThe space (and any parking) will be released, Salto access revoked, and a bond refund raised for approval.')) return
+    updateLease(lease.id, {
+      pendingRenewalApproval: false,
+      renewalDeclined: true,
+      endDate: lease.previousEndDate ?? lease.endDate,
+      status: 'expired',
+    })
+  }
+
   const expiring = leases
     .filter((l) => {
       if (l.status !== 'active') return false
@@ -133,9 +152,64 @@ export default function Renewals() {
         <p className="text-sm text-gray-500 mt-1">Leases expiring within 60 days — action required.</p>
       </div>
 
-      {expiring.length === 0 && expired.length === 0 && (
+      {expiring.length === 0 && expired.length === 0 && pendingRenewal.length === 0 && (
         <div className="bg-green-50 border border-green-200 rounded-md p-6 text-center text-green-800 text-sm font-medium">
           No leases expiring in the next 60 days.
+        </div>
+      )}
+
+      {pendingRenewal.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            Auto-Renewed — Pending Approval ({pendingRenewal.length})
+          </h2>
+          <p className="text-xs text-gray-500 mb-3">
+            These leases rolled their term forward automatically because no non-renewal notice was given. Billing continues so no invoices are missed — approve to confirm, or decline to end the lease.
+          </p>
+          <div className="bg-white border border-indigo-200 rounded-md overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-indigo-50 border-b border-indigo-200">
+                <tr>
+                  {['Tenant', 'Space', 'Renewed To', 'Term', 'Actions'].map((h) => (
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-indigo-800 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pendingRenewal.map((lease) => {
+                  const tenant = tenants.find((t) => t.id === lease.tenantId)
+                  const space = spaces.find((s) => s.id === lease.spaceId)
+                  return (
+                    <tr key={lease.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">{tenant?.businessName ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{space?.unitNumber ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{format(parseISO(lease.endDate), 'dd/MM/yyyy')}</td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {lease.previousEndDate ? `from ${format(parseISO(lease.previousEndDate), 'dd/MM/yyyy')}` : '—'}
+                        {lease.renewalCount ? ` · renewal #${lease.renewalCount}` : ''}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => approveRenewal(lease)}
+                            className="text-xs border border-gray-200 rounded px-2 py-1 bg-black text-white hover:bg-gray-800"
+                          >
+                            Approve renewal
+                          </button>
+                          <button
+                            onClick={() => declineRenewal(lease)}
+                            className="text-xs border border-red-200 rounded px-2 py-1 text-red-600 hover:bg-red-50"
+                          >
+                            Decline &amp; end
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

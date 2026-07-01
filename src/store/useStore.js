@@ -3,6 +3,78 @@ import { supabase } from '../lib/supabase.js'
 import { logAudit } from '../lib/audit.js'
 import { publishListing } from '../lib/sanity.js'
 import { descPrefix, unitNameFor } from '../lib/billing.js'
+import { sendEmail } from '../lib/sendEmail.js'
+import {
+  accessGateMet, desiredSpaceStatus, shouldOnboard, requiresAccessGate, depositAmount,
+  onboardingEmailHtml, resolveOnboardingCopy,
+  resolveBondRefundCopy, bondRefundEmailHtml,
+  provisionSaltoAccess, revokeSaltoAccess,
+} from '../lib/onboarding.js'
+
+// All spaces a lease occupies (primary + any bundled items, e.g. parking).
+function leaseSpaceIds(lease) {
+  return [lease?.spaceId, ...((lease?.items ?? []).map((i) => i.spaceId))].filter(Boolean)
+}
+
+// Does this lease include a parking bay?
+function isParkingLease(lease, spaces) {
+  return leaseSpaceIds(lease).some((id) => (spaces ?? []).find((s) => s.id === id)?.type === 'parking')
+}
+
+// ── Onboarding orchestrator ────────────────────────────────────────────────────
+// Fires once a lease clears the access gate (signed + deposit + first invoice
+// paid): provisions Salto door access, sends the onboarding email, and invites
+// the primary contact to the client portal. Idempotent via lease.onboardedAt.
+
+function pickPrimaryContact(tenant, members) {
+  const mine = (members ?? []).filter((m) => m.companyId === tenant?.id)
+  return mine.find((m) => m.contactPerson) ?? mine.find((m) => m.billingPerson) ?? mine[0] ?? null
+}
+
+async function onboardLease({ lease, tenant, space, members, settings, updateLease, updateMember }) {
+  try {
+    const primary = pickPrimaryContact(tenant, members)
+    const email = primary?.email || tenant?.email
+    // No contact email yet — leave un-onboarded so it retries once an email exists.
+    if (!email) return
+
+    const now = new Date().toISOString()
+    // Guard immediately so a reload / re-entrancy can't double-fire the flow.
+    updateLease(lease.id, { onboardedAt: now, activatedAt: lease.activatedAt ?? now })
+
+    // 1. Salto door access (mock until SALTO creds are set) — valid from commencement.
+    let saltoLink = null
+    try {
+      const salto = await provisionSaltoAccess({ member: primary ?? { email }, space, lease })
+      saltoLink = salto?.accessLink ?? null
+      updateLease(lease.id, { saltoProvisionedAt: now, saltoAccessLink: saltoLink })
+      if (primary && salto?.saltoUserId) updateMember(primary.id, { saltoUserId: salto.saltoUserId, saltoAccess: true })
+    } catch (e) { console.error('Salto provision failed:', e) }
+
+    // 2. Onboarding email (how-to's + portal + Salto link) — subject/intro from
+    //    the editable Settings → Email Templates → Onboarding template.
+    try {
+      const { subject } = resolveOnboardingCopy({ lease, tenant, space, settings })
+      await sendEmail({
+        to: email,
+        subject,
+        html: onboardingEmailHtml({ lease, tenant, space, settings, saltoLink }),
+        settings,
+        tenantId: tenant?.id,
+        emailType: 'onboarding',
+      })
+    } catch (e) { console.error('Onboarding email failed:', e) }
+
+    // 3. Portal invite (creates the Supabase auth user + set-password email)
+    try {
+      await fetch('/api/auth/invite', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      if (primary) updateMember(primary.id, { portalAccess: true })
+    } catch (e) { console.error('Portal invite failed:', e) }
+  } catch (e) { console.error('onboardLease failed:', e) }
+}
 
 const STORAGE_KEYS = {
   tenants: 'hexaspace_tenants',
@@ -107,6 +179,14 @@ const DEFAULT_SETTINGS = {
     esign: {
       subject: 'Please sign: {{contract}} — {{company}}',
       intro: 'Please review and sign the attached licence agreement at your earliest convenience.',
+    },
+    onboarding: {
+      subject: 'Welcome to {{company}} — your space is ready',
+      intro: 'Your agreement is signed and settled. Welcome aboard — here is everything you need to get started.',
+    },
+    bondRefund: {
+      subject: 'Bond refund approved — {{number}}',
+      intro: 'Good news — your security deposit refund of {{amount}} for {{unit}} has been approved and a credit note ({{number}}) has been issued.',
     },
   },
 }
@@ -640,6 +720,16 @@ export function useStore() {
   const settingsRef = useRef(settings)
   useEffect(() => { settingsRef.current = settings }, [settings])
 
+  // Always-current data refs — used by the onboarding/access reconcile so
+  // event-time callbacks (e.g. after a payment) read fresh data without stale closures.
+  const leasesRef = useRef([]);   useEffect(() => { leasesRef.current = leases }, [leases])
+  const invoicesRef = useRef([]); useEffect(() => { invoicesRef.current = invoices }, [invoices])
+  const spacesRef = useRef([]);   useEffect(() => { spacesRef.current = spaces }, [spaces])
+  const membersRef = useRef([]);  useEffect(() => { membersRef.current = members }, [members])
+  const tenantsRef = useRef([]);  useEffect(() => { tenantsRef.current = tenants }, [tenants])
+  // Late-bound ref so updateLease can invoke offboardLease without a dependency cycle.
+  const offboardLeaseRef = useRef(null)
+
   // ── Load all data from Supabase on mount ──────────────────────────────
   useEffect(() => {
     async function load() {
@@ -710,6 +800,32 @@ export function useStore() {
         // Pipeline stages are config (not sample data) — seed the defaults whenever
         // the table is empty, even on an already-seeded install.
         if (!stageData?.length) await seedTable('lead_pipeline_stages', DEFAULT_STAGES)
+
+        // ── Auto-renew leases past their end date (unless notice was given) ──
+        // Keeps billing flowing: an active lease rolls its term forward and is
+        // flagged for admin approval rather than lapsing and missing invoices.
+        // Runs before the setters + bill run so renewed end-dates are billed.
+        {
+          const nowIso = new Date().toISOString()
+          const todayD = new Date()
+          for (const lease of loadedLeases) {
+            if (lease.status !== 'active') continue
+            if (lease.autoRenew === false || lease.renewalDeclined) continue
+            if (lease.pendingRenewalApproval) continue
+            if (!lease.endDate) continue
+            const end = new Date(lease.endDate)
+            if (end > todayD) continue
+            const start = new Date(lease.startDate ?? lease.endDate)
+            const termMs = end - start
+            const newEnd = new Date(end.getTime() + (termMs > 0 ? termMs : 365 * 86400000))
+            lease.previousEndDate = lease.endDate
+            lease.endDate = newEnd.toISOString().split('T')[0]
+            lease.pendingRenewalApproval = true
+            lease.autoRenewedAt = nowIso
+            lease.renewalCount = (lease.renewalCount ?? 0) + 1
+            syncRow('leases', lease.id, lease)
+          }
+        }
 
         setTenants(loadedTenants)
         setMembers(loadedMembers)
@@ -879,6 +995,37 @@ export function useStore() {
     load()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Occupancy + onboarding reconcile (once, after initial load) ──────────────
+  // Brings every space to its schedule-correct status (reserved → occupied on the
+  // commencement date once paid; vacant when ended) and onboards any lease that
+  // has already cleared the access gate but was never onboarded (e.g. paid while
+  // the app was closed).
+  const reconciledRef = useRef(false)
+  useEffect(() => {
+    if (loading || reconciledRef.current) return
+    reconciledRef.current = true
+    leases.forEach((lease) => {
+      const space = spaces.find((s) => s.id === lease.spaceId)
+      const alreadyOccupied = space?.status === 'occupied'
+      if (space) {
+        const desired = desiredSpaceStatus(lease, invoices)
+        // Never pull an already-occupied space back to reserved (protects
+        // tenants who moved in under the pre-gate flow).
+        const demoting = alreadyOccupied && desired === 'reserved'
+        if (desired !== space.status && !demoting) updateSpace(space.id, { status: desired })
+      }
+      if (shouldOnboard(lease, invoices)) {
+        if (alreadyOccupied) {
+          // Pre-existing move-in — suppress retroactive onboarding (no email/invite).
+          updateLease(lease.id, { onboardedAt: lease.activatedAt ?? new Date().toISOString() })
+        } else {
+          const tenant = tenants.find((t) => t.id === lease.tenantId)
+          onboardLease({ lease, tenant, space, members, settings, updateLease, updateMember })
+        }
+      }
+    })
+  }, [loading]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Tenants ───────────────────────────────────────────────────────────────
   const addTenant = useCallback((tenant) => {
     const item = { ...tenant, id: `t${Date.now()}`, createdAt: new Date().toISOString().split('T')[0] }
@@ -1000,8 +1147,12 @@ export function useStore() {
     setLeases((prev) => [...prev, item])
     syncRow('leases', item.id, item)
     logAudit('create', 'lease', item.id, item.contractNumber ?? item.id)
+    // A real contract holds the space as 'reserved' — it only becomes 'occupied'
+    // once the access gate is met (signed + deposit + first invoice paid) and the
+    // commencement date is reached. Bare quick-assignments occupy immediately.
+    const initialStatus = requiresAccessGate(item) ? 'reserved' : 'occupied'
     setSpaces((prev) => {
-      const next = prev.map((s) => (s.id === lease.spaceId ? { ...s, status: 'occupied' } : s))
+      const next = prev.map((s) => (s.id === lease.spaceId ? { ...s, status: initialStatus } : s))
       const updated = next.find((s) => s.id === lease.spaceId)
       if (updated) {
         syncRow('spaces', updated.id, updated)
@@ -1015,13 +1166,38 @@ export function useStore() {
   }, [])
 
   const updateLease = useCallback((id, updates) => {
+    let endedLeaseId = null
     setLeases((prev) => {
       const next = prev.map((l) => (l.id === id ? { ...l, ...updates } : l))
       const updated = next.find((l) => l.id === id)
       if (updated) { syncRow('leases', id, updated); logAudit('update', 'lease', id, updated.contractNumber ?? id, Object.keys(updates).join(', ')) }
+      // Detect an end-of-lease transition; the heavy lifting runs in offboardLease.
+      if (updated && ['expired', 'terminated'].includes(updates.status) && !updated.offboardedAt) endedLeaseId = id
       return next
     })
+    // Run offboarding after state settles so the data refs are fresh.
+    if (endedLeaseId) setTimeout(() => offboardLeaseRef.current?.(endedLeaseId), 0)
   }, [])
+
+  // Payment-time (and reconcile) entry point: if a lease has just cleared the
+  // access gate, flip its space to the schedule-correct status and run onboarding.
+  const provisionAndOnboardLease = useCallback((leaseId) => {
+    const lease = leasesRef.current.find((l) => l.id === leaseId)
+    if (!lease || lease.onboardedAt) return
+    if (!accessGateMet(lease, invoicesRef.current)) return
+    const tenant = tenantsRef.current.find((t) => t.id === lease.tenantId)
+    const space = spacesRef.current.find((s) => s.id === lease.spaceId)
+    const alreadyOccupied = space?.status === 'occupied'
+    if (space) {
+      const desired = desiredSpaceStatus(lease, invoicesRef.current)
+      const demoting = space.status === 'occupied' && desired === 'reserved'
+      if (desired !== space.status && !demoting) updateSpace(space.id, { status: desired })
+    }
+    // If the space was already occupied, this tenant is already moved in — stamp
+    // onboardedAt to suppress a retroactive welcome rather than re-sending it.
+    if (alreadyOccupied) { updateLease(leaseId, { onboardedAt: lease.activatedAt ?? new Date().toISOString() }); return }
+    onboardLease({ lease, tenant, space, members: membersRef.current, settings: settingsRef.current, updateLease, updateMember })
+  }, [updateSpace, updateLease, updateMember])
 
   const deleteLease = useCallback((id) => {
     setLeases((prev) => {
@@ -1112,8 +1288,10 @@ export function useStore() {
   }, [])
 
   const addPaymentToInvoice = useCallback((invoiceId, payment) => {
+    let affectedLeaseId = null
     setInvoices((prev) => {
       const inv = prev.find((i) => i.id === invoiceId)
+      affectedLeaseId = inv?.leaseId ?? null
       logAudit('payment', 'invoice', invoiceId, inv?.number ?? invoiceId, `$${Number(payment.amount).toFixed(2)} via ${payment.method ?? '—'}`)
       const next = prev.map((i) => i.id === invoiceId
         ? { ...i, payments: [...(i.payments ?? []), { ...payment, id: `pay${Date.now()}` }], status: 'paid' }
@@ -1122,7 +1300,10 @@ export function useStore() {
       if (updated) syncRow('invoices', invoiceId, updated)
       return next
     })
-  }, [])
+    // Re-check the access gate after refs settle (post-render): a paid deposit +
+    // first invoice may now unlock occupancy + onboarding for this lease.
+    if (affectedLeaseId) setTimeout(() => provisionAndOnboardLease(affectedLeaseId), 0)
+  }, [provisionAndOnboardLease])
 
   const addCommentToInvoice = useCallback((invoiceId, text) => {
     setInvoices((prev) => {
@@ -1134,6 +1315,98 @@ export function useStore() {
       return next
     })
   }, [])
+
+  // ── Offboarding ─────────────────────────────────────────────────────────────
+  // Raise a security-deposit refund as a pending-approval credit note — but only
+  // if the deposit was actually invoiced and paid. Never duplicates.
+  const createBondRefund = useCallback((lease) => {
+    const bond = depositAmount(lease)
+    if (!bond || bond <= 0) return
+    const dep = invoicesRef.current.find(
+      (i) => i.leaseId === lease.id && i.invoiceType === 'deposit' && i.status === 'paid'
+    )
+    if (!dep) return // nothing paid → nothing to refund
+    if (invoicesRef.current.some((i) => i.leaseId === lease.id && i.invoiceType === 'bond_refund')) return
+    const today = new Date().toISOString().split('T')[0]
+    const space = spacesRef.current.find((s) => s.id === lease.spaceId)
+    addInvoice({
+      tenantId: lease.tenantId, leaseId: lease.id,
+      status: 'pending', sentStatus: 'not_sent', source: 'offboarding',
+      invoiceType: 'bond_refund', approvalStatus: 'pending',
+      creditNoteForId: dep.id,
+      issueDate: today, dueDate: today, periodStart: null, periodEnd: null,
+      reference: `Bond refund — ${space?.unitNumber ?? lease.spaceId}`,
+      paymentMethod: '', discountPct: 0, vatEnabled: false, xeroSync: false, isProrated: false,
+      lineItems: [{
+        id: `li${Date.now()}`,
+        description: `Security Deposit Refund — ${space?.unitNumber ?? lease.spaceId}`,
+        revenueAccount: 'Security Deposit',
+        unitPrice: -Math.abs(bond), qty: 1, discountPct: 0,
+      }],
+    })
+    logAudit('create', 'invoice', lease.id, `Bond refund`, `Pending approval — $${bond}`)
+  }, [addInvoice])
+
+  // End-of-lease housekeeping: free every space the lease held (office + parking),
+  // cascade-end the tenant's standalone parking memberships, revoke the company's
+  // Salto door access, and raise the bond-refund credit note for approval.
+  const offboardLease = useCallback((leaseId) => {
+    const lease = leasesRef.current.find((l) => l.id === leaseId)
+    if (!lease || lease.offboardedAt) return
+    updateLease(leaseId, { offboardedAt: new Date().toISOString() })
+
+    const spaceIds = new Set(leaseSpaceIds(lease))
+
+    // Cascade: a tenant losing their office also loses standalone parking bays.
+    leasesRef.current
+      .filter((l) => l.id !== lease.id && l.tenantId === lease.tenantId && l.status === 'active'
+        && !l.offboardedAt && isParkingLease(l, spacesRef.current))
+      .forEach((pl) => {
+        leaseSpaceIds(pl).forEach((id) => spaceIds.add(id))
+        updateLease(pl.id, { status: 'expired' }) // triggers its own offboard (frees + revokes)
+      })
+
+    // Free every collected space.
+    setSpaces((prev) => {
+      const next = prev.map((s) => (spaceIds.has(s.id) && s.status !== 'vacant' ? { ...s, status: 'vacant' } : s))
+      spaceIds.forEach((id) => { const sp = next.find((s) => s.id === id); if (sp) syncRow('spaces', sp.id, sp) })
+      return next
+    })
+
+    // Revoke Salto access for every member of the company, on every freed door.
+    const doorSpaces = [...spaceIds].map((id) => spacesRef.current.find((s) => s.id === id)).filter(Boolean)
+    membersRef.current
+      .filter((m) => m.companyId === lease.tenantId && m.saltoAccess)
+      .forEach((m) => {
+        doorSpaces.forEach((space) => revokeSaltoAccess({ member: m, space }).catch((e) => console.error('Salto revoke failed:', e)))
+        updateMember(m.id, { saltoAccess: false })
+      })
+
+    // Bond refund (pending approval).
+    createBondRefund(lease)
+  }, [updateLease, updateMember, createBondRefund])
+
+  // Approve a pending bond-refund credit note and notify the tenant.
+  const approveBondRefund = useCallback((invoiceId) => {
+    const inv = invoicesRef.current.find((i) => i.id === invoiceId)
+    if (!inv || inv.approvalStatus === 'approved') return
+    updateInvoice(invoiceId, { approvalStatus: 'approved', approvedAt: new Date().toISOString() })
+    logAudit('approve', 'invoice', invoiceId, inv.number ?? invoiceId, 'Bond refund approved')
+    const tenant = tenantsRef.current.find((t) => t.id === inv.tenantId)
+    if (!tenant?.email) return
+    const amount = Math.abs((inv.lineItems ?? []).reduce((s, l) => s + (l.unitPrice * l.qty), 0))
+    const space = spacesRef.current.find((s) => s.id === leasesRef.current.find((l) => l.id === inv.leaseId)?.spaceId)
+    const settings = settingsRef.current
+    const { subject } = resolveBondRefundCopy({ invoice: inv, tenant, space, settings, amount })
+    sendEmail({
+      to: tenant.email, subject,
+      html: bondRefundEmailHtml({ invoice: inv, tenant, space, settings, amount }),
+      settings, tenantId: tenant.id, emailType: 'bond_refund',
+    }).catch((e) => console.error('Bond refund email failed:', e))
+  }, [updateInvoice])
+
+  // Bind the late ref so updateLease → offboardLease works without a dep cycle.
+  useEffect(() => { offboardLeaseRef.current = offboardLease }, [offboardLease])
 
   // ── Discounts ─────────────────────────────────────────────────────────────
   const addDiscount = useCallback((discount) => {
@@ -1504,9 +1777,9 @@ export function useStore() {
     fees, addFee, updateFee, deleteFee,
     bookings, addBooking, updateBooking, deleteBooking,
     spaces, addSpace, updateSpace, deleteSpace,
-    leases, addLease, updateLease, deleteLease,
+    leases, addLease, updateLease, deleteLease, provisionAndOnboardLease,
     templates, addTemplate, updateTemplate, deleteTemplate,
-    invoices, addInvoice, updateInvoice, voidInvoice, deleteInvoice, addPaymentToInvoice, addCommentToInvoice, runAutoBillRun,
+    invoices, addInvoice, updateInvoice, voidInvoice, deleteInvoice, addPaymentToInvoice, addCommentToInvoice, approveBondRefund, runAutoBillRun,
     discounts, addDiscount, updateDiscount, deleteDiscount,
     maintenance, addMaintenanceIssue, updateMaintenanceIssue, deleteMaintenanceIssue,
     leads, addLead, updateLead, moveLeadToStage, deleteLead, convertLeadToTenant, appendLeadActivity,
