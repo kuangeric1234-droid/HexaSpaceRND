@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { logAudit } from '../lib/audit.js'
 import { publishListing } from '../lib/sanity.js'
+import { floorName } from '../lib/billing.js'
 
 const STORAGE_KEYS = {
   tenants: 'hexaspace_tenants',
@@ -771,7 +772,11 @@ export function useStore() {
 
             const fmt = (d) => d.toISOString().split('T')[0]
             const periodLabel = `${periodStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} – ${periodEnd.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}${isProrated ? ' (prorated)' : ''}`
-            const desc = `${space?.unitNumber ?? ''}${space?.address ? ` – ${space.address}` : ''} · ${periodLabel}`
+            // e.g. "Level 4 Suite 14 · 1 Jun – 30 Jun 2026"
+            const floorPrefix = floorName(space?.floor)
+            const desc = space?.unitNumber
+              ? `${floorPrefix ? floorPrefix + ' ' : ''}${space.unitNumber} · ${periodLabel}`
+              : `${lease.reference ?? lease.id ?? 'Membership'} · ${periodLabel}`
 
             const allNums = [...loadedInvoices, ...newInvoices]
               .map((i) => parseInt(i.number?.replace(/\D/g, '') || '0', 10))

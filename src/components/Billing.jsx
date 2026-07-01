@@ -5,6 +5,7 @@ import { Plus, Search, X, Check, Download, Send, Ban } from 'lucide-react'
 import InvoiceDetail from './InvoiceDetail.jsx'
 import InvoiceForm from './InvoiceForm.jsx'
 import { sendEmail, invoiceEmailHtml } from '../lib/sendEmail.js'
+import { invoiceSpace, locationLabel } from '../lib/billing.js'
 import { jsPDF } from 'jspdf'
 
 const STATUS_STYLE = {
@@ -286,9 +287,7 @@ export default function Billing() {
   if (selectedInvoice) {
     const inv = invoices.find((i) => i.id === selectedInvoice.id) ?? selectedInvoice
     const tenant = tenants.find((t) => t.id === inv.tenantId)
-    const space = spaces.find((s) => s.id === inv.leaseId
-      ? leases.find((l) => l.id === inv.leaseId)?.spaceId
-      : null)
+    const space = invoiceSpace(inv, leases, spaces)
     return (
       <InvoiceDetail
         invoice={inv}
@@ -483,7 +482,7 @@ export default function Billing() {
                       </td>
                       <td className="px-4 py-3 cursor-pointer" onClick={() => setSelectedInvoice(inv)}>
                         <div className="font-medium text-gray-900">{tenant?.businessName ?? '—'}</div>
-                        <div className="text-xs text-gray-400">Found Huntingdale</div>
+                        <div className="text-xs text-gray-400">{locationLabel(invoiceSpace(inv, leases, spaces))}</div>
                       </td>
                       <td className="px-4 py-3 cursor-pointer" onClick={() => setSelectedInvoice(inv)}>
                         <div className="flex flex-col gap-1">

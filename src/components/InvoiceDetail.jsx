@@ -3,6 +3,7 @@ import { format, parseISO, differenceInDays } from 'date-fns'
 import { ArrowLeft, Send, RefreshCw, Ban, FileMinus, FileDown, Plus, MessageSquare, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
 import { sendEmail, invoiceEmailHtml, resolveEmailTemplate } from '../lib/sendEmail.js'
 import { logAudit } from '../lib/audit.js'
+import { locationLabel, lineDescription } from '../lib/billing.js'
 import { jsPDF } from 'jspdf'
 
 const STATUS_STYLE = {
@@ -138,7 +139,7 @@ export default function InvoiceDetail({
       const lineTotal = calcLineTotal(line)
       const exempt = line.vatExempt || invoice.vatEnabled === false
       const lineGst = exempt ? 0 : Math.round(lineTotal * taxRate * 100) / 100
-      const descLines = doc.splitTextToSize(line.description + (exempt ? ' (GST Exempt)' : ''), 95)
+      const descLines = doc.splitTextToSize(lineDescription(line, space, invoice) + (exempt ? ' (GST Exempt)' : ''), 95)
       doc.text(descLines, ml, y)
       doc.text(String(line.qty), 118, y, { align: 'right' })
       doc.text(`${lineTotal.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`, 141, y, { align: 'right' })
@@ -437,7 +438,7 @@ export default function InvoiceDetail({
               <div className="space-y-2.5 text-sm">
                 {[
                   ['TO', tenant?.businessName ?? '—'],
-                  ['LOCATION', 'Found Huntingdale'],
+                  ['LOCATION', locationLabel(space)],
                   ['STATUS', null],
                   ['SOURCE', invoice.source === 'bill-run' ? 'Bill Run' : 'Manual'],
                   ['ISSUE DATE', invoice.issueDate ? format(parseISO(invoice.issueDate), 'dd MMM yyyy') : '—'],
@@ -497,7 +498,7 @@ export default function InvoiceDetail({
                   {(invoice.lineItems ?? []).map((line) => (
                     <tr key={line.id} className="border-b border-gray-100 last:border-0">
                       <td className="px-4 py-3 text-gray-800 text-sm">
-                        {line.description}
+                        {lineDescription(line, space, invoice)}
                         {line.vatExempt && <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">GST Exempt</span>}
                       </td>
                       <td className="px-4 py-2.5">
@@ -690,7 +691,7 @@ export default function InvoiceDetail({
                           className="h-4 w-4"
                         />
                       </td>
-                      <td className="py-3 text-gray-700">{line.description}</td>
+                      <td className="py-3 text-gray-700">{lineDescription(line, space, invoice)}</td>
                       <td className="py-3 text-right text-gray-700">${Number(line.unitPrice).toLocaleString('en-AU', { minimumFractionDigits: 2 })}</td>
                       <td className="py-3 text-right text-gray-700">{line.qty}</td>
                       <td className="py-3 text-right text-gray-700">${price.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</td>
