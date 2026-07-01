@@ -51,6 +51,11 @@ export function locationLabel(lease, space) {
   return fl ? `Hexa Space · ${fl}` : 'Hexa Space'
 }
 
+/** Description prefix: "Virtual Office" for virtual plans, else the floor. */
+export function descPrefix(lease, space) {
+  return isVirtual(lease) ? 'Virtual Office' : floorLabelFor(lease, space)
+}
+
 /** "1 Jun – 30 Jun 2026" from ISO date strings. */
 export function periodLabel(start, end) {
   if (!start || !end) return ''
@@ -60,13 +65,14 @@ export function periodLabel(start, end) {
   return `${s} – ${e}`
 }
 
-/** "Level 2 Suite 14 · 1 Jun – 30 Jun 2026" — floor + unit + billing period. */
+// "Level 2 Suite 14 · 1 Jun – 30 Jun 2026" — or, for a virtual office,
+// "Virtual Office Suite 403 · 1 Jul – 31 Jul 2026".
 export function suiteDescription(lease, space, inv) {
   const unit = unitNameFor(lease, space)
   if (!unit) return ''
-  const fl = floorLabelFor(lease, space)
+  const prefix = descPrefix(lease, space)
   const per = periodLabel(inv?.periodStart, inv?.periodEnd)
-  return `${fl ? fl + ' ' : ''}${unit}${per ? ` · ${per}` : ''}`
+  return `${prefix ? prefix + ' ' : ''}${unit}${per ? ` · ${per}` : ''}`
 }
 
 /**
