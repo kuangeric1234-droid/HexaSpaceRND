@@ -29,7 +29,23 @@ const SIGNATURE_STATUSES = [
   { value: 'manually_signed',   label: 'Manually Signed' },
   { value: 'e_signed',          label: 'E Signed' },
 ]
-const DISCOUNT_OPTIONS = ['5%', '10%', '15%', '20%', '25%', '30%']
+const DISCOUNT_OPTIONS = ['5%', '10%', '15%', '20%', '25%', '30%', '50%', '75%', '100%']
+
+const fmtDate = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+// 1-year term ending the day before the anniversary (e.g. 1 Jul 2026 → 30 Jun 2027)
+function oneYearTerm(d) {
+  if (!d) return ''
+  const dt = new Date(d + 'T00:00:00')
+  dt.setFullYear(dt.getFullYear() + 1)
+  dt.setDate(dt.getDate() - 1)
+  return fmtDate(dt)
+}
+function dayAfter(d) {
+  if (!d) return ''
+  const dt = new Date(d + 'T00:00:00')
+  dt.setDate(dt.getDate() + 1)
+  return fmtDate(dt)
+}
 // AVAILABLE_TERMS is now driven by the templates store — see Terms tab render
 
 function generateContractNumber(leases) {
@@ -193,8 +209,9 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
           i === 0
             ? {
                 ...step,
-                startDate: step.startDate || f.startDate,
-                endDate: step.endDate || f.endDate,
+                startDate: f.startDate || step.startDate,
+                // single-step contracts mirror the top-level term; multi-step keep their own
+                endDate: item.steps.length === 1 ? (f.endDate || step.endDate) : step.endDate,
               }
             : step
         ),
@@ -265,17 +282,20 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
   function addStep(itemIdx) {
     setForm((f) => ({
       ...f,
-      items: f.items.map((item, i) =>
-        i !== itemIdx
-          ? item
-          : {
-              ...item,
-              steps: [
-                ...item.steps,
-                { startDate: '', endDate: f.endDate, listPrice: 0, discount: '' },
-              ],
-            }
-      ),
+      items: f.items.map((item, i) => {
+        if (i !== itemIdx) return item
+        const last = item.steps[item.steps.length - 1]
+        const nextStart = last?.endDate ? dayAfter(last.endDate) : f.startDate
+        // Only add when the last step doesn't already fill the whole duration.
+        if (f.endDate && nextStart && nextStart > f.endDate) return item
+        return {
+          ...item,
+          steps: [
+            ...item.steps,
+            { startDate: nextStart, endDate: f.endDate, listPrice: last?.listPrice ?? 0, discount: '' },
+          ],
+        }
+      }),
     }))
   }
 
@@ -476,7 +496,11 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                 <input
                   type="date"
                   value={form.startDate}
-                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                  onChange={(e) => {
+                    const startDate = e.target.value
+                    // Auto-fill a 1-year term when the start date is set/changed.
+                    setForm((f) => ({ ...f, startDate, endDate: startDate ? oneYearTerm(startDate) : f.endDate }))
+                  }}
                   className={inputCls(errors.startDate)}
                 />
               </Field>
@@ -686,13 +710,20 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                               ))}
                             </select>
 
-                            <button
-                              type="button"
-                              onClick={() => addStep(itemIdx)}
-                              className="text-xs text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
-                            >
-                              Add Step
-                            </button>
+                            {stepIdx === item.steps.length - 1 ? (() => {
+                              const fillsEnd = form.endDate && step.endDate && step.endDate >= form.endDate
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => addStep(itemIdx)}
+                                  disabled={fillsEnd}
+                                  title={fillsEnd ? 'This step already covers the full duration' : undefined}
+                                  className={`text-xs font-medium whitespace-nowrap ${fillsEnd ? 'text-gray-300 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800'}`}
+                                >
+                                  Add Step
+                                </button>
+                              )
+                            })() : <span />}
 
                             {item.steps.length > 1 && (
                               <button
