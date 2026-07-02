@@ -31,13 +31,22 @@ export default function Tenants() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [selectedTenant, setSelectedTenant] = useState(null)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'Active' | 'Former'
 
   const activeLeases = (tid) => leases.filter((l) => l.tenantId === tid && l.status === 'active')
   const spaceName = (id) => spaces.find((s) => s.id === id)?.unitNumber
+  // Active only when the company has an active membership; everything else is Former.
+  const statusOf = (t) => (activeLeases(t.id).length > 0 ? 'Active' : (t.status && t.status !== 'Active' ? t.status : 'Former'))
+  const isActive = (t) => statusOf(t) === 'Active'
 
-  const filtered = tenants.filter((t) =>
-    [t.businessName, t.contactName, t.email, t.industry].join(' ').toLowerCase().includes(search.toLowerCase())
-  )
+  const activeCount = tenants.filter(isActive).length
+  const STATUS_TABS = [['all', `All ${tenants.length}`], ['Active', `Active (${activeCount})`], ['Former', `Former (${tenants.length - activeCount})`]]
+
+  const filtered = tenants.filter((t) => {
+    if (statusFilter === 'Active' && !isActive(t)) return false
+    if (statusFilter === 'Former' && isActive(t)) return false
+    return [t.businessName, t.contactName, t.email, t.industry].join(' ').toLowerCase().includes(search.toLowerCase())
+  })
 
   function openAdd() { setEditId(null); setForm({ ...EMPTY_FORM, startDate: today() }); setShowForm(true) }
   function openEdit(t) { setEditId(t.id); setForm({ ...EMPTY_FORM, ...t }); setShowForm(true) }
@@ -82,7 +91,21 @@ export default function Tenants() {
       <p className="text-sm text-gray-500 mb-5">{tenants.length} companies</p>
 
       <input type="text" placeholder="Search companies…" value={search} onChange={(e) => setSearch(e.target.value)}
-        className="w-full max-w-sm border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black mb-5" />
+        className="w-full max-w-sm border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black mb-4" />
+
+      <div className="flex border border-gray-200 rounded-md overflow-hidden w-fit mb-5">
+        {STATUS_TABS.map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setStatusFilter(key)}
+            className={`px-4 py-1.5 text-sm border-l first:border-l-0 border-gray-200 transition-colors ${
+              statusFilter === key ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
         <table className="w-full text-sm">
@@ -99,9 +122,7 @@ export default function Tenants() {
             )}
             {filtered.map((t) => {
               const al = activeLeases(t.id)
-              // A company is Active only if it has an active membership; otherwise
-              // keep an explicit non-active label (Lead/Drop In/Former) or fall to Former.
-              const derivedStatus = al.length > 0 ? 'Active' : (t.status && t.status !== 'Active' ? t.status : 'Former')
+              const derivedStatus = statusOf(t)
               return (
                 <tr key={t.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedTenant(t)}>
                   <td className="px-4 py-3 font-medium text-blue-700 hover:underline">{t.businessName}</td>
