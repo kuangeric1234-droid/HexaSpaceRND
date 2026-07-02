@@ -20,12 +20,14 @@ function blankForm(floor = 'l4') {
 // accounts). Rate auto-computes from floor × placement × pax.
 export default function PrivateOfficesTab({ ctx }) {
   const { spaces, leases, tenants, settings, templates, discounts,
-    addSpace, updateSpace, deleteSpace, addLease } = ctx
+    addSpace, updateSpace, deleteSpace, addLease, updateLease, currentUserRole } = ctx
   const navigate = useNavigate()
   const [editId, setEditId] = useState(undefined)
   const [form, setForm] = useState(blankForm())
   const [contractSpace, setContractSpace] = useState(null)
   const [levelFilter, setLevelFilter] = useState('all') // 'all' | 'l4' | 'l2'
+  const [editEndId, setEditEndId] = useState(null) // lease id whose end date is being edited
+  const isSuperAdmin = currentUserRole === 'super_admin'
 
   const offices = spaces.filter((s) => s.type === 'office')
   const activeLeaseFor = (spaceId) =>
@@ -147,6 +149,8 @@ export default function PrivateOfficesTab({ ctx }) {
             {sorted.map((o) => {
               const occ = occupantOf(o)
               const lease = activeLeaseFor(o.id)
+              // Status follows occupancy: occupied when someone's in it, available when not.
+              const derivedStatus = occ ? 'occupied' : 'vacant'
               return (
                 <tr key={o.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-2.5 font-medium text-gray-900">{o.unitNumber}</td>
@@ -158,7 +162,28 @@ export default function PrivateOfficesTab({ ctx }) {
                     </span>
                   </td>
                   <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{fmtDate(lease?.startDate)}</td>
-                  <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{fmtDate(lease?.endDate)}</td>
+                  <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">
+                    {lease && isSuperAdmin ? (
+                      editEndId === lease.id ? (
+                        <input
+                          type="date"
+                          autoFocus
+                          defaultValue={lease.endDate || ''}
+                          onBlur={(e) => { updateLease(lease.id, { endDate: e.target.value || '' }); setEditEndId(null) }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditEndId(null) }}
+                          className="border border-gray-300 rounded px-1.5 py-0.5 text-sm"
+                        />
+                      ) : (
+                        <button
+                          onClick={() => setEditEndId(lease.id)}
+                          title="Click to change the end date (updates the lease & bill run)"
+                          className="hover:underline decoration-dotted underline-offset-2 hover:text-gray-900"
+                        >
+                          {fmtDate(lease.endDate)}
+                        </button>
+                      )
+                    ) : fmtDate(lease?.endDate)}
+                  </td>
                   <td className="px-4 py-2.5">
                     <div className="font-medium text-gray-900">{money(o.monthlyRate)}/mo</div>
                     {o.discount > 0 && (
@@ -181,10 +206,10 @@ export default function PrivateOfficesTab({ ctx }) {
                       ? <span className="inline-flex items-center gap-1 text-xs text-gray-600"><DoorClosed size={12} /> {o.saltoDoors}</span>
                       : <span className="text-xs text-gray-300">—</span>}
                   </td>
-                  <td className="px-4 py-2.5"><StatusPill status={o.status} /></td>
+                  <td className="px-4 py-2.5"><StatusPill status={derivedStatus} /></td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center justify-end gap-1">
-                      {o.status === 'vacant' && (
+                      {derivedStatus === 'vacant' && (
                         <button onClick={() => setContractSpace(o)} className="flex items-center gap-1 text-xs text-white bg-black hover:bg-gray-800 px-2.5 py-1.5 rounded-md font-medium">
                           <FileText size={12} /> Contract
                         </button>
