@@ -69,53 +69,53 @@ export default function Bookings() {
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
-        <button onClick={() => { setForm({ ...EMPTY, date: today() }); setShowForm(true) }} className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800"><Plus size={15} /> New Booking</button>
+        <h1 className="text-2xl font-bold text-foreground">Bookings</h1>
+        <button onClick={() => { setForm({ ...EMPTY, date: today() }); setShowForm(true) }} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90"><Plus size={15} /> New Booking</button>
       </div>
-      <p className="text-sm text-gray-500 mb-4">Every room & space booking — made here, from the calendar, the website, or the members portal.</p>
+      <p className="text-sm text-muted-foreground mb-4">Every room & space booking — made here, from the calendar, the website, or the members portal.</p>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <input type="text" placeholder="Search bookings…" value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 min-w-[180px] max-w-xs border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black" />
-        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white" />
-        <span className="text-gray-400 text-sm">–</span>
-        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white" />
-        <select value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white">
+        <input type="text" placeholder="Search bookings…" value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 min-w-[180px] max-w-xs border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40" />
+        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border border-input rounded-md px-3 py-2 text-sm bg-card" />
+        <span className="text-muted-foreground text-sm">–</span>
+        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border border-input rounded-md px-3 py-2 text-sm bg-card" />
+        <select value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)} className="border border-input rounded-md px-3 py-2 text-sm bg-card">
           <option value="">All companies</option>
           {tenants.map((t) => <option key={t.id} value={t.id}>{t.businessName}</option>)}
         </select>
-        <span className="ml-auto text-sm text-gray-500">{rows.length} bookings</span>
+        <span className="ml-auto text-sm text-muted-foreground">{rows.length} bookings</span>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-muted/50 border-b border-border">
             <tr>
               {['Booking', 'Reference', 'Member', 'Resource', 'Summary', ''].map((h) => (
-                <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">No bookings yet. They’ll appear here from the calendar, the website and the members portal — or add one with <strong>New Booking</strong>.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">No bookings yet. They’ll appear here from the calendar, the website and the members portal — or add one with <strong>New Booking</strong>.</td></tr>
             )}
             {rows.map((b) => (
-              <tr key={b.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+              <tr key={b.id} className="border-b border-border last:border-0 hover:bg-muted/50">
                 <td className="px-4 py-3">
-                  <div className="font-medium text-gray-900">{b.date ? format(parseISO(b.date), 'd MMM yyyy') : '—'} · {to12(b.startTime)} – {to12(b.endTime)}</div>
+                  <div className="font-medium text-foreground">{b.date ? format(parseISO(b.date), 'd MMM yyyy') : '—'} · {to12(b.startTime)} – {to12(b.endTime)}</div>
                   <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-xs text-gray-400">{b.hrs} hour{b.hrs !== 1 ? 's' : ''}</span>
+                    <span className="text-xs text-muted-foreground">{b.hrs} hour{b.hrs !== 1 ? 's' : ''}</span>
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${STATUS_STYLE[b.status] || 'bg-gray-100 text-gray-600'}`}>{b.status}</span>
                     {b.source && <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${SOURCE_STYLE[b.source] || 'bg-gray-200 text-gray-700'}`}>{b.source}</span>}
-                    {b.repeat && b.repeat !== 'none' && <span className="text-[10px] text-gray-400">↻ {b.repeat}</span>}
+                    {b.repeat && b.repeat !== 'none' && <span className="text-[10px] text-muted-foreground">↻ {b.repeat}</span>}
                   </div>
                 </td>
-                <td className="px-4 py-3 font-mono text-xs text-gray-600">{b.reference}</td>
-                <td className="px-4 py-3"><div className="text-gray-900">{b.memberName || '—'}</div><div className="text-xs text-gray-400">{b.companyName}</div></td>
-                <td className="px-4 py-3"><div className="text-gray-900">{b.room?.unitNumber || '—'}</div><div className="text-xs text-gray-400">Hexa Space</div></td>
-                <td className="px-4 py-3 text-gray-700">{b.cost ? `A$${b.cost.toLocaleString('en-AU')}` : 'Free'}</td>
+                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{b.reference}</td>
+                <td className="px-4 py-3"><div className="text-foreground">{b.memberName || '—'}</div><div className="text-xs text-muted-foreground">{b.companyName}</div></td>
+                <td className="px-4 py-3"><div className="text-foreground">{b.room?.unitNumber || '—'}</div><div className="text-xs text-muted-foreground">Hexa Space</div></td>
+                <td className="px-4 py-3 text-foreground">{b.cost ? `A$${b.cost.toLocaleString('en-AU')}` : 'Free'}</td>
                 <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => { if (confirm('Delete this booking?')) deleteBooking(b.id) }} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                  <button onClick={() => { if (confirm('Delete this booking?')) deleteBooking(b.id) }} className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600"><Trash2 size={14} /></button>
                 </td>
               </tr>
             ))}
@@ -128,17 +128,17 @@ export default function Bookings() {
   )
 }
 
-const ic = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black'
-function L({ label, children }) { return <label className="block"><span className="block text-xs font-medium text-gray-600 mb-1">{label}</span>{children}</label> }
+const ic = 'w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
+function L({ label, children }) { return <label className="block"><span className="block text-xs font-medium text-muted-foreground mb-1">{label}</span>{children}</label> }
 
 function BookingModal({ form, setForm, rooms, members, tenants, onClose, onSubmit }) {
   const up = (k) => (e) => setForm({ ...form, [k]: e.target.value })
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-md w-full max-w-md shadow-xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">New Booking</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+      <div className="bg-card rounded-xl w-full max-w-md shadow-xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="font-semibold text-foreground">New Booking</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
         </div>
         <div className="px-6 py-5 space-y-4">
           <L label="Resource"><select value={form.resourceId} onChange={up('resourceId')} className={ic}><option value="">Select room / space</option>{rooms.map((r) => <option key={r.id} value={r.id}>{r.unitNumber}{r.hourlyRate ? ` — $${r.hourlyRate}/hr` : ''}</option>)}</select></L>
@@ -154,9 +154,9 @@ function BookingModal({ form, setForm, rooms, members, tenants, onClose, onSubmi
             <L label="Repeat"><select value={form.repeat} onChange={up('repeat')} className={ic}><option value="none">None</option><option value="weekly">Weekly</option><option value="daily">Daily</option><option value="monthly">Monthly</option></select></L>
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Close</button>
-          <button onClick={() => { if (!form.resourceId) return; onSubmit() }} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">Add</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Close</button>
+          <button onClick={() => { if (!form.resourceId) return; onSubmit() }} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90">Add</button>
         </div>
       </div>
     </div>

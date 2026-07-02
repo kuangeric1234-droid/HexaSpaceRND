@@ -94,26 +94,26 @@ export default function LeadDetail({ lead, store, onClose }) {
   const notes = (lead.activity ?? []).filter((a) => a.type === 'note').sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
   const emails = (lead.activity ?? []).filter((a) => a.type === 'email').sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
 
-  const input = 'w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black'
+  const input = 'w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-xl bg-gray-50 h-full shadow-2xl flex flex-col">
+      <div className="relative w-full max-w-xl bg-muted/50 h-full shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="bg-card border-b border-border px-6 py-4">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">{lead.name || lead.businessName || 'Lead'}</h2>
-              {lead.businessName && lead.name && <p className="text-sm text-gray-500">{lead.businessName}</p>}
+              <h2 className="text-lg font-bold text-foreground">{lead.name || lead.businessName || 'Lead'}</h2>
+              {lead.businessName && lead.name && <p className="text-sm text-muted-foreground">{lead.businessName}</p>}
               <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                {stage && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{stage.name}</span>}
-                {lead.source && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-50 text-gray-500 capitalize border border-gray-100">{lead.source}</span>}
-                {space && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{space.unitNumber}</span>}
-                {lead.createdAt && <span className="text-xs text-gray-400">added {lead.createdAt}</span>}
+                {stage && <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{stage.name}</span>}
+                {lead.source && <span className="text-xs px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground capitalize border border-border">{lead.source}</span>}
+                {space && <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{space.unitNumber}</span>}
+                {lead.createdAt && <span className="text-xs text-muted-foreground">added {lead.createdAt}</span>}
               </div>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
           </div>
           {converted ? (
             <div className="mt-3 bg-green-50 border border-green-200 rounded-md px-3 py-2 text-sm text-green-700 flex items-center gap-2">
@@ -121,11 +121,11 @@ export default function LeadDetail({ lead, store, onClose }) {
             </div>
           ) : (
             <div className="mt-3 flex gap-2">
-              <button onClick={() => convertLeadToTenant(lead.id)} className="flex items-center gap-1.5 text-sm font-medium bg-black text-white px-3 py-1.5 rounded-md hover:bg-gray-800">
+              <button onClick={() => convertLeadToTenant(lead.id)} className="flex items-center gap-1.5 text-sm font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/90">
                 <UserPlus size={14} /> Convert to tenant
               </button>
               <button onClick={() => { if (window.confirm('Delete this lead?')) { deleteLead(lead.id); onClose() } }}
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 px-2 py-1.5">
+                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-red-600 px-2 py-1.5">
                 <Trash2 size={14} /> Delete
               </button>
             </div>
@@ -133,17 +133,17 @@ export default function LeadDetail({ lead, store, onClose }) {
 
           {/* Deal close / commission */}
           {dealClosed ? (
-            <div className="mt-2 bg-gray-900 text-white rounded-md px-3 py-2 text-sm flex items-center gap-2">
+            <div className="mt-2 bg-primary text-primary-foreground rounded-md px-3 py-2 text-sm flex items-center gap-2">
               <DollarSign size={15} />
               <span>
                 Deal closed{lead.dealValue ? ` — $${Number(lead.dealValue).toLocaleString('en-AU')}` : ''}
-                {commission && <> · commission <span className="font-semibold">${Number(commission.amount).toLocaleString('en-AU')}</span> to {commission.referrerName} <span className="capitalize text-gray-300">({commission.status})</span></>}
+                {commission && <> · commission <span className="font-semibold">${Number(commission.amount).toLocaleString('en-AU')}</span> to {commission.referrerName} <span className="capitalize text-primary-foreground/70">({commission.status})</span></>}
               </span>
             </div>
           ) : (
             <div className="mt-2">
               <button onClick={() => { setDealType('lease'); setDealValue(''); setCloseMsg(''); setShowClose(true) }}
-                className="flex items-center gap-1.5 text-sm font-medium border border-gray-300 px-3 py-1.5 rounded-md hover:bg-gray-50">
+                className="flex items-center gap-1.5 text-sm font-medium border border-input text-foreground px-3 py-1.5 rounded-md hover:bg-muted/50">
                 <DollarSign size={14} /> Close deal{referrer ? ' & pay commission' : ''}
               </button>
             </div>
@@ -151,10 +151,10 @@ export default function LeadDetail({ lead, store, onClose }) {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white border-b border-gray-200 px-6 flex">
+        <div className="bg-card border-b border-border px-6 flex">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button key={key} onClick={() => setTab(key)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === key ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === key ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
               <Icon size={14} /> {label}
             </button>
           ))}
@@ -163,8 +163,8 @@ export default function LeadDetail({ lead, store, onClose }) {
         <div className="flex-1 overflow-y-auto p-6">
           {tab === 'overview' && (
             <div className="space-y-4">
-              <div className="bg-white border border-gray-200 rounded-md p-4">
-                <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Contact</h3>
+              <div className="bg-card border border-border rounded-xl shadow-sm p-4">
+                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-3">Contact</h3>
                 <div className="grid grid-cols-2 gap-y-3 text-sm">
                   <Prop icon={User} label="Name" value={lead.name} />
                   <Prop icon={Building2} label="Business" value={lead.businessName} />
@@ -178,9 +178,9 @@ export default function LeadDetail({ lead, store, onClose }) {
                 </div>
               </div>
               {lead.notes && (
-                <div className="bg-white border border-gray-200 rounded-md p-4">
-                  <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Original message</h3>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{lead.notes}</p>
+                <div className="bg-card border border-border rounded-xl shadow-sm p-4">
+                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2">Original message</h3>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{lead.notes}</p>
                 </div>
               )}
             </div>
@@ -188,26 +188,26 @@ export default function LeadDetail({ lead, store, onClose }) {
 
           {tab === 'email' && (
             <div className="space-y-4">
-              <div className="bg-white border border-gray-200 rounded-md p-4">
-                <div className="text-xs text-gray-500 mb-3">To: <span className="text-gray-800 font-medium">{lead.email || '— no email on file —'}</span></div>
+              <div className="bg-card border border-border rounded-xl shadow-sm p-4">
+                <div className="text-xs text-muted-foreground mb-3">To: <span className="text-foreground font-medium">{lead.email || '— no email on file —'}</span></div>
                 <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" className={`${input} mb-3`} />
                 <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={7} placeholder="Write your message…" className={`${input} resize-none`} />
                 <div className="flex items-center gap-3 mt-3">
                   <button onClick={send} disabled={sending || !lead.email}
-                    className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-gray-800 disabled:opacity-40">
+                    className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-40">
                     {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send email
                   </button>
                   {msg && <span className={`text-xs ${msg.includes('✓') ? 'text-green-600' : 'text-red-600'}`}>{msg}</span>}
                 </div>
               </div>
               {emails.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-md p-4">
-                  <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Sent</h3>
+                <div className="bg-card border border-border rounded-xl shadow-sm p-4">
+                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2">Sent</h3>
                   <div className="space-y-2">
                     {emails.map((e) => (
-                      <div key={e.id} className="text-sm border-b border-gray-100 pb-2 last:border-0">
-                        <div className="font-medium text-gray-800">{e.meta?.subject ?? e.text}</div>
-                        <div className="text-xs text-gray-400">{rel(e.createdAt)}</div>
+                      <div key={e.id} className="text-sm border-b border-border pb-2 last:border-0">
+                        <div className="font-medium text-foreground">{e.meta?.subject ?? e.text}</div>
+                        <div className="text-xs text-muted-foreground">{rel(e.createdAt)}</div>
                       </div>
                     ))}
                   </div>
@@ -218,21 +218,21 @@ export default function LeadDetail({ lead, store, onClose }) {
 
           {tab === 'notes' && (
             <div className="space-y-4">
-              <div className="bg-white border border-gray-200 rounded-md p-4">
+              <div className="bg-card border border-border rounded-xl shadow-sm p-4">
                 <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Add a follow-up note…" className={`${input} resize-none`} />
                 <button onClick={addNote} disabled={!note.trim()}
-                  className="mt-2 flex items-center gap-1.5 bg-black text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-gray-800 disabled:opacity-40">
+                  className="mt-2 flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-40">
                   <StickyNote size={13} /> Add note
                 </button>
               </div>
               {notes.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-6">No notes yet.</p>
+                <p className="text-sm text-muted-foreground text-center py-6">No notes yet.</p>
               ) : (
                 <div className="space-y-2">
                   {notes.map((nt) => (
-                    <div key={nt.id} className="bg-white border border-gray-200 rounded-md p-3">
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{nt.text}</p>
-                      <div className="text-xs text-gray-400 mt-1">{rel(nt.createdAt)}</div>
+                    <div key={nt.id} className="bg-card border border-border rounded-xl shadow-sm p-3">
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{nt.text}</p>
+                      <div className="text-xs text-muted-foreground mt-1">{rel(nt.createdAt)}</div>
                     </div>
                   ))}
                 </div>
@@ -241,8 +241,8 @@ export default function LeadDetail({ lead, store, onClose }) {
           )}
 
           {tab === 'activity' && (
-            <div className="bg-white border border-gray-200 rounded-md p-4">
-              <ol className="relative border-l border-gray-200 ml-2">
+            <div className="bg-card border border-border rounded-xl shadow-sm p-4">
+              <ol className="relative border-l border-border ml-2">
                 {timeline.map((a) => {
                   const meta = ACT[a.type] ?? ACT.note
                   const Icon = meta.icon
@@ -250,8 +250,8 @@ export default function LeadDetail({ lead, store, onClose }) {
                   return (
                     <li key={a.id} className="ml-5 mb-4">
                       <span className={`absolute -left-[11px] flex h-5 w-5 items-center justify-center rounded-full ${meta.bg}`}><Icon size={11} className={meta.fg} /></span>
-                      <p className="text-sm text-gray-800">{text}</p>
-                      <p className="text-xs text-gray-400">{a.createdAt ? format(parseISO(a.createdAt), 'dd MMM yyyy, h:mm a') : ''} · {rel(a.createdAt)}</p>
+                      <p className="text-sm text-foreground">{text}</p>
+                      <p className="text-xs text-muted-foreground">{a.createdAt ? format(parseISO(a.createdAt), 'dd MMM yyyy, h:mm a') : ''} · {rel(a.createdAt)}</p>
                     </li>
                   )
                 })}
@@ -264,41 +264,41 @@ export default function LeadDetail({ lead, store, onClose }) {
       {/* Close-deal modal */}
       {showClose && (
         <div className="absolute inset-0 z-10 bg-black/50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowClose(false) }}>
-          <div className="bg-white rounded-md w-full max-w-sm shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2"><DollarSign size={16} /> Close deal</h3>
-              <button onClick={() => setShowClose(false)} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+          <div className="bg-card rounded-xl w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h3 className="font-semibold text-foreground flex items-center gap-2"><DollarSign size={16} /> Close deal</h3>
+              <button onClick={() => setShowClose(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
             </div>
             <div className="px-5 py-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Deal type</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Deal type</label>
                 <select value={dealType} onChange={(e) => setDealType(e.target.value)} className={input}>
                   <option value="lease">Lease</option>
                   <option value="sale">Sale</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
                   {dealType === 'lease' ? 'Annual lease value (rent × 12)' : 'Sale price'} (AUD)
                 </label>
                 <input type="number" min="0" value={dealValue} onChange={(e) => setDealValue(e.target.value)} placeholder="0" className={input} autoFocus />
               </div>
               {referrer ? (
-                <div className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-700">
+                <div className="bg-muted/50 border border-border rounded-md px-3 py-2 text-sm text-foreground">
                   Commission to <span className="font-medium">{referrer.name}</span> ({referrer.commissionRate}%):
                   <span className="font-semibold"> ${previewAmount.toLocaleString('en-AU')}</span>
-                  {referrer.email ? <div className="text-xs text-gray-400 mt-0.5">They'll be emailed at {referrer.email}.</div>
+                  {referrer.email ? <div className="text-xs text-muted-foreground mt-0.5">They'll be emailed at {referrer.email}.</div>
                     : <div className="text-xs text-amber-600 mt-0.5">No email on referrer — they won't be notified.</div>}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400">This lead wasn't referred — no commission will be created.</p>
+                <p className="text-xs text-muted-foreground">This lead wasn't referred — no commission will be created.</p>
               )}
               {closeMsg && <p className="text-xs text-red-600">{closeMsg}</p>}
             </div>
-            <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-200">
-              <button onClick={() => setShowClose(false)} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Cancel</button>
+            <div className="flex justify-end gap-3 px-5 py-4 border-t border-border">
+              <button onClick={() => setShowClose(false)} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Cancel</button>
               <button onClick={closeDeal} disabled={closing}
-                className="flex items-center gap-2 px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800 font-medium disabled:opacity-40">
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium disabled:opacity-40">
                 {closing ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Close deal
               </button>
             </div>
@@ -342,8 +342,8 @@ const ACT = {
 function Prop({ icon: Icon, label, value }) {
   return (
     <div>
-      <div className="text-xs text-gray-400 flex items-center gap-1"><Icon size={11} /> {label}</div>
-      <div className="text-gray-900 mt-0.5">{value || '—'}</div>
+      <div className="text-xs text-muted-foreground flex items-center gap-1"><Icon size={11} /> {label}</div>
+      <div className="text-foreground mt-0.5">{value || '—'}</div>
     </div>
   )
 }

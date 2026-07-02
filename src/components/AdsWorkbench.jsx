@@ -22,7 +22,7 @@ const PLATFORMS = [
 ]
 const STEPS = ['Brief', 'Research', 'Campaign', 'Math', 'Save']
 
-const input = 'w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black'
+const input = 'w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
 const fmt$ = (n) => '$' + Number(n || 0).toLocaleString('en-AU', { maximumFractionDigits: 2 })
 
 export default function AdsWorkbench({ store }) {
@@ -72,32 +72,32 @@ function CampaignList({ store, onNew, onKeywords, onData }) {
   }
 
   const STATUS = {
-    draft: 'bg-gray-100 text-gray-600', active: 'bg-green-50 text-green-700',
-    paused: 'bg-amber-50 text-amber-700', ended: 'bg-gray-100 text-gray-400',
+    draft: 'bg-muted text-muted-foreground', active: 'bg-green-50 text-green-700',
+    paused: 'bg-amber-50 text-amber-700', ended: 'bg-muted text-muted-foreground',
   }
   return (
     <div>
       {/* Google Ads connection bar */}
-      <div className="bg-white border border-gray-200 rounded-md p-3 mb-4 flex flex-wrap items-center gap-3">
+      <div className="bg-card border border-border rounded-xl shadow-sm p-3 mb-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <span className={`h-2 w-2 rounded-full ${gads.connected ? 'bg-green-500' : 'bg-gray-300'}`} />
-          <span className="text-sm font-medium text-gray-800">Google Ads</span>
-          <span className="text-xs text-gray-400">{gads.connected ? 'Connected' : gads.configured ? 'Not connected' : 'Not configured'}</span>
+          <span className="text-sm font-medium text-foreground">Google Ads</span>
+          <span className="text-xs text-muted-foreground">{gads.connected ? 'Connected' : gads.configured ? 'Not connected' : 'Not configured'}</span>
         </div>
         {gads.connected && (
           <div className="flex items-center gap-2">
             <input value={ga.customerId ?? ''} onChange={(e) => setGa({ customerId: e.target.value })}
-              placeholder="Customer ID 123-456-7890" className="border border-gray-200 rounded px-2 py-1 text-xs w-44 focus:outline-none focus:ring-1 focus:ring-black" />
+              placeholder="Customer ID 123-456-7890" className="border border-input rounded px-2 py-1 text-xs w-44 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40" />
             <input value={ga.loginCustomerId ?? ''} onChange={(e) => setGa({ loginCustomerId: e.target.value })}
-              placeholder="Manager ID (optional)" className="border border-gray-200 rounded px-2 py-1 text-xs w-40 focus:outline-none focus:ring-1 focus:ring-black" />
+              placeholder="Manager ID (optional)" className="border border-input rounded px-2 py-1 text-xs w-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40" />
           </div>
         )}
         <div className="ml-auto">
           {gads.connected ? (
-            <button onClick={connectGoogleAds} className="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1"><Plug size={12} /> Reconnect</button>
+            <button onClick={connectGoogleAds} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"><Plug size={12} /> Reconnect</button>
           ) : (
             <button onClick={connectGoogleAds} disabled={!gads.configured}
-              className="flex items-center gap-1.5 text-xs font-medium bg-black text-white px-3 py-1.5 rounded-md hover:bg-gray-800 disabled:opacity-40">
+              className="flex items-center gap-1.5 text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/90 disabled:opacity-40">
               <Plug size={12} /> Connect Google Ads
             </button>
           )}
@@ -113,27 +113,27 @@ function CampaignList({ store, onNew, onKeywords, onData }) {
       </div>
 
       <div className="flex justify-between items-center mb-4">
-        <p className="text-sm text-gray-500">{campaigns.length} campaign{campaigns.length === 1 ? '' : 's'}</p>
+        <p className="text-sm text-muted-foreground">{campaigns.length} campaign{campaigns.length === 1 ? '' : 's'}</p>
         <div className="flex items-center gap-2">
           {gads.connected && (
-            <button onClick={onData} className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50">
+            <button onClick={onData} className="flex items-center gap-2 border border-input text-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-muted/50">
               <BarChart2 size={15} /> Account data
             </button>
           )}
-          <button onClick={onKeywords} className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50">
+          <button onClick={onKeywords} className="flex items-center gap-2 border border-input text-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-muted/50">
             <Search size={15} /> Keyword research
           </button>
-          <button onClick={onNew} className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800">
+          <button onClick={onNew} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90">
             <Plus size={15} /> New Campaign
           </button>
         </div>
       </div>
 
       {campaigns.length === 0 ? (
-        <div className="bg-white border border-dashed border-gray-300 rounded-md p-12 text-center">
+        <div className="bg-card border border-dashed border-border rounded-xl shadow-sm p-12 text-center">
           <Rocket size={26} className="mx-auto text-gray-300 mb-2" />
-          <p className="text-sm text-gray-500">No campaigns yet. Generate your first Meta or Google campaign.</p>
-          <button onClick={onNew} className="mt-4 text-sm font-medium text-black underline">Create a campaign →</button>
+          <p className="text-sm text-muted-foreground">No campaigns yet. Generate your first Meta or Google campaign.</p>
+          <button onClick={onNew} className="mt-4 text-sm font-medium text-foreground underline">Create a campaign →</button>
         </div>
       ) : (
         <div className="space-y-2">
@@ -141,24 +141,24 @@ function CampaignList({ store, onNew, onKeywords, onData }) {
             const open = openId === c.id
             const cpl = c.leads > 0 ? c.spend / c.leads : 0
             return (
-              <div key={c.id} className="bg-white border border-gray-200 rounded-md overflow-hidden">
+              <div key={c.id} className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
                 <div className="flex items-center gap-3 px-4 py-3">
-                  <button onClick={() => setOpenId(open ? null : c.id)} className="text-gray-400">
+                  <button onClick={() => setOpenId(open ? null : c.id)} className="text-muted-foreground">
                     {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </button>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 truncate">{c.name}</div>
+                    <div className="font-semibold text-foreground truncate">{c.name}</div>
                     <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 capitalize">{c.platform}</span>
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-gray-50 text-gray-500 capitalize">{c.objective}</span>
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground capitalize">{c.platform}</span>
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground capitalize">{c.objective}</span>
                     </div>
                   </div>
-                  <div className="hidden sm:flex items-center gap-4 text-xs text-gray-500">
+                  <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground">
                     <span>Spend <input type="number" value={c.spend ?? 0} onChange={(e) => updateCampaign(c.id, { spend: Number(e.target.value) })}
-                      className="w-20 border border-gray-200 rounded px-1.5 py-0.5 ml-1" /></span>
+                      className="w-20 border border-input rounded px-1.5 py-0.5 ml-1" /></span>
                     <span>Leads <input type="number" value={c.leads ?? 0} onChange={(e) => updateCampaign(c.id, { leads: Number(e.target.value) })}
-                      className="w-14 border border-gray-200 rounded px-1.5 py-0.5 ml-1" /></span>
-                    <span className="font-medium text-gray-700">{cpl > 0 ? `${fmt$(cpl)}/lead` : '—'}</span>
+                      className="w-14 border border-input rounded px-1.5 py-0.5 ml-1" /></span>
+                    <span className="font-medium text-foreground">{cpl > 0 ? `${fmt$(cpl)}/lead` : '—'}</span>
                   </div>
                   {gads.connected && (
                     c.googleAds?.pushedAt ? (
@@ -167,7 +167,7 @@ function CampaignList({ store, onNew, onKeywords, onData }) {
                       </span>
                     ) : (
                       <button onClick={() => handlePush(c)} disabled={pushingId === c.id}
-                        className="flex items-center gap-1 text-xs font-medium border border-gray-200 px-2.5 py-1.5 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-40">
+                        className="flex items-center gap-1 text-xs font-medium border border-input px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted/50 disabled:opacity-40">
                         {pushingId === c.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />} Push
                       </button>
                     )
@@ -177,13 +177,13 @@ function CampaignList({ store, onNew, onKeywords, onData }) {
                     {['draft', 'active', 'paused', 'ended'].map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                   <button onClick={() => { if (window.confirm('Delete this campaign?')) deleteCampaign(c.id) }}
-                    className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                    className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600"><Trash2 size={14} /></button>
                 </div>
                 {pushMsg?.id === c.id && (
                   <div className={`px-4 pb-3 text-xs ${pushMsg.ok ? 'text-green-700' : 'text-red-700'}`}>{pushMsg.text}</div>
                 )}
                 {open && c.campaign && (
-                  <div className="border-t border-gray-100 p-4 bg-gray-50/50">
+                  <div className="border-t border-border p-4 bg-muted/50">
                     <CampaignView campaign={c.campaign} research={c.research} math={c.math} />
                   </div>
                 )}
@@ -247,17 +247,17 @@ function Wizard({ spaces, settings, addCampaign, onDone }) {
         <div className="flex items-center gap-2">
           {STEPS.map((s, i) => (
             <div key={s} className="flex items-center gap-2">
-              <div className={`flex items-center gap-1.5 text-xs font-medium ${i === step ? 'text-black' : i < step ? 'text-gray-500' : 'text-gray-300'}`}>
-                <span className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] ${i === step ? 'bg-black text-white' : i < step ? 'bg-gray-200 text-gray-600' : 'bg-gray-100 text-gray-400'}`}>
+              <div className={`flex items-center gap-1.5 text-xs font-medium ${i === step ? 'text-foreground' : i < step ? 'text-muted-foreground' : 'text-gray-300'}`}>
+                <span className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] ${i === step ? 'bg-primary text-primary-foreground' : i < step ? 'bg-muted text-muted-foreground' : 'bg-muted text-muted-foreground'}`}>
                   {i < step ? <Check size={11} /> : i + 1}
                 </span>
                 {s}
               </div>
-              {i < STEPS.length - 1 && <div className="w-6 h-px bg-gray-200" />}
+              {i < STEPS.length - 1 && <div className="w-6 h-px bg-border" />}
             </div>
           ))}
         </div>
-        <button onClick={onDone} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+        <button onClick={onDone} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
       </div>
 
       {error && (
@@ -268,8 +268,8 @@ function Wizard({ spaces, settings, addCampaign, onDone }) {
 
       {/* Step 0 — Brief */}
       {step === 0 && (
-        <div className="bg-white border border-gray-200 rounded-md p-6 max-w-2xl">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><Target size={16} /> Campaign brief</h3>
+        <div className="bg-card border border-border rounded-xl shadow-sm p-6 max-w-2xl">
+          <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2"><Target size={16} /> Campaign brief</h3>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Objective">
               <select value={brief.objective} onChange={(e) => setBrief({ ...brief, objective: e.target.value })} className={input}>
@@ -302,11 +302,11 @@ function Wizard({ spaces, settings, addCampaign, onDone }) {
           </div>
           <div className="flex gap-3 mt-6">
             <button onClick={doResearch} disabled={loading}
-              className="flex items-center gap-2 bg-black text-white px-4 py-2.5 rounded-md text-sm font-semibold hover:bg-gray-800 disabled:opacity-40">
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-40">
               {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />} Generate research
             </button>
             <button onClick={doCampaign} disabled={loading}
-              className="flex items-center gap-2 border border-gray-300 px-4 py-2.5 rounded-md text-sm font-medium hover:bg-gray-50 disabled:opacity-40">
+              className="flex items-center gap-2 border border-input text-foreground px-4 py-2.5 rounded-md text-sm font-medium hover:bg-muted/50 disabled:opacity-40">
               <Sparkles size={15} /> Skip to campaign
             </button>
           </div>
@@ -315,13 +315,13 @@ function Wizard({ spaces, settings, addCampaign, onDone }) {
 
       {/* Step 1 — Research */}
       {step === 1 && (
-        <div className="bg-white border border-gray-200 rounded-md p-6">
-          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><Search size={16} /> Research <span className="text-xs font-normal text-gray-400">(editable — tweak before generating the campaign)</span></h3>
+        <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+          <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2"><Search size={16} /> Research <span className="text-xs font-normal text-muted-foreground">(editable — tweak before generating the campaign)</span></h3>
           <textarea value={research} onChange={(e) => setResearch(e.target.value)} rows={16}
-            className="w-full border border-gray-200 rounded-md p-4 text-sm text-gray-800 font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-black" />
+            className="w-full border border-input rounded-md p-4 text-sm text-foreground font-mono leading-relaxed focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40" />
           <StepNav onBack={() => setStep(0)} loading={loading}
             onNext={doCampaign} nextLabel="Generate campaign" nextIcon={Sparkles}
-            secondary={<button onClick={doResearch} disabled={loading} className="text-xs text-gray-500 hover:text-black flex items-center gap-1"><Search size={12} /> Regenerate research</button>} />
+            secondary={<button onClick={doResearch} disabled={loading} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"><Search size={12} /> Regenerate research</button>} />
         </div>
       )}
 
@@ -329,18 +329,18 @@ function Wizard({ spaces, settings, addCampaign, onDone }) {
       {step === 2 && campaign && (
         <div>
           <CampaignView campaign={campaign} />
-          <div className="bg-white border border-gray-200 rounded-md p-4 mt-3">
+          <div className="bg-card border border-border rounded-xl shadow-sm p-4 mt-3">
             <StepNav onBack={() => setStep(1)} loading={loading}
               onNext={goMath} nextLabel="Projections & math" nextIcon={Calculator}
-              secondary={<button onClick={doCampaign} disabled={loading} className="text-xs text-gray-500 hover:text-black flex items-center gap-1">{loading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} Regenerate campaign</button>} />
+              secondary={<button onClick={doCampaign} disabled={loading} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">{loading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} Regenerate campaign</button>} />
           </div>
         </div>
       )}
 
       {/* Step 3 — Math */}
       {step === 3 && (
-        <div className="bg-white border border-gray-200 rounded-md p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><Calculator size={16} /> Projections</h3>
+        <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+          <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2"><Calculator size={16} /> Projections</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="grid grid-cols-2 gap-3">
               <Field label="Avg cost per click ($)"><input type="number" step="0.1" value={math.cpc} onChange={(e) => setMath({ ...math, cpc: e.target.value })} className={input} /></Field>
@@ -366,14 +366,14 @@ function Wizard({ spaces, settings, addCampaign, onDone }) {
 
       {/* Step 4 — Save */}
       {step === 4 && (
-        <div className="bg-white border border-gray-200 rounded-md p-6 max-w-xl">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><Save size={16} /> Save campaign</h3>
+        <div className="bg-card border border-border rounded-xl shadow-sm p-6 max-w-xl">
+          <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2"><Save size={16} /> Save campaign</h3>
           <Field label="Campaign name">
             <input value={name} onChange={(e) => setName(e.target.value)} className={input} />
           </Field>
-          <div className="mt-4 text-sm text-gray-500 space-y-1">
-            <div>Platform: <span className="text-gray-800 capitalize">{brief.platform}</span> · Objective: <span className="text-gray-800 capitalize">{brief.objective}</span></div>
-            <div>Budget: <span className="text-gray-800">{fmt$(brief.monthlyBudget)}/mo</span> · Projected: <span className="text-gray-800">{results.leads} leads/mo at {fmt$(results.cpl)}/lead</span></div>
+          <div className="mt-4 text-sm text-muted-foreground space-y-1">
+            <div>Platform: <span className="text-foreground capitalize">{brief.platform}</span> · Objective: <span className="text-foreground capitalize">{brief.objective}</span></div>
+            <div>Budget: <span className="text-foreground">{fmt$(brief.monthlyBudget)}/mo</span> · Projected: <span className="text-foreground">{results.leads} leads/mo at {fmt$(results.cpl)}/lead</span></div>
           </div>
           <StepNav onBack={() => setStep(3)} onNext={save} nextLabel="Save campaign" nextIcon={Save} />
         </div>
@@ -384,24 +384,24 @@ function Wizard({ spaces, settings, addCampaign, onDone }) {
 
 // ── Shared bits ───────────────────────────────────────────────────────────────
 function Field({ label, children }) {
-  return <div><label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>{children}</div>
+  return <div><label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>{children}</div>
 }
 function Metric({ label, value, highlight }) {
   return (
-    <div className={`rounded-md p-3 border ${highlight ? 'bg-black text-white border-black' : 'bg-gray-50 border-gray-200'}`}>
-      <div className={`text-xs ${highlight ? 'text-gray-300' : 'text-gray-500'}`}>{label}</div>
+    <div className={`rounded-md p-3 border ${highlight ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/50 border-border'}`}>
+      <div className={`text-xs ${highlight ? 'text-gray-300' : 'text-muted-foreground'}`}>{label}</div>
       <div className="text-lg font-bold mt-0.5">{value}</div>
     </div>
   )
 }
 function StepNav({ onBack, onNext, nextLabel, nextIcon: Icon, loading, secondary }) {
   return (
-    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-black"><ArrowLeft size={14} /> Back</button>
+    <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft size={14} /> Back</button>
       <div className="flex items-center gap-4">
         {secondary}
         <button onClick={onNext} disabled={loading}
-          className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-gray-800 disabled:opacity-40">
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-40">
           {loading ? <Loader2 size={15} className="animate-spin" /> : Icon ? <Icon size={15} /> : null} {nextLabel} <ArrowRight size={14} />
         </button>
       </div>
@@ -419,10 +419,10 @@ function CampaignView({ campaign, research }) {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="bg-white border border-gray-200 rounded-md p-5">
+      <div className="bg-card border border-border rounded-xl shadow-sm p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">{campaign.campaignName}</h3>
+            <h3 className="text-lg font-bold text-foreground">{campaign.campaignName}</h3>
             <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
               <Badge icon={Megaphone}>{campaign.platform}</Badge>
               <Badge icon={Target}>{campaign.objective}</Badge>
@@ -430,19 +430,19 @@ function CampaignView({ campaign, research }) {
             </div>
           </div>
         </div>
-        <p className="text-sm text-gray-600 mt-3"><span className="font-medium text-gray-800">Bidding:</span> {campaign.biddingStrategy}</p>
-        {campaign.trackingNotes && <p className="text-xs text-gray-500 mt-1"><span className="font-medium">Tracking:</span> {campaign.trackingNotes}</p>}
+        <p className="text-sm text-muted-foreground mt-3"><span className="font-medium text-foreground">Bidding:</span> {campaign.biddingStrategy}</p>
+        {campaign.trackingNotes && <p className="text-xs text-muted-foreground mt-1"><span className="font-medium">Tracking:</span> {campaign.trackingNotes}</p>}
       </div>
 
       {/* Audiences */}
       {campaign.audiences?.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-md p-5">
-          <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-1.5"><Users size={13} /> Audiences</h4>
+        <div className="bg-card border border-border rounded-xl shadow-sm p-5">
+          <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-3 flex items-center gap-1.5"><Users size={13} /> Audiences</h4>
           <div className="grid sm:grid-cols-2 gap-2">
             {campaign.audiences.map((a, i) => (
-              <div key={i} className="border border-gray-100 rounded-md p-3 bg-gray-50/50">
-                <div className="text-sm font-semibold text-gray-900">{a.name}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{a.targeting}</div>
+              <div key={i} className="border border-border rounded-md p-3 bg-muted/50">
+                <div className="text-sm font-semibold text-foreground">{a.name}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{a.targeting}</div>
               </div>
             ))}
           </div>
@@ -451,12 +451,12 @@ function CampaignView({ campaign, research }) {
 
       {/* Ad groups */}
       {campaign.adGroups?.map((g, gi) => (
-        <div key={gi} className="bg-white border border-gray-200 rounded-md p-5">
+        <div key={gi} className="bg-card border border-border rounded-xl shadow-sm p-5">
           <div className="flex items-center justify-between mb-1">
-            <h4 className="text-sm font-bold text-gray-900">{g.name}</h4>
-            <span className="text-xs text-gray-400">{g.ads?.length ?? 0} ads</span>
+            <h4 className="text-sm font-bold text-foreground">{g.name}</h4>
+            <span className="text-xs text-muted-foreground">{g.ads?.length ?? 0} ads</span>
           </div>
-          {g.theme && <p className="text-xs text-gray-500 mb-3">{g.theme}</p>}
+          {g.theme && <p className="text-xs text-muted-foreground mb-3">{g.theme}</p>}
           {g.keywords?.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-3">
               {g.keywords.map((k, ki) => (
@@ -485,9 +485,9 @@ function CampaignView({ campaign, research }) {
       ))}
 
       {research && (
-        <details className="bg-white border border-gray-200 rounded-md p-4">
-          <summary className="text-xs font-semibold text-gray-600 cursor-pointer">View research</summary>
-          <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono mt-3">{research}</pre>
+        <details className="bg-card border border-border rounded-xl shadow-sm p-4">
+          <summary className="text-xs font-semibold text-muted-foreground cursor-pointer">View research</summary>
+          <pre className="text-xs text-foreground whitespace-pre-wrap font-mono mt-3">{research}</pre>
         </details>
       )}
     </div>
@@ -495,5 +495,5 @@ function CampaignView({ campaign, research }) {
 }
 
 function Badge({ icon: Icon, children }) {
-  return <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700 capitalize flex items-center gap-1"><Icon size={11} /> {children}</span>
+  return <span className="text-xs px-2 py-0.5 rounded bg-muted text-foreground capitalize flex items-center gap-1"><Icon size={11} /> {children}</span>
 }

@@ -91,14 +91,14 @@ export default function DocumentsPanel({ tenantId, leaseId, title = 'Documents' 
 
   return (
     <div>
-      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-        <h3 className="font-semibold text-gray-800 text-sm">{title}</h3>
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+        <h3 className="font-semibold text-foreground text-sm">{title}</h3>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Max {MAX_SIZE_MB} MB per file</span>
+          <span className="text-xs text-muted-foreground">Max {MAX_SIZE_MB} MB per file</span>
           <button
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-1.5 text-xs bg-black text-white rounded px-3 py-1.5 hover:bg-gray-800 disabled:opacity-50"
+            className="flex items-center gap-1.5 text-xs bg-primary text-primary-foreground rounded px-3 py-1.5 hover:bg-primary/90 disabled:opacity-50"
           >
             <Upload size={12} /> {uploading ? 'Uploading…' : 'Upload'}
           </button>
@@ -108,29 +108,29 @@ export default function DocumentsPanel({ tenantId, leaseId, title = 'Documents' 
       </div>
 
       {loading ? (
-        <p className="px-5 py-4 text-sm text-gray-400">Loading…</p>
+        <p className="px-5 py-4 text-sm text-muted-foreground">Loading…</p>
       ) : docs.length === 0 ? (
-        <p className="px-5 py-5 text-sm text-gray-400">No documents uploaded yet. Click Upload to add files.</p>
+        <p className="px-5 py-5 text-sm text-muted-foreground">No documents uploaded yet. Click Upload to add files.</p>
       ) : (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-border">
           {docs.map((doc) => {
             const Icon = fileIcon(doc.name)
             return (
-              <li key={doc.id} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50">
-                <Icon size={16} className="text-gray-400 shrink-0" />
+              <li key={doc.id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/50">
+                <Icon size={16} className="text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{doc.name}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
+                  <p className="text-xs text-muted-foreground">
                     {fmtSize(doc.size)} · {doc.uploadedAt ? format(parseISO(doc.uploadedAt), 'dd/MM/yyyy HH:mm') : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button onClick={() => handleDownload(doc)}
-                    className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700" title="Download">
+                    className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Download">
                     <FileDown size={14} />
                   </button>
                   <button onClick={() => handleDelete(doc)}
-                    className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600" title="Delete">
+                    className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600" title="Delete">
                     <Trash2 size={14} />
                   </button>
                 </div>

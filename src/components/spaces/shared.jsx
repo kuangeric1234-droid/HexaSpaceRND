@@ -40,7 +40,7 @@ export function StatusPill({ status }) {
   const s = status === 'vacant' ? 'available' : status
   const label = s === 'reserved' ? 'Under offer' : s
   return (
-    <span className={`text-xs font-semibold px-2 py-0.5 rounded capitalize ${STATUS_STYLE[s] || 'bg-gray-100 text-gray-600'}`}>
+    <span className={`text-xs font-semibold px-2 py-0.5 rounded capitalize ${STATUS_STYLE[s] || 'bg-muted text-muted-foreground'}`}>
       {label}
     </span>
   )
@@ -114,12 +114,12 @@ export function revenueAccountFor(space, settings) {
 
 // ── Tiny form primitives (consistent with the rest of the app) ──────────────
 export const ic =
-  'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black'
+  'w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
 
 export function Field({ label, children }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium text-gray-600 mb-1">{label}</span>
+      <span className="block text-xs font-medium text-muted-foreground mb-1">{label}</span>
       {children}
     </label>
   )
@@ -128,10 +128,10 @@ export function Field({ label, children }) {
 export function Modal({ title, onClose, children, maxW = 'max-w-md' }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className={`bg-white rounded-md w-full ${maxW} shadow-xl max-h-[90vh] overflow-y-auto`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-          <h2 className="font-semibold text-gray-900">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
+      <div className={`bg-card rounded-xl w-full ${maxW} shadow-xl max-h-[90vh] overflow-y-auto`}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card z-10">
+          <h2 className="font-semibold text-foreground">{title}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
         </div>
         <div className="px-6 py-5">{children}</div>
       </div>

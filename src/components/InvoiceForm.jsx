@@ -63,7 +63,7 @@ const MONTH_OPTIONS = buildMonthOptions()
 function FormRow({ label, required, error, children, half }) {
   return (
     <div className={`grid items-start gap-x-4 ${half ? 'grid-cols-[110px_1fr]' : 'grid-cols-[110px_1fr]'}`}>
-      <label className="text-sm text-gray-600 pt-2 text-right leading-tight">
+      <label className="text-sm text-muted-foreground pt-2 text-right leading-tight">
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <div>
@@ -231,17 +231,17 @@ export default function InvoiceForm({ invoices, tenants, leases, spaces, setting
 
   const { lineSubtotal, invoiceDiscount, taxable, gst, total } = calcTotals(form.lineItems, form.discountPct, taxRatePct / 100)
 
-  const inputCls = 'w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500'
-  const errorInputCls = 'w-full border border-red-400 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-red-400'
+  const inputCls = 'w-full border border-input rounded px-3 py-2 text-sm bg-card focus:outline-none focus:ring-1 focus:ring-blue-500'
+  const errorInputCls = 'w-full border border-red-400 rounded px-3 py-2 text-sm bg-card focus:outline-none focus:ring-1 focus:ring-red-400'
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-md w-full max-w-2xl shadow-2xl flex flex-col max-h-[92vh]">
+      <div className="bg-card rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[92vh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
-          <h2 className="text-base font-semibold text-gray-900">Add Invoice</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+          <h2 className="text-base font-semibold text-foreground">Add Invoice</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
         </div>
 
         {/* Body */}
@@ -253,7 +253,7 @@ export default function InvoiceForm({ invoices, tenants, leases, spaces, setting
               <input
                 value={tenants.find((t) => t.id === defaultTenantId)?.businessName ?? defaultTenantId}
                 readOnly
-                className="w-full border border-gray-200 rounded px-3 py-2 text-sm bg-gray-50 text-gray-700 cursor-default"
+                className="w-full border border-border rounded px-3 py-2 text-sm bg-muted/50 text-foreground cursor-default"
               />
             ) : (
               <select
@@ -269,7 +269,7 @@ export default function InvoiceForm({ invoices, tenants, leases, spaces, setting
 
           {/* From */}
           <FormRow label="From">
-            <input value={fromName} readOnly className="w-full border border-gray-200 rounded px-3 py-2 text-sm bg-gray-50 text-gray-500 cursor-default" />
+            <input value={fromName} readOnly className="w-full border border-border rounded px-3 py-2 text-sm bg-muted/50 text-muted-foreground cursor-default" />
           </FormRow>
 
           {/* Issue + Due */}
@@ -320,7 +320,7 @@ export default function InvoiceForm({ invoices, tenants, leases, spaces, setting
               <option value=""></option>
               {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
-            <p className="text-xs text-gray-400 mt-1">The preferred payment method will be used to define whether to automatically charge the member's invoices or not.</p>
+            <p className="text-xs text-muted-foreground mt-1">The preferred payment method will be used to define whether to automatically charge the member's invoices or not.</p>
           </FormRow>
 
           {/* Discount */}
@@ -332,9 +332,9 @@ export default function InvoiceForm({ invoices, tenants, leases, spaces, setting
                 max="100"
                 value={form.discountPct}
                 onChange={(e) => setForm({ ...form, discountPct: Number(e.target.value) })}
-                className="w-24 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-24 border border-input rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
-              <span className="text-sm text-gray-500">%</span>
+              <span className="text-sm text-muted-foreground">%</span>
             </div>
           </FormRow>
 
@@ -366,9 +366,9 @@ export default function InvoiceForm({ invoices, tenants, leases, spaces, setting
           </div>
 
           {/* Line items */}
-          <div className="border-t border-gray-100 pt-4 mt-2">
+          <div className="border-t border-border pt-4 mt-2">
             <div
-              className="grid gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 border-b border-gray-200 pb-1.5"
+              className="grid gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 border-b border-border pb-1.5"
               style={{ gridTemplateColumns: '2.5fr 1.2fr 70px 50px 60px 65px 20px' }}
             >
               <span>Description</span>
@@ -387,12 +387,12 @@ export default function InvoiceForm({ invoices, tenants, leases, spaces, setting
                   value={line.description}
                   onChange={(e) => updateLine(line.id, 'description', e.target.value)}
                   placeholder="Description"
-                  className="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="border border-input rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <select
                   value={line.revenueAccount}
                   onChange={(e) => updateLine(line.id, 'revenueAccount', e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="border border-input rounded px-2 py-1.5 text-xs bg-card focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
                   {REVENUE_ACCOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}
                 </select>
@@ -400,14 +400,14 @@ export default function InvoiceForm({ invoices, tenants, leases, spaces, setting
                   type="number"
                   value={line.unitPrice}
                   onChange={(e) => updateLine(line.id, 'unitPrice', e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="border border-input rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <input
                   type="number"
                   min="1"
                   value={line.qty}
                   onChange={(e) => updateLine(line.id, 'qty', e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="border border-input rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <input
                   type="number"
@@ -415,43 +415,43 @@ export default function InvoiceForm({ invoices, tenants, leases, spaces, setting
                   max="100"
                   value={line.discountPct}
                   onChange={(e) => updateLine(line.id, 'discountPct', e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="border border-input rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
-                <span className="text-xs text-right text-gray-700 font-medium pr-1">
+                <span className="text-xs text-right text-foreground font-medium pr-1">
                   ${calcLineTotal(line).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
                 </span>
-                <button type="button" onClick={() => removeLine(line.id)} className="text-gray-300 hover:text-red-400">
+                <button type="button" onClick={() => removeLine(line.id)} className="text-muted-foreground hover:text-red-400">
                   <X size={13} />
                 </button>
               </div>
             ))}
 
             <button type="button" onClick={addLine}
-              className="mt-2 text-xs border border-gray-300 rounded px-3 py-1.5 text-gray-600 hover:bg-gray-50 flex items-center gap-1">
+              className="mt-2 text-xs border border-input rounded px-3 py-1.5 text-foreground hover:bg-muted/50 flex items-center gap-1">
               <Plus size={12} /> Add new line item
             </button>
           </div>
 
           {/* Totals */}
-          <div className="flex justify-end pt-2 border-t border-gray-100">
+          <div className="flex justify-end pt-2 border-t border-border">
             <div className="w-56 space-y-1 text-sm">
-              <div className="flex justify-between text-gray-500">
+              <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal:</span>
                 <span>${lineSubtotal.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
               </div>
               {form.discountPct > 0 && (
-                <div className="flex justify-between text-gray-500">
+                <div className="flex justify-between text-muted-foreground">
                   <span>Discount ({form.discountPct}%):</span>
                   <span>-${invoiceDiscount.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
               {form.vatEnabled && (
-                <div className="flex justify-between text-gray-500">
+                <div className="flex justify-between text-muted-foreground">
                   <span>GST ({taxRatePct}%):</span>
                   <span>${gst.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
-              <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-1.5 text-base">
+              <div className="flex justify-between font-bold text-foreground border-t border-border pt-1.5 text-base">
                 <span>Total:</span>
                 <span>${total.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
               </div>
@@ -460,9 +460,9 @@ export default function InvoiceForm({ invoices, tenants, leases, spaces, setting
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-200 shrink-0">
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-border shrink-0">
           <button onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+            className="px-4 py-2 text-sm text-foreground border border-input rounded hover:bg-muted/50">
             Close
           </button>
           <button

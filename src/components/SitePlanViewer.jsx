@@ -65,8 +65,8 @@ export default function SitePlanViewer() {
             onClick={() => handlePlanChange(p.id)}
             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activePlan === p.id
-                ? 'bg-black text-white'
-                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-card border border-border text-muted-foreground hover:bg-muted/50'
             }`}
           >
             {p.label}
@@ -74,29 +74,29 @@ export default function SitePlanViewer() {
         ))}
 
         {/* Zoom controls */}
-        <div className="ml-auto flex items-center gap-1 border border-gray-200 rounded-md overflow-hidden">
+        <div className="ml-auto flex items-center gap-1 border border-border rounded-md overflow-hidden">
           <button
             onClick={zoomOut}
             disabled={zoom === ZOOM_STEPS[0]}
-            className="px-2.5 py-1.5 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="px-2.5 py-1.5 hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title="Zoom out"
           >
             <ZoomOut size={14} />
           </button>
-          <span className="text-xs text-gray-600 px-2 min-w-[42px] text-center font-medium">
+          <span className="text-xs text-muted-foreground px-2 min-w-[42px] text-center font-medium">
             {Math.round(zoom * 100)}%
           </span>
           <button
             onClick={zoomIn}
             disabled={zoom === ZOOM_STEPS[ZOOM_STEPS.length - 1]}
-            className="px-2.5 py-1.5 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="px-2.5 py-1.5 hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title="Zoom in"
           >
             <ZoomIn size={14} />
           </button>
           <button
             onClick={fitToView}
-            className="px-2.5 py-1.5 hover:bg-gray-100 border-l border-gray-200 transition-colors"
+            className="px-2.5 py-1.5 hover:bg-muted border-l border-border transition-colors"
             title="Fit to view"
           >
             <Maximize2 size={14} />
@@ -106,34 +106,34 @@ export default function SitePlanViewer() {
 
       {/* Description */}
       {plan && (
-        <p className="text-xs text-gray-400 mb-3">{plan.description}</p>
+        <p className="text-xs text-muted-foreground mb-3">{plan.description}</p>
       )}
 
       {/* Image container — scrollable */}
       <div
         ref={scrollRef}
-        className="border border-gray-200 rounded-md overflow-auto bg-gray-100"
+        className="border border-border rounded-md overflow-auto bg-muted"
         style={{ maxHeight: '72vh' }}
       >
         {imgError[activePlan] ? (
           <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-            <div className="text-gray-400 mb-3">
+            <div className="text-muted-foreground mb-3">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="3" y="3" width="18" height="18" rx="2" />
                 <path d="m9 9 6 6M15 9l-6 6" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-gray-700">Floor plan image not found</p>
-            <p className="text-xs text-gray-400 mt-2 max-w-sm">
+            <p className="text-sm font-medium text-foreground">Floor plan image not found</p>
+            <p className="text-xs text-muted-foreground mt-2 max-w-sm">
               Save the image as{' '}
-              <code className="bg-white border border-gray-200 px-1.5 py-0.5 rounded text-gray-800">
+              <code className="bg-card border border-border px-1.5 py-0.5 rounded text-foreground">
                 public\{activePlan === 'warehouses' ? 'floorplan-warehouses.png' : 'floorplan-storage.png'}
               </code>{' '}
               in your project folder.
             </p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Full path:{' '}
-              <code className="bg-white border border-gray-200 px-1.5 py-0.5 rounded text-gray-800">
+              <code className="bg-card border border-border px-1.5 py-0.5 rounded text-foreground">
                 c:\Hexa-HubRND\public\{activePlan === 'warehouses' ? 'floorplan-warehouses.png' : 'floorplan-storage.png'}
               </code>
             </p>
@@ -160,7 +160,7 @@ export default function SitePlanViewer() {
         )}
       </div>
 
-      <p className="text-xs text-gray-400 mt-2">
+      <p className="text-xs text-muted-foreground mt-2">
         Found Huntingdale Siteplan · 17-31 Franklyn Street, Huntingdale VIC 3166
       </p>
     </div>

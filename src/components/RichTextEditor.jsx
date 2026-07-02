@@ -51,14 +51,14 @@ export default function RichTextEditor({ content, onChange, minHeight = 360 }) {
   }
 
   return (
-    <div className="border border-gray-300 rounded-md overflow-hidden bg-white">
+    <div className="border border-input rounded-md overflow-hidden bg-card">
       {/* Toolbar */}
-      <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-gray-200 bg-gray-50 flex-wrap">
+      <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-border bg-muted/50 flex-wrap">
         {/* Format */}
         <select
           value={format}
           onChange={(e) => setFormat(e.target.value)}
-          className="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none mr-1 h-7"
+          className="text-xs border border-input rounded px-2 py-1 bg-card focus:outline-none mr-1 h-7"
         >
           <option value="p">Normal text</option>
           <option value="h1">Heading 1</option>
@@ -113,7 +113,7 @@ function Btn({ active, onClick, title, children }) {
       onMouseDown={(e) => { e.preventDefault(); onClick() }}
       title={title}
       className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${
-        active ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-200 hover:text-gray-800'
+        active ? 'bg-blue-100 text-blue-700' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
       }`}
     >
       {children}
@@ -122,5 +122,5 @@ function Btn({ active, onClick, title, children }) {
 }
 
 function Sep() {
-  return <div className="w-px h-5 bg-gray-300 mx-1 shrink-0" />
+  return <div className="w-px h-5 bg-border mx-1 shrink-0" />
 }

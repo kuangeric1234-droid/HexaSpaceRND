@@ -28,23 +28,23 @@ export default function Crm() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Users size={22} /> CRM
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {openLeads} open {openLeads === 1 ? 'lead' : 'leads'} · {unreadEnquiries} new {unreadEnquiries === 1 ? 'enquiry' : 'enquiries'} · {wonThisMonth} won this month
           </p>
         </div>
       </div>
 
       {/* Sub-tab bar */}
-      <div className="border-b border-gray-200 mb-6 flex">
+      <div className="border-b border-border mb-6 flex">
         {TABS.map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
             className={`px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2 ${
-              tab === key ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'
+              tab === key ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             {label}

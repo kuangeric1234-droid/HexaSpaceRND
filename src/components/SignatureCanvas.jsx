@@ -63,7 +63,7 @@ const SignatureCanvas = forwardRef(function SignatureCanvas({ width = 500, heigh
   }
 
   return (
-    <div className="border-2 border-gray-300 rounded-md overflow-hidden bg-white cursor-crosshair">
+    <div className="border-2 border-input rounded-md overflow-hidden bg-card cursor-crosshair">
       <canvas
         ref={canvasRef}
         width={width}

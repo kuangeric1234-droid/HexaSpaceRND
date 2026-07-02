@@ -126,7 +126,7 @@ function NumberStepper({ value, onChange, min = 0, step = 1 }) {
       <button
         type="button"
         onClick={() => onChange(Math.max(min, Number(value) - step))}
-        className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-l bg-white hover:bg-gray-50 text-gray-500"
+        className="w-8 h-8 flex items-center justify-center border border-input rounded-l bg-card hover:bg-muted/50 text-muted-foreground"
       >
         <Minus size={11} />
       </button>
@@ -135,12 +135,12 @@ function NumberStepper({ value, onChange, min = 0, step = 1 }) {
         value={value}
         min={min}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-16 h-8 border-t border-b border-gray-300 text-center text-sm focus:outline-none [appearance:textfield]"
+        className="w-16 h-8 border-t border-b border-input text-center text-sm focus:outline-none [appearance:textfield]"
       />
       <button
         type="button"
         onClick={() => onChange(Number(value) + step)}
-        className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-r bg-white hover:bg-gray-50 text-gray-500"
+        className="w-8 h-8 flex items-center justify-center border border-input rounded-r bg-card hover:bg-muted/50 text-muted-foreground"
       >
         <Plus size={11} />
       </button>
@@ -150,10 +150,10 @@ function NumberStepper({ value, onChange, min = 0, step = 1 }) {
 
 function Section({ title, children }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-md overflow-hidden mb-4">
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-gray-200 bg-gray-50">
-        <ChevronDown size={13} className="text-gray-400" />
-        <span className="text-sm font-semibold text-gray-700">{title}</span>
+    <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden mb-4">
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-muted/50">
+        <ChevronDown size={13} className="text-muted-foreground" />
+        <span className="text-sm font-semibold text-foreground">{title}</span>
       </div>
       <div className="px-5 py-5">{children}</div>
     </div>
@@ -163,7 +163,7 @@ function Section({ title, children }) {
 function Field({ label, required, error, children, className = '' }) {
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+      <label className="block text-sm font-medium text-foreground mb-1.5">
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -174,10 +174,10 @@ function Field({ label, required, error, children, className = '' }) {
 }
 
 const inputCls = (err) =>
-  `w-full border ${err ? 'border-red-400' : 'border-gray-300'} rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500`
+  `w-full border ${err ? 'border-red-400' : 'border-input'} rounded px-3 py-2 text-sm bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40`
 
 const selectCls = (err) =>
-  `w-full border ${err ? 'border-red-400' : 'border-gray-300'} rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500`
+  `w-full border ${err ? 'border-red-400' : 'border-input'} rounded px-3 py-2 text-sm bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40`
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -377,10 +377,10 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-muted/50">
       {/* ── Header with section anchors ── */}
-      <div className="bg-white border-b border-gray-200 px-8 pt-6 pb-0 shrink-0">
-        <h1 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-card border-b border-border px-8 pt-6 pb-0 shrink-0">
+        <h1 className="text-lg font-semibold text-foreground mb-4">
           {isEdit ? `Edit Contract · ${form.contractNumber}` : 'New Contract'}
         </h1>
         <div className="flex">
@@ -389,7 +389,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
               key={s.id}
               type="button"
               onClick={() => scrollTo(s.id)}
-              className="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors whitespace-nowrap"
+              className="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground hover:border-input transition-colors whitespace-nowrap"
             >
               {s.label}
             </button>
@@ -515,7 +515,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                   className={inputCls(errors.endDate)}
                 />
                 {form.endDate && (
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Earliest leave date for the tenant company
                   </p>
                 )}
@@ -528,7 +528,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                     onChange={(v) => setForm({ ...form, noticePeriodMonths: v })}
                     min={0}
                   />
-                  <span className="text-sm text-gray-600 border border-gray-300 px-3 py-1.5 rounded bg-gray-50">
+                  <span className="text-sm text-muted-foreground border border-input px-3 py-1.5 rounded bg-muted/50">
                     Months
                   </span>
                 </div>
@@ -569,18 +569,18 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                 return (
                   <div
                     key={itemIdx}
-                    className="border border-gray-200 rounded-md bg-white overflow-hidden"
+                    className="border border-border rounded-xl bg-card overflow-hidden"
                   >
                     {/* Item header row */}
-                    <div className="flex items-center gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200 flex-wrap">
+                    <div className="flex items-center gap-4 px-4 py-3 bg-muted/50 border-b border-border flex-wrap">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                        <span className="text-sm font-medium text-foreground whitespace-nowrap">
                           {typeLabel} *
                         </span>
                         <select
                           value={item.spaceId}
                           onChange={(e) => handleSpaceSelect(itemIdx, e.target.value)}
-                          className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+                          className="border border-input rounded px-3 py-1.5 text-sm bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 min-w-[200px]"
                         >
                           <option value="">Select Resource</option>
                           {spaces
@@ -605,13 +605,13 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-500 whitespace-nowrap">Deposit</span>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">Deposit</span>
                         <NumberStepper
                           value={item.deposit}
                           onChange={(v) => updateItem(itemIdx, { deposit: v })}
                           step={500}
                         />
-                        <span className="text-xs text-gray-500 border border-gray-300 px-2 py-1.5 rounded bg-white">
+                        <span className="text-xs text-muted-foreground border border-input px-2 py-1.5 rounded bg-card">
                           AUD
                         </span>
                       </div>
@@ -620,7 +620,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                         <button
                           type="button"
                           onClick={() => removeItem(itemIdx)}
-                          className="ml-auto p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-red-50"
+                          className="ml-auto p-1.5 text-muted-foreground hover:text-red-500 rounded hover:bg-red-50"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -630,17 +630,17 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                     {/* Steps */}
                     <div className="px-4 py-4">
                       <div className="flex items-center gap-2 mb-3">
-                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                           Steps
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted-foreground">
                           ⓘ To add a step, move back the plan's end date
                         </span>
                       </div>
 
                       {/* Column headers */}
                       <div
-                        className="grid gap-3 text-xs font-medium text-gray-500 pb-2 border-b border-gray-100 mb-2"
+                        className="grid gap-3 text-xs font-medium text-muted-foreground pb-2 border-b border-border mb-2"
                         style={{ gridTemplateColumns: '24px 1fr 1fr 1fr 1fr 80px 14px' }}
                       >
                         <span />
@@ -660,7 +660,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                             style={{ gridTemplateColumns: '24px 1fr 1fr 1fr 1fr 80px 14px' }}
                           >
                             {/* Step badge */}
-                            <span className="w-5 h-5 rounded-full bg-gray-800 text-white text-xs flex items-center justify-center font-bold shrink-0">
+                            <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold shrink-0">
                               {stepIdx + 1}
                             </span>
 
@@ -672,7 +672,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                               onChange={(e) =>
                                 updateStep(itemIdx, stepIdx, { startDate: e.target.value })
                               }
-                              className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 w-full"
+                              className="border border-input rounded px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 w-full"
                             />
                             <input
                               type="date"
@@ -682,7 +682,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                               onChange={(e) =>
                                 updateStep(itemIdx, stepIdx, { endDate: e.target.value })
                               }
-                              className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 w-full"
+                              className="border border-input rounded px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 w-full"
                             />
 
                             <div className="flex items-center gap-1">
@@ -691,7 +691,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                                 onChange={(v) => updateStep(itemIdx, stepIdx, { listPrice: v })}
                                 step={100}
                               />
-                              <span className="text-xs text-gray-500 border border-gray-300 px-1.5 py-1.5 rounded bg-white shrink-0">
+                              <span className="text-xs text-muted-foreground border border-input px-1.5 py-1.5 rounded bg-card shrink-0">
                                 AUD
                               </span>
                             </div>
@@ -701,7 +701,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                               onChange={(e) =>
                                 updateStep(itemIdx, stepIdx, { discount: e.target.value })
                               }
-                              className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 w-full"
+                              className="border border-input rounded px-2 py-1.5 text-sm bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 w-full"
                             >
                               <option value="">Select Discount</option>
                               {DISCOUNT_OPTIONS.map((d) => (
@@ -719,7 +719,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                                   onClick={() => addStep(itemIdx)}
                                   disabled={fillsEnd}
                                   title={fillsEnd ? 'This step already covers the full duration' : undefined}
-                                  className={`text-xs font-medium whitespace-nowrap ${fillsEnd ? 'text-gray-300 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800'}`}
+                                  className={`text-xs font-medium whitespace-nowrap ${fillsEnd ? 'text-muted-foreground cursor-not-allowed' : 'text-blue-600 hover:text-blue-800'}`}
                                 >
                                   Add Step
                                 </button>
@@ -730,7 +730,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                               <button
                                 type="button"
                                 onClick={() => removeStep(itemIdx, stepIdx)}
-                                className="text-gray-300 hover:text-red-400"
+                                className="text-muted-foreground hover:text-red-400"
                               >
                                 <X size={13} />
                               </button>
@@ -746,17 +746,17 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
             </div>
 
             {/* Add item row */}
-            <div className="mt-4 flex items-center gap-3 p-4 border border-dashed border-gray-300 rounded-md bg-white">
+            <div className="mt-4 flex items-center gap-3 p-4 border border-dashed border-input rounded-xl bg-card">
               <button
                 type="button"
                 onClick={addItem}
-                className="text-sm text-gray-700 border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50"
+                className="text-sm text-foreground border border-input px-3 py-1.5 rounded hover:bg-muted/50"
               >
                 + Add Space
               </button>
-              <p className="text-xs text-gray-400 ml-auto">
+              <p className="text-xs text-muted-foreground ml-auto">
                 To allow different types of items,{' '}
-                <span className="underline cursor-pointer hover:text-gray-600">
+                <span className="underline cursor-pointer hover:text-foreground">
                   edit contract type
                 </span>
               </p>
@@ -769,9 +769,9 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
           <Section title="Terms & Conditions">
             <Field label="Contract Terms">
               {/* Selected templates as removable tags */}
-              <div className="border border-gray-300 rounded px-2 py-2 min-h-[44px] flex flex-wrap gap-2 bg-white">
+              <div className="border border-input rounded px-2 py-2 min-h-[44px] flex flex-wrap gap-2 bg-card">
                 {form.contractTerms.length === 0 && (
-                  <span className="text-xs text-gray-400 py-1 px-1">No documents attached</span>
+                  <span className="text-xs text-muted-foreground py-1 px-1">No documents attached</span>
                 )}
                 {form.contractTerms.map((tmplId) => {
                   const tmpl = templates.find((t) => t.id === tmplId)
@@ -793,7 +793,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                   )
                 })}
               </div>
-              <p className="text-xs text-gray-400 mt-1.5">
+              <p className="text-xs text-muted-foreground mt-1.5">
                 Documents attached here will be included in the generated PDF agreement.
               </p>
             </Field>
@@ -801,19 +801,19 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
             {/* Available templates to add */}
             {templates.length > 0 && (
               <div className="mt-4">
-                <p className="text-xs font-medium text-gray-600 mb-2">Available templates</p>
-                <div className="border border-gray-200 rounded-md divide-y divide-gray-100">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Available templates</p>
+                <div className="border border-border rounded-xl divide-y divide-border">
                   {templates.map((tmpl) => {
                     const isSelected = form.contractTerms.includes(tmpl.id)
                     return (
                       <div
                         key={tmpl.id}
-                        className="flex items-center justify-between px-4 py-3 hover:bg-gray-50"
+                        className="flex items-center justify-between px-4 py-3 hover:bg-muted/50"
                       >
                         <div>
-                          <span className="text-sm font-medium text-gray-800">{tmpl.name}</span>
-                          <span className="text-xs text-gray-400 ml-2">{tmpl.version}</span>
-                          <span className="text-xs text-gray-400 ml-3">
+                          <span className="text-sm font-medium text-foreground">{tmpl.name}</span>
+                          <span className="text-xs text-muted-foreground ml-2">{tmpl.version}</span>
+                          <span className="text-xs text-muted-foreground ml-3">
                             {tmpl.clauses?.length ?? 0} clause{tmpl.clauses?.length !== 1 ? 's' : ''}
                           </span>
                         </div>
@@ -823,7 +823,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                           className={`text-xs font-medium px-3 py-1.5 rounded border transition-colors ${
                             isSelected
                               ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                              : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                              : 'bg-card text-foreground border-input hover:bg-muted/50'
                           }`}
                         >
                           {isSelected ? '✓ Attached' : '+ Attach'}
@@ -836,8 +836,8 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
             )}
 
             {templates.length === 0 && (
-              <div className="mt-4 p-4 bg-gray-50 border border-dashed border-gray-300 rounded-md text-center">
-                <p className="text-sm text-gray-500">
+              <div className="mt-4 p-4 bg-muted/50 border border-dashed border-input rounded-xl text-center">
+                <p className="text-sm text-muted-foreground">
                   No templates yet.{' '}
                   <a href="/templates" className="text-blue-600 hover:underline">
                     Create templates
@@ -847,24 +847,24 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
               </div>
             )}
 
-            <div className="mt-6 pt-6 border-t border-gray-100">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Addendum</label>
+            <div className="mt-6 pt-6 border-t border-border">
+              <label className="block text-sm font-medium text-foreground mb-1.5">Addendum</label>
               <button
                 type="button"
-                className="text-sm border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-gray-600"
+                className="text-sm border border-input px-3 py-1.5 rounded hover:bg-muted/50 text-foreground"
               >
                 Add Addendum
               </button>
             </div>
 
-            <div className="mt-6 pt-6 border-t border-gray-100">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
+            <div className="mt-6 pt-6 border-t border-border">
+              <label className="block text-sm font-medium text-foreground mb-1.5">Notes</label>
               <textarea
                 rows={3}
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 placeholder="Internal notes about this contract…"
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 resize-none"
               />
             </div>
           </Section>
@@ -873,7 +873,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
         {/* ─── System Messages ─── */}
         <div ref={sectionRefs.messages}>
           <Section title="System Messages">
-            <div className="py-10 text-center text-gray-400 text-sm">
+            <div className="py-10 text-center text-muted-foreground text-sm">
               No system messages for this contract.
             </div>
           </Section>
@@ -881,11 +881,11 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
       </div>
 
       {/* ── Footer ── */}
-      <div className="shrink-0 border-t border-gray-200 bg-white px-8 py-4 flex justify-end gap-3">
+      <div className="shrink-0 border-t border-border bg-card px-8 py-4 flex justify-end gap-3">
         <button
           type="button"
           onClick={onDiscard}
-          className="px-5 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+          className="px-5 py-2 text-sm font-medium text-foreground border border-input rounded hover:bg-muted/50"
         >
           Discard
         </button>

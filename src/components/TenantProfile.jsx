@@ -64,9 +64,9 @@ function PortalInviteButton({ email }) {
 
 function Section({ title, action, children }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-        <h3 className="font-semibold text-gray-800 text-sm">{title}</h3>
+    <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+        <h3 className="font-semibold text-foreground text-sm">{title}</h3>
         {action}
       </div>
       {children}
@@ -209,23 +209,23 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
 
   return (
     <>
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-muted/50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-4 shrink-0">
+      <div className="bg-card border-b border-border px-8 py-4 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900">
+            <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft size={15} /> Tenants
             </button>
-            <span className="text-gray-300">/</span>
-            <span className="text-sm font-semibold text-gray-800">{tenant.businessName}</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-sm font-semibold text-foreground">{tenant.businessName}</span>
           </div>
           <div className="flex items-center gap-2">
             <PortalInviteButton email={tenant.email} />
-            <button onClick={generateStatement} className="flex items-center gap-1.5 text-xs border border-gray-300 rounded px-3 py-1.5 hover:bg-gray-50 text-gray-600">
+            <button onClick={generateStatement} className="flex items-center gap-1.5 text-xs border border-input rounded px-3 py-1.5 hover:bg-muted/50 text-muted-foreground">
               <FileDown size={13} /> Statement PDF
             </button>
-            <button onClick={onEdit} className="flex items-center gap-1.5 text-xs border border-gray-300 rounded px-3 py-1.5 hover:bg-gray-50 text-gray-600">
+            <button onClick={onEdit} className="flex items-center gap-1.5 text-xs border border-input rounded px-3 py-1.5 hover:bg-muted/50 text-muted-foreground">
               <Pencil size={13} /> Edit Details
             </button>
           </div>
@@ -234,16 +234,16 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel — fixed sidebar */}
-        <aside className="w-60 shrink-0 bg-white border-r border-gray-200 overflow-y-auto p-6">
+        <aside className="w-60 shrink-0 bg-card border-r border-border overflow-y-auto p-6">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-              <Building2 size={28} className="text-gray-400" />
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <Building2 size={28} className="text-muted-foreground" />
             </div>
           </div>
-          <h2 className="text-center font-bold text-gray-900 text-sm mb-1">{tenant.businessName}</h2>
-          {tenant.email && <p className="text-center text-xs text-gray-500 mb-5 break-all">{tenant.email}</p>}
+          <h2 className="text-center font-bold text-foreground text-sm mb-1">{tenant.businessName}</h2>
+          {tenant.email && <p className="text-center text-xs text-muted-foreground mb-5 break-all">{tenant.email}</p>}
 
-          <div className="space-y-3 text-xs text-gray-600">
+          <div className="space-y-3 text-xs text-muted-foreground">
             {tenant.contactName && <Row label="Contact">{tenant.contactName}</Row>}
             {tenant.phone && <Row icon={<Phone size={11} />}>{tenant.phone}</Row>}
             {tenant.abn && <Row icon={<Hash size={11} />}>ABN: {tenant.abn}</Row>}
@@ -259,7 +259,7 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
         {/* Scrollable main content */}
         <div className="flex-1 overflow-y-auto">
           {/* Stats bar */}
-          <div className="bg-white border-b border-gray-200 px-8 py-5 grid grid-cols-4 gap-6 shrink-0">
+          <div className="bg-card border-b border-border px-8 py-5 grid grid-cols-4 gap-6 shrink-0">
             {[
               ['MRR', fmtAud(mrr)],
               ['Active Contracts', activeLeases.length],
@@ -267,8 +267,8 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
               ['Deposit Held', fmtAud(depositHeld)],
             ].map(([label, value]) => (
               <div key={label}>
-                <p className="text-2xl font-bold text-gray-900">{value}</p>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mt-0.5">{label}</p>
+                <p className="text-2xl font-bold text-foreground">{value}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mt-0.5">{label}</p>
               </div>
             ))}
           </div>
@@ -278,18 +278,18 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
             {/* ── Active Contracts ── */}
             <Section title="Active Contracts">
               {activeLeases.length === 0 ? (
-                <p className="px-5 py-4 text-sm text-gray-400">No active contracts.</p>
+                <p className="px-5 py-4 text-sm text-muted-foreground">No active contracts.</p>
               ) : (
                 <table className="w-full text-sm">
                   <tbody>
                     {activeLeases.map((l) => {
                       const space = spaces.find((s) => s.id === l.spaceId)
                       return (
-                        <tr key={l.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer" onClick={() => onSelectContract?.(l)}>
-                          <td className="px-5 py-3 font-medium text-gray-900">{l.contractNumber ?? `CON-${l.id.slice(-3).toUpperCase()}`}</td>
-                          <td className="px-5 py-3 text-gray-600">{space?.unitNumber ?? '—'}</td>
-                          <td className="px-5 py-3 text-gray-500 text-xs">{fmt(l.startDate)} – {fmt(l.endDate)}</td>
-                          <td className="px-5 py-3 text-right font-medium text-gray-900">{fmtAud(l.monthlyRent)}/mo</td>
+                        <tr key={l.id} className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer" onClick={() => onSelectContract?.(l)}>
+                          <td className="px-5 py-3 font-medium text-foreground">{l.contractNumber ?? `CON-${l.id.slice(-3).toUpperCase()}`}</td>
+                          <td className="px-5 py-3 text-muted-foreground">{space?.unitNumber ?? '—'}</td>
+                          <td className="px-5 py-3 text-muted-foreground text-xs">{fmt(l.startDate)} – {fmt(l.endDate)}</td>
+                          <td className="px-5 py-3 text-right font-medium text-foreground">{fmtAud(l.monthlyRent)}/mo</td>
                         </tr>
                       )
                     })}
@@ -311,36 +311,36 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
 
             {/* ── Members ── */}
             <Section title="Members" action={
-              <button onClick={() => setMemberModal({})} className="flex items-center gap-1 text-xs bg-black text-white px-3 py-1.5 rounded hover:bg-gray-800 font-medium">
+              <button onClick={() => setMemberModal({})} className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 font-medium">
                 <Plus size={12} /> Add member
               </button>
             }>
               {companyMembers.length === 0 ? (
-                <p className="px-5 py-5 text-sm text-gray-400">No members yet. Add the people who work under this company.</p>
+                <p className="px-5 py-5 text-sm text-muted-foreground">No members yet. Add the people who work under this company.</p>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-muted/50 border-b border-border">
                     <tr>
                       {['Name', 'Email', 'Roles', 'Status', ''].map((h) => (
-                        <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                        <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {companyMembers.map((m) => (
-                      <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                      <tr key={m.id} className="border-b border-border last:border-0 hover:bg-muted/50">
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-2">
-                            <span className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center shrink-0"><User size={13} className="text-gray-400" /></span>
-                            <span className="font-medium text-gray-900">{m.name}</span>
+                            <span className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0"><User size={13} className="text-muted-foreground" /></span>
+                            <span className="font-medium text-foreground">{m.name}</span>
                           </div>
                         </td>
-                        <td className="px-5 py-3 text-gray-500">{m.email || '—'}</td>
+                        <td className="px-5 py-3 text-muted-foreground">{m.email || '—'}</td>
                         <td className="px-5 py-3">
                           <div className="flex flex-wrap gap-1">
                             {m.contactPerson && <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700"><CreditCard size={10} /> Contact</span>}
                             {m.billingPerson && <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-purple-50 text-purple-700"><Receipt size={10} /> Billing</span>}
-                            {!m.contactPerson && !m.billingPerson && <span className="text-xs text-gray-300">—</span>}
+                            {!m.contactPerson && !m.billingPerson && <span className="text-xs text-muted-foreground">—</span>}
                           </div>
                         </td>
                         <td className="px-5 py-3">
@@ -348,8 +348,8 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
                         </td>
                         <td className="px-5 py-3">
                           <div className="flex items-center justify-end gap-1">
-                            <button onClick={() => setMemberModal(m)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-900"><Pencil size={13} /></button>
-                            <button onClick={() => { if (window.confirm(`Remove ${m.name}?`)) deleteMember?.(m.id) }} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 size={13} /></button>
+                            <button onClick={() => setMemberModal(m)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"><Pencil size={13} /></button>
+                            <button onClick={() => { if (window.confirm(`Remove ${m.name}?`)) deleteMember?.(m.id) }} className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600"><Trash2 size={13} /></button>
                           </div>
                         </td>
                       </tr>
@@ -361,18 +361,18 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
 
             {/* ── Memberships ── */}
             <Section title="Memberships" action={
-              <button onClick={() => setShowMembership(true)} className="flex items-center gap-1 text-xs bg-black text-white px-3 py-1.5 rounded hover:bg-gray-800 font-medium">
+              <button onClick={() => setShowMembership(true)} className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 font-medium">
                 <Plus size={12} /> Add membership
               </button>
             }>
               {tenantLeases.length === 0 ? (
-                <p className="px-5 py-5 text-sm text-gray-400">No memberships. Add a desk/office plan, or sign a contract to enrol automatically.</p>
+                <p className="px-5 py-5 text-sm text-muted-foreground">No memberships. Add a desk/office plan, or sign a contract to enrol automatically.</p>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-muted/50 border-b border-border">
                     <tr>
                       {['Plan', 'Member', 'Status', 'Period', 'Price'].map((h) => (
-                        <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                        <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -382,17 +382,17 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
                       const plan = l.membershipType || l.planName || 'Private Office'
                       const fromContract = l.contractNumber && !/^membership$/i.test(l.source || '')
                       return (
-                        <tr key={l.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer" onClick={() => onSelectContract?.(l)}>
+                        <tr key={l.id} className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer" onClick={() => onSelectContract?.(l)}>
                           <td className="px-5 py-3">
-                            <div className="font-medium text-gray-900">{plan}</div>
-                            <div className="text-xs text-gray-400">{space?.unitNumber ?? (fromContract ? l.contractNumber : 'Hexa Space')}</div>
+                            <div className="font-medium text-foreground">{plan}</div>
+                            <div className="text-xs text-muted-foreground">{space?.unitNumber ?? (fromContract ? l.contractNumber : 'Hexa Space')}</div>
                           </td>
-                          <td className="px-5 py-3 text-gray-600">{l.memberName || tenant.contactName || '—'}</td>
+                          <td className="px-5 py-3 text-muted-foreground">{l.memberName || tenant.contactName || '—'}</td>
                           <td className="px-5 py-3">
                             <Badge label={l.status} cls={l.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'} />
                           </td>
-                          <td className="px-5 py-3 text-gray-500 text-xs">{fmt(l.startDate)} – {fmt(l.endDate)}<br /><span className="text-gray-400">{l.contractType || 'Month-to-Month'}</span></td>
-                          <td className="px-5 py-3 font-medium text-gray-900">{fmtAud(l.monthlyRent)}/mo</td>
+                          <td className="px-5 py-3 text-muted-foreground text-xs">{fmt(l.startDate)} – {fmt(l.endDate)}<br /><span className="text-muted-foreground">{l.contractType || 'Month-to-Month'}</span></td>
+                          <td className="px-5 py-3 font-medium text-foreground">{fmtAud(l.monthlyRent)}/mo</td>
                         </tr>
                       )
                     })}
@@ -404,29 +404,29 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
             {/* ── One-off Fees (Deposits) ── */}
             <Section title="One-off Fees">
               {oneOffFees.length === 0 ? (
-                <p className="px-5 py-5 text-sm text-gray-400">No one-off fees. Deposits appear here once a contract is signed.</p>
+                <p className="px-5 py-5 text-sm text-muted-foreground">No one-off fees. Deposits appear here once a contract is signed.</p>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-muted/50 border-b border-border">
                     <tr>
                       {['Name', 'Contract', 'Date', 'Amount', 'Status', 'Invoice'].map((h) => (
-                        <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                        <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {oneOffFees.map((fee) => (
-                      <tr key={fee.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                        <td className="px-5 py-3 font-medium text-gray-900">{fee.name}</td>
-                        <td className="px-5 py-3 text-gray-600">{fee.contract}</td>
-                        <td className="px-5 py-3 text-gray-500">{fmt(fee.date)}</td>
-                        <td className="px-5 py-3 font-medium text-gray-900">{fmtAud(fee.amount)}</td>
+                      <tr key={fee.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                        <td className="px-5 py-3 font-medium text-foreground">{fee.name}</td>
+                        <td className="px-5 py-3 text-muted-foreground">{fee.contract}</td>
+                        <td className="px-5 py-3 text-muted-foreground">{fmt(fee.date)}</td>
+                        <td className="px-5 py-3 font-medium text-foreground">{fmtAud(fee.amount)}</td>
                         <td className="px-5 py-3"><Badge label={fee.status} cls={fee.statusCls} /></td>
                         <td className="px-5 py-3">
                           {fee.invoiceNumber ? (
                             <button onClick={() => { const inv = tenantInvoices.find((i) => i.id === fee.invoiceId); if (inv) onSelectInvoice?.(inv) }}
                               className="text-blue-600 hover:underline text-xs font-medium">{fee.invoiceNumber}</button>
-                          ) : <span className="text-xs text-gray-400">—</span>}
+                          ) : <span className="text-xs text-muted-foreground">—</span>}
                         </td>
                       </tr>
                     ))}
@@ -438,13 +438,13 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
             {/* ── All Contracts ── */}
             <Section title="Contracts">
               {tenantLeases.length === 0 ? (
-                <p className="px-5 py-5 text-sm text-gray-400">No contracts.</p>
+                <p className="px-5 py-5 text-sm text-muted-foreground">No contracts.</p>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-muted/50 border-b border-border">
                     <tr>
                       {['Number', 'Document Type', 'Status', 'Signature', 'Period', 'Monthly'].map((h) => (
-                        <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                        <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -453,18 +453,18 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
                       const sig = SIG_BADGE[l.signatureStatus] ?? SIG_BADGE.not_signed
                       const space = spaces.find((s) => s.id === l.spaceId)
                       return (
-                        <tr key={l.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer" onClick={() => onSelectContract?.(l)}>
-                          <td className="px-5 py-3 font-medium text-gray-900">{l.contractNumber ?? `CON-${l.id.slice(-3).toUpperCase()}`}</td>
-                          <td className="px-5 py-3 text-gray-600">{l.documentType ?? 'License Agreement'}</td>
+                        <tr key={l.id} className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer" onClick={() => onSelectContract?.(l)}>
+                          <td className="px-5 py-3 font-medium text-foreground">{l.contractNumber ?? `CON-${l.id.slice(-3).toUpperCase()}`}</td>
+                          <td className="px-5 py-3 text-muted-foreground">{l.documentType ?? 'License Agreement'}</td>
                           <td className="px-5 py-3">
                             <Badge label={l.status} cls={l.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'} />
                           </td>
                           <td className="px-5 py-3"><Badge label={sig.label} cls={sig.cls} /></td>
-                          <td className="px-5 py-3 text-gray-500 text-xs">
+                          <td className="px-5 py-3 text-muted-foreground text-xs">
                             {fmt(l.startDate)} – {fmt(l.endDate)}<br />
-                            <span className="text-gray-400">{space?.unitNumber ?? ''}</span>
+                            <span className="text-muted-foreground">{space?.unitNumber ?? ''}</span>
                           </td>
-                          <td className="px-5 py-3 font-medium text-gray-900">{fmtAud(l.monthlyRent)}</td>
+                          <td className="px-5 py-3 font-medium text-foreground">{fmtAud(l.monthlyRent)}</td>
                         </tr>
                       )
                     })}
@@ -477,19 +477,19 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
             <Section title="Invoices" action={
               <button
                 onClick={() => setShowInvoiceForm(true)}
-                className="flex items-center gap-1 text-xs bg-black text-white px-3 py-1.5 rounded hover:bg-gray-800 font-medium"
+                className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 font-medium"
               >
                 <Plus size={12} /> Add Invoice
               </button>
             }>
               {tenantInvoices.length === 0 ? (
-                <p className="px-5 py-5 text-sm text-gray-400">No invoices.</p>
+                <p className="px-5 py-5 text-sm text-muted-foreground">No invoices.</p>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-muted/50 border-b border-border">
                     <tr>
                       {['Number', 'Status', 'Sent', 'Issue Date', 'Due Date', 'Period', 'Amount'].map((h) => (
-                        <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                        <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -498,18 +498,18 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
                       const meta = INV_STATUS[inv.status] ?? { label: inv.status, cls: 'bg-gray-100 text-gray-600' }
                       const sub = (inv.lineItems ?? []).reduce((s, l) => s + Math.round(l.unitPrice * l.qty * (1 - (l.discountPct ?? 0) / 100) * 100) / 100, 0)
                       return (
-                        <tr key={inv.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer" onClick={() => onSelectInvoice?.(inv)}>
-                          <td className="px-5 py-3 font-medium text-gray-900">{inv.number}</td>
+                        <tr key={inv.id} className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer" onClick={() => onSelectInvoice?.(inv)}>
+                          <td className="px-5 py-3 font-medium text-foreground">{inv.number}</td>
                           <td className="px-5 py-3"><Badge label={meta.label} cls={meta.cls} /></td>
                           <td className="px-5 py-3">
                             <Badge label={inv.sentStatus === 'sent' ? 'Sent' : 'Not Sent'} cls={inv.sentStatus === 'sent' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'} />
                           </td>
-                          <td className="px-5 py-3 text-gray-500">{fmt(inv.issueDate)}</td>
-                          <td className="px-5 py-3 text-gray-500">{fmt(inv.dueDate)}</td>
-                          <td className="px-5 py-3 text-gray-400 text-xs">
+                          <td className="px-5 py-3 text-muted-foreground">{fmt(inv.issueDate)}</td>
+                          <td className="px-5 py-3 text-muted-foreground">{fmt(inv.dueDate)}</td>
+                          <td className="px-5 py-3 text-muted-foreground text-xs">
                             {inv.periodStart ? `${fmt(inv.periodStart)} – ${fmt(inv.periodEnd)}` : inv.invoiceType === 'deposit' ? 'Deposit' : '—'}
                           </td>
-                          <td className="px-5 py-3 font-medium text-gray-900">{fmtAud(sub * (1 + taxRate))}</td>
+                          <td className="px-5 py-3 font-medium text-foreground">{fmtAud(sub * (1 + taxRate))}</td>
                         </tr>
                       )
                     })}
@@ -522,7 +522,7 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
             <PortalAccessSection email={tenant.email} />
 
             {/* ── Documents ── */}
-            <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
               <DocumentsPanel tenantId={tenant.id} title="Documents" />
             </div>
 
@@ -615,66 +615,66 @@ function MemberModal({ member, tenant, onClose, onSave }) {
     billingPerson: member?.billingPerson ?? false,
     status: member?.status ?? 'Auto',
   })
-  const ic = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black'
+  const ic = 'w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-md w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white">
-          <h2 className="font-semibold text-gray-900">{member ? 'Edit member' : 'Add member'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
+      <div className="bg-card rounded-xl w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card">
+          <h2 className="font-semibold text-foreground">{member ? 'Edit member' : 'Add member'}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
         </div>
         <div className="px-6 py-5 space-y-4">
           <label className="block">
-            <span className="block text-xs font-medium text-gray-600 mb-1">Name *</span>
+            <span className="block text-xs font-medium text-muted-foreground mb-1">Name *</span>
             <input value={form.name} onChange={set('name')} placeholder="Full name" className={ic} />
           </label>
           <label className="block">
-            <span className="block text-xs font-medium text-gray-600 mb-1">Company</span>
-            <input value={tenant.businessName} disabled className={`${ic} bg-gray-50 text-gray-500`} />
+            <span className="block text-xs font-medium text-muted-foreground mb-1">Company</span>
+            <input value={tenant.businessName} disabled className={`${ic} bg-muted/50 text-muted-foreground`} />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="block text-xs font-medium text-gray-600 mb-1">Email</span>
+              <span className="block text-xs font-medium text-muted-foreground mb-1">Email</span>
               <input value={form.email} onChange={set('email')} placeholder="name@company.com" className={ic} />
             </label>
             <label className="block">
-              <span className="block text-xs font-medium text-gray-600 mb-1">Phone</span>
+              <span className="block text-xs font-medium text-muted-foreground mb-1">Phone</span>
               <input value={form.phone} onChange={set('phone')} placeholder="+61…" className={ic} />
             </label>
           </div>
 
-          <div className="space-y-3 bg-gray-50 rounded-md p-3">
+          <div className="space-y-3 bg-muted/50 rounded-md p-3">
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input type="checkbox" checked={form.contactPerson} onChange={(e) => setForm((f) => ({ ...f, contactPerson: e.target.checked }))} className="mt-0.5" />
               <span>
-                <span className="text-sm font-medium text-gray-800">Contact Person</span>
-                <span className="block text-xs text-gray-500">Can pay by card and add members into the portal.</span>
+                <span className="text-sm font-medium text-foreground">Contact Person</span>
+                <span className="block text-xs text-muted-foreground">Can pay by card and add members into the portal.</span>
               </span>
             </label>
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input type="checkbox" checked={form.billingPerson} onChange={(e) => setForm((f) => ({ ...f, billingPerson: e.target.checked }))} className="mt-0.5" />
               <span>
-                <span className="text-sm font-medium text-gray-800">Billing Person</span>
-                <span className="block text-xs text-gray-500">Receives invoices by email.</span>
+                <span className="text-sm font-medium text-foreground">Billing Person</span>
+                <span className="block text-xs text-muted-foreground">Receives invoices by email.</span>
               </span>
             </label>
           </div>
 
           <label className="block">
-            <span className="block text-xs font-medium text-gray-600 mb-1">Status</span>
+            <span className="block text-xs font-medium text-muted-foreground mb-1">Status</span>
             <select value={form.status} onChange={set('status')} className={ic}>
               <option value="Auto">Auto</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
-            <span className="block text-xs text-gray-400 mt-1">Auto: calculated from their memberships.</span>
+            <span className="block text-xs text-muted-foreground mt-1">Auto: calculated from their memberships.</span>
           </label>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Cancel</button>
-          <button onClick={() => form.name.trim() && onSave(form)} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">{member ? 'Save' : 'Add member'}</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Cancel</button>
+          <button onClick={() => form.name.trim() && onSave(form)} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90">{member ? 'Save' : 'Add member'}</button>
         </div>
       </div>
     </div>
@@ -711,31 +711,31 @@ function CreditsCard({ tenant, computed, effAllowance, remaining, updateTenant }
     setTimeout(() => setSaved(false), 2000)
   }
 
-  const input = 'w-28 border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-black'
+  const input = 'w-28 border border-input rounded px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
   return (
     <div className="px-5 py-4">
       <div className="flex flex-wrap items-end gap-6">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Monthly allowance</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Monthly allowance</label>
           <input type="number" min="0" step="0.5" value={allowance} onChange={(e) => setAllowance(e.target.value)} className={input} />
-          <span className="text-xs text-gray-400 ml-2">credits{hasOverride ? ' · overridden' : ' · auto'}</span>
+          <span className="text-xs text-muted-foreground ml-2">credits{hasOverride ? ' · overridden' : ' · auto'}</span>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Remaining this month</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Remaining this month</label>
           <input type="number" min="0" step="0.5" value={rem} onChange={(e) => setRem(e.target.value)} className={input} />
-          <span className="text-xs text-gray-400 ml-2">of {effAllowance}</span>
+          <span className="text-xs text-muted-foreground ml-2">of {effAllowance}</span>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={save} className="bg-black text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-gray-800">
+          <button onClick={save} className="bg-primary text-primary-foreground px-3 py-1.5 rounded text-sm font-medium hover:bg-primary/90">
             {saved ? 'Saved' : 'Save'}
           </button>
-          <button onClick={resetToComputed} className="text-xs text-gray-500 hover:text-gray-800 underline">
+          <button onClick={resetToComputed} className="text-xs text-muted-foreground hover:text-foreground underline">
             Reset to plan
           </button>
         </div>
       </div>
-      <p className="text-xs text-gray-400 mt-3">
-        From active memberships: <span className="font-medium text-gray-600">{computed} credits/mo</span>. Bookings deduct from Remaining; overage is billed as a fee on the month-end invoice. Resets on the 1st.
+      <p className="text-xs text-muted-foreground mt-3">
+        From active memberships: <span className="font-medium text-foreground">{computed} credits/mo</span>. Bookings deduct from Remaining; overage is billed as a fee on the month-end invoice. Resets on the 1st.
       </p>
     </div>
   )
@@ -752,7 +752,7 @@ const MEMBERSHIP_PLANS = [
 function MembershipModal({ tenant, members, onClose, onSave }) {
   const today = new Date().toISOString().slice(0, 10)
   const [form, setForm] = useState({ plan: 'Dedicated Desk', memberId: '', price: 600, startDate: today, endDate: '' })
-  const ic = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black'
+  const ic = 'w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
 
   function pickPlan(plan) {
     const def = MEMBERSHIP_PLANS.find((p) => p.key === plan)
@@ -783,49 +783,49 @@ function MembershipModal({ tenant, members, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-md w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white">
-          <h2 className="font-semibold text-gray-900">Add membership</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
+      <div className="bg-card rounded-xl w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card">
+          <h2 className="font-semibold text-foreground">Add membership</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
         </div>
         <div className="px-6 py-5 space-y-4">
           <div>
-            <span className="block text-xs font-medium text-gray-600 mb-1.5">Plan</span>
+            <span className="block text-xs font-medium text-muted-foreground mb-1.5">Plan</span>
             <div className="grid grid-cols-2 gap-2">
               {MEMBERSHIP_PLANS.map((p) => (
                 <button key={p.key} type="button" onClick={() => pickPlan(p.key)}
-                  className={`text-left px-3 py-2.5 rounded-md border text-sm transition-colors ${form.plan === p.key ? 'border-black bg-gray-900 text-white' : 'border-gray-200 hover:bg-gray-50 text-gray-700'}`}>
+                  className={`text-left px-3 py-2.5 rounded-md border text-sm transition-colors ${form.plan === p.key ? 'border-primary bg-primary text-primary-foreground' : 'border-input hover:bg-muted/50 text-foreground'}`}>
                   {p.key}
                 </button>
               ))}
             </div>
           </div>
           <label className="block">
-            <span className="block text-xs font-medium text-gray-600 mb-1">Assign to member (optional)</span>
+            <span className="block text-xs font-medium text-muted-foreground mb-1">Assign to member (optional)</span>
             <select value={form.memberId} onChange={(e) => setForm((f) => ({ ...f, memberId: e.target.value }))} className={ic}>
               <option value="">— Company (unassigned) —</option>
               {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
           </label>
           <label className="block">
-            <span className="block text-xs font-medium text-gray-600 mb-1">Price (AUD / month, ex GST)</span>
+            <span className="block text-xs font-medium text-muted-foreground mb-1">Price (AUD / month, ex GST)</span>
             <input type="number" min="0" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} className={ic} />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="block text-xs font-medium text-gray-600 mb-1">Start date</span>
+              <span className="block text-xs font-medium text-muted-foreground mb-1">Start date</span>
               <input type="date" value={form.startDate} onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))} className={ic} />
             </label>
             <label className="block">
-              <span className="block text-xs font-medium text-gray-600 mb-1">End date (optional)</span>
+              <span className="block text-xs font-medium text-muted-foreground mb-1">End date (optional)</span>
               <input type="date" value={form.endDate} onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))} className={ic} />
             </label>
           </div>
-          <p className="text-xs text-gray-400">Enrols {tenant.businessName} on this plan and bills it monthly. Signing an office contract creates a membership automatically.</p>
+          <p className="text-xs text-muted-foreground">Enrols {tenant.businessName} on this plan and bills it monthly. Signing an office contract creates a membership automatically.</p>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Cancel</button>
-          <button onClick={save} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">Add membership</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Cancel</button>
+          <button onClick={save} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90">Add membership</button>
         </div>
       </div>
     </div>
@@ -835,7 +835,7 @@ function MembershipModal({ tenant, members, onClose, onSave }) {
 function Row({ label, icon, children }) {
   return (
     <div className="flex items-start gap-2">
-      {icon ? <span className="text-gray-400 mt-0.5 shrink-0">{icon}</span> : <span className="text-gray-400 uppercase font-semibold w-14 shrink-0 text-[10px] mt-0.5">{label}</span>}
+      {icon ? <span className="text-muted-foreground mt-0.5 shrink-0">{icon}</span> : <span className="text-muted-foreground uppercase font-semibold w-14 shrink-0 text-[10px] mt-0.5">{label}</span>}
       <span>{children}</span>
     </div>
   )
@@ -855,8 +855,8 @@ function PortalSidebarStatus({ email }) {
   if (!status || status === 'not_invited') return null
 
   return (
-    <div className="mt-5 pt-4 border-t border-gray-100">
-      <div className="text-xs text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+    <div className="mt-5 pt-4 border-t border-border">
+      <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
         <MessageSquare size={10} /> Portal Access
       </div>
       {status === 'active' ? (
@@ -909,29 +909,29 @@ function PortalAccessSection({ email }) {
   const badge = {
     active:       <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">Active Member</span>,
     invited:      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700">Invited — Pending</span>,
-    not_invited:  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">Not Invited</span>,
+    not_invited:  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-muted text-muted-foreground">Not Invited</span>,
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100 bg-gray-50">
-        <MessageSquare size={13} className="text-gray-400" />
-        <span className="text-sm font-semibold text-gray-700">Portal Access</span>
+    <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border bg-muted/50">
+        <MessageSquare size={13} className="text-muted-foreground" />
+        <span className="text-sm font-semibold text-foreground">Portal Access</span>
       </div>
       <div className="px-5 py-4 flex items-center justify-between gap-4">
         <div>
-          <div className="text-xs text-gray-400 mb-1.5">members.hexaspace.com.au</div>
+          <div className="text-xs text-muted-foreground mb-1.5">members.hexaspace.com.au</div>
           {portalStatus === null
-            ? <span className="text-xs text-gray-400">Checking…</span>
+            ? <span className="text-xs text-muted-foreground">Checking…</span>
             : badge[portalStatus]}
           {portalStatus === 'active' && (
-            <p className="text-xs text-gray-400 mt-1.5">Member has signed in to the portal.</p>
+            <p className="text-xs text-muted-foreground mt-1.5">Member has signed in to the portal.</p>
           )}
           {portalStatus === 'invited' && (
-            <p className="text-xs text-gray-400 mt-1.5">Invite sent — awaiting first login.</p>
+            <p className="text-xs text-muted-foreground mt-1.5">Invite sent — awaiting first login.</p>
           )}
           {portalStatus === 'not_invited' && (
-            <p className="text-xs text-gray-400 mt-1.5">This member has not been invited yet.</p>
+            <p className="text-xs text-muted-foreground mt-1.5">This member has not been invited yet.</p>
           )}
         </div>
 
@@ -940,7 +940,7 @@ function PortalAccessSection({ email }) {
           <button
             onClick={sendInvite}
             disabled={inviteStatus === 'sending' || !email}
-            className="shrink-0 text-xs font-medium px-3 py-1.5 rounded border border-gray-300 hover:bg-gray-50 text-gray-700 disabled:opacity-50"
+            className="shrink-0 text-xs font-medium px-3 py-1.5 rounded border border-input hover:bg-muted/50 text-foreground disabled:opacity-50"
           >
             {inviteStatus === 'sent'    ? '✓ Sent!'
              : inviteStatus === 'error' ? 'Failed — retry'
@@ -1007,27 +1007,27 @@ function PortalMessagesAdmin({ tenantId }) {
   const unread = messages.filter(m => m.sender === 'tenant' && !m.readByAdmin).length
 
   return (
-    <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+    <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 text-left"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/50 text-left"
       >
-        <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-          <MessageSquare size={15} className="text-gray-400" />
+        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <MessageSquare size={15} className="text-muted-foreground" />
           Portal Messages
           {unread > 0 && !open && (
             <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{unread}</span>
           )}
         </div>
-        <span className="text-xs text-gray-400">{open ? 'Collapse' : 'Expand'}</span>
+        <span className="text-xs text-muted-foreground">{open ? 'Collapse' : 'Expand'}</span>
       </button>
 
       {open && (
-        <div className="border-t border-gray-100 px-5 py-4">
+        <div className="border-t border-border px-5 py-4">
           {/* Thread */}
           <div className="h-64 overflow-y-auto space-y-3 mb-4">
             {messages.length === 0 && (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
                 No messages yet.
               </div>
             )}
@@ -1035,8 +1035,8 @@ function PortalMessagesAdmin({ tenantId }) {
               <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-xs px-3 py-2 rounded-xl text-sm ${
                   msg.sender === 'admin'
-                    ? 'bg-black text-white rounded-br-sm'
-                    : 'bg-gray-100 text-gray-900 rounded-bl-sm'
+                    ? 'bg-primary text-primary-foreground rounded-br-sm'
+                    : 'bg-muted text-foreground rounded-bl-sm'
                 }`}>
                   <p className="leading-relaxed whitespace-pre-wrap text-xs">{msg.content}</p>
                   <p className="text-xs mt-1 opacity-60">
@@ -1054,13 +1054,13 @@ function PortalMessagesAdmin({ tenantId }) {
               value={text}
               onChange={e => setText(e.target.value)}
               placeholder="Reply to member…"
-              className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="flex-1 border border-input rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               disabled={sending}
             />
             <button
               type="submit"
               disabled={sending || !text.trim()}
-              className="bg-black text-white px-3 py-2 rounded hover:bg-gray-800 disabled:opacity-40"
+              className="bg-primary text-primary-foreground px-3 py-2 rounded hover:bg-primary/90 disabled:opacity-40"
             >
               <Send size={14} />
             </button>

@@ -332,11 +332,11 @@ export default function Billing() {
     <div className="p-8">
       {/* Page header */}
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-bold text-gray-900">Billing</h1>
+        <h1 className="text-2xl font-bold text-foreground">Billing</h1>
       </div>
 
       {/* Sub-tabs */}
-      <div className="flex border-b border-gray-200 mb-6">
+      <div className="flex border-b border-border mb-6">
         {[
           { id: 'invoices', label: 'Invoices' },
           { id: 'discounts', label: 'Discounts' },
@@ -347,7 +347,7 @@ export default function Billing() {
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               subTab === id
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             {label}
@@ -369,15 +369,15 @@ export default function Billing() {
                   const tenant = tenants.find((t) => t.id === inv.tenantId)
                   const amount = Math.abs((inv.lineItems ?? []).reduce((s, l) => s + l.unitPrice * l.qty, 0))
                   return (
-                    <div key={inv.id} className="flex items-center justify-between bg-white border border-amber-200 rounded px-3 py-2">
-                      <div className="text-sm text-gray-700">
+                    <div key={inv.id} className="flex items-center justify-between bg-card border border-amber-200 rounded px-3 py-2">
+                      <div className="text-sm text-foreground">
                         <span className="font-medium">{inv.number}</span> · {tenant?.businessName ?? '—'} ·{' '}
                         <span className="font-semibold">${amount.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD</span>
-                        <span className="text-gray-400"> · {inv.reference}</span>
+                        <span className="text-muted-foreground"> · {inv.reference}</span>
                       </div>
                       <button
                         onClick={() => approveBondRefund(inv.id)}
-                        className="flex items-center gap-1.5 text-xs bg-black text-white rounded px-3 py-1.5 font-medium hover:bg-gray-800"
+                        className="flex items-center gap-1.5 text-xs bg-primary text-primary-foreground rounded px-3 py-1.5 font-medium hover:bg-primary/90"
                       >
                         <Check size={13} /> Approve &amp; notify
                       </button>
@@ -390,7 +390,7 @@ export default function Billing() {
 
           {/* Filter tabs + actions */}
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <div className="flex gap-1 bg-gray-100 rounded-md p-0.5">
+            <div className="flex gap-1 bg-muted rounded-md p-0.5">
               {[
                 { key: 'all', label: 'All' },
                 { key: 'paid', label: 'Paid' },
@@ -401,11 +401,11 @@ export default function Billing() {
                   key={key}
                   onClick={() => setFilterStatus(key)}
                   className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-                    filterStatus === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    filterStatus === key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {label}
-                  <span className={`ml-1.5 text-xs ${filterStatus === key ? 'text-gray-500' : 'text-gray-400'}`}>
+                  <span className={`ml-1.5 text-xs ${filterStatus === key ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
                     {counts[key]}
                   </span>
                 </button>
@@ -414,21 +414,21 @@ export default function Billing() {
 
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search invoices…"
-                  className="pl-8 pr-3 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-48"
+                  className="pl-8 pr-3 py-1.5 border border-input rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-48"
                 />
               </div>
               <button onClick={exportCSV}
-                className="flex items-center gap-1.5 text-sm border border-gray-300 rounded px-3 py-1.5 text-gray-600 hover:bg-gray-50 font-medium">
+                className="flex items-center gap-1.5 text-sm border border-input rounded px-3 py-1.5 text-foreground hover:bg-muted/50 font-medium">
                 <Download size={14} /> Export CSV
               </button>
               <button
                 onClick={handleBillRun}
-                className="flex items-center gap-1.5 text-sm border border-gray-300 rounded px-3 py-1.5 text-gray-600 hover:bg-gray-50 font-medium"
+                className="flex items-center gap-1.5 text-sm border border-input rounded px-3 py-1.5 text-foreground hover:bg-muted/50 font-medium"
               >
                 Bill Run
               </button>
@@ -465,17 +465,17 @@ export default function Billing() {
           )}
 
           {/* Invoice table */}
-          <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-muted/50 border-b border-border">
                 <tr>
                   <th className="pl-4 py-3 w-8">
-                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300"
+                    <input type="checkbox" className="h-4 w-4 rounded border-input"
                       checked={selected.size === filtered.length && filtered.length > 0}
                       onChange={selectAll} />
                   </th>
                   {['Number', 'To', 'Status', 'Issue Date', 'Due Date', 'Amount Due', ''].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       {h}
                     </th>
                   ))}
@@ -484,7 +484,7 @@ export default function Billing() {
               <tbody>
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-gray-400 text-sm">
+                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground text-sm">
                       No invoices found.{' '}
                       <button onClick={() => setShowForm(true)} className="text-blue-600 hover:underline">
                         Add the first invoice
@@ -502,47 +502,47 @@ export default function Billing() {
                   const isVoided = inv._status === 'voided'
                   const overdue = inv._status === 'overdue'
                   const due = isVoided ? 0 : amountDue
-                  const amountColor = overdue ? 'text-red-600' : 'text-gray-900'
+                  const amountColor = overdue ? 'text-red-600' : 'text-foreground'
 
                   return (
                     <tr
                       key={inv.id}
-                      className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
+                      className="border-b border-border last:border-0 hover:bg-muted/50"
                     >
                       <td className="pl-4 py-3 w-8" onClick={(e) => e.stopPropagation()}>
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300"
+                        <input type="checkbox" className="h-4 w-4 rounded border-input"
                           checked={selected.has(inv.id)}
                           onChange={() => toggleSelect(inv.id)} />
                       </td>
                       <td className="px-4 py-3 cursor-pointer" onClick={() => setSelectedInvoice(inv)}>
                         <div className="font-mono text-xs font-semibold text-blue-700">{inv.number}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">
+                        <div className="text-xs text-muted-foreground mt-0.5">
                           {inv.isProrated ? 'Prorated · ' : ''}{inv.source === 'bill-run' ? 'Bill Run' : 'Manual'}
                         </div>
                       </td>
                       <td className="px-4 py-3 cursor-pointer" onClick={() => setSelectedInvoice(inv)}>
-                        <div className="font-medium text-gray-900">{tenant?.businessName ?? '—'}</div>
-                        <div className="text-xs text-gray-400">{locationLabel(invoiceLease(inv, leases), invoiceSpace(inv, leases, spaces))}</div>
+                        <div className="font-medium text-foreground">{tenant?.businessName ?? '—'}</div>
+                        <div className="text-xs text-muted-foreground">{locationLabel(invoiceLease(inv, leases), invoiceSpace(inv, leases, spaces))}</div>
                       </td>
                       <td className="px-4 py-3 cursor-pointer" onClick={() => setSelectedInvoice(inv)}>
                         <div className="flex flex-col gap-1">
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded capitalize w-fit ${STATUS_STYLE[inv._status]}`}>
                             {inv._status}
                           </span>
-                          <span className={`text-xs px-2 py-0.5 rounded w-fit ${inv.sentStatus === 'sent' ? 'bg-gray-100 text-gray-600' : 'bg-yellow-50 text-yellow-700'}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded w-fit ${inv.sentStatus === 'sent' ? 'bg-muted text-muted-foreground' : 'bg-yellow-50 text-yellow-700'}`}>
                             {inv.sentStatus === 'sent' ? 'Sent' : 'Not Sent'}
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-sm">
+                      <td className="px-4 py-3 text-muted-foreground text-sm">
                         {inv.issueDate ? format(parseISO(inv.issueDate), 'dd/MM/yyyy') : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-gray-600 text-sm">
+                        <div className="text-muted-foreground text-sm">
                           {inv.dueDate ? format(parseISO(inv.dueDate), 'dd/MM/yyyy') : '—'}
                         </div>
                         {daysLeft !== null && inv._status !== 'paid' && (
-                          <div className={`text-xs mt-0.5 ${daysLeft < 0 ? 'text-red-600 font-medium' : daysLeft <= 7 ? 'text-orange-600' : 'text-gray-400'}`}>
+                          <div className={`text-xs mt-0.5 ${daysLeft < 0 ? 'text-red-600 font-medium' : daysLeft <= 7 ? 'text-orange-600' : 'text-muted-foreground'}`}>
                             {daysLeft >= 0 ? `in ${daysLeft} days` : `${Math.abs(daysLeft)} days ago`}
                           </div>
                         )}
@@ -552,7 +552,7 @@ export default function Billing() {
                           ${(isVoided ? 0 : total).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
                         </div>
                         {due > 0 && (
-                          <div className={`text-xs ${overdue ? 'text-red-500' : 'text-gray-400'}`}>
+                          <div className={`text-xs ${overdue ? 'text-red-500' : 'text-muted-foreground'}`}>
                             ${due.toLocaleString('en-AU', { minimumFractionDigits: 2 })} due
                           </div>
                         )}
@@ -575,7 +575,7 @@ export default function Billing() {
           </div>
 
           {/* Summary footer */}
-          <div className="mt-3 text-xs text-gray-400">
+          <div className="mt-3 text-xs text-muted-foreground">
             {filtered.length} invoice{filtered.length !== 1 ? 's' : ''} shown
           </div>
         </>
@@ -585,7 +585,7 @@ export default function Billing() {
       {subTab === 'discounts' && (
         <>
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-gray-500">{discounts.length} discount{discounts.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-muted-foreground">{discounts.length} discount{discounts.length !== 1 ? 's' : ''}</p>
             <button
               onClick={openNewDiscount}
               className="flex items-center gap-1.5 text-sm bg-blue-600 text-white rounded px-3 py-1.5 hover:bg-blue-700 font-medium"
@@ -594,37 +594,37 @@ export default function Billing() {
             </button>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-muted/50 border-b border-border">
                 <tr>
                   {['Name', 'Type', 'Value', 'Description', ''].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {discounts.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-gray-400 text-sm">
+                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground text-sm">
                       No discounts. <button onClick={openNewDiscount} className="text-blue-600 hover:underline">Add one</button>
                     </td>
                   </tr>
                 )}
                 {discounts.map((d) => (
-                  <tr key={d.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{d.name}</td>
-                    <td className="px-4 py-3 text-gray-500 capitalize">{d.type === 'pct' ? 'Percentage' : 'Fixed'}</td>
-                    <td className="px-4 py-3 font-semibold text-gray-900">
+                  <tr key={d.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                    <td className="px-4 py-3 font-medium text-foreground">{d.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground capitalize">{d.type === 'pct' ? 'Percentage' : 'Fixed'}</td>
+                    <td className="px-4 py-3 font-semibold text-foreground">
                       {d.type === 'pct' ? `${d.value}%` : `$${d.value}`}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{d.description || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{d.description || '—'}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1.5 justify-end">
-                        <button onClick={() => openEditDiscount(d)} className="p-1.5 rounded hover:bg-gray-100 text-gray-500">
+                        <button onClick={() => openEditDiscount(d)} className="p-1.5 rounded hover:bg-muted text-muted-foreground">
                           <Pencil size={13} />
                         </button>
-                        <button onClick={() => deleteDiscount(d.id)} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600">
+                        <button onClick={() => deleteDiscount(d.id)} className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600">
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -638,37 +638,37 @@ export default function Billing() {
           {/* Discount form modal */}
           {showDiscountForm && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-md w-full max-w-sm shadow-xl p-6">
-                <h3 className="font-semibold text-gray-900 mb-4">{editDiscountId ? 'Edit Discount' : 'Add Discount'}</h3>
+              <div className="bg-card rounded-xl w-full max-w-sm shadow-xl p-6">
+                <h3 className="font-semibold text-foreground mb-4">{editDiscountId ? 'Edit Discount' : 'Add Discount'}</h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Name *</label>
                     <input value={discountForm.name} onChange={(e) => setDiscountForm({ ...discountForm, name: e.target.value })}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Type</label>
                       <select value={discountForm.type} onChange={(e) => setDiscountForm({ ...discountForm, type: e.target.value })}
-                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        className="w-full border border-input rounded px-3 py-2 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="pct">Percentage (%)</option>
                         <option value="fixed">Fixed ($)</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Value</label>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Value</label>
                       <input type="number" value={discountForm.value} onChange={(e) => setDiscountForm({ ...discountForm, value: e.target.value })}
-                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Description</label>
                     <input value={discountForm.description} onChange={(e) => setDiscountForm({ ...discountForm, description: e.target.value })}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-5">
-                  <button onClick={() => setShowDiscountForm(false)} className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                  <button onClick={() => setShowDiscountForm(false)} className="px-4 py-2 text-sm text-foreground border border-input rounded hover:bg-muted/50">
                     Cancel
                   </button>
                   <button onClick={saveDiscount} disabled={!discountForm.name}
@@ -732,9 +732,9 @@ function AutoBillRunButton() {
 
       {result && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-            <h3 className="font-bold text-gray-900 mb-1">Auto Bill Run Complete</h3>
-            <p className="text-xs text-gray-400 mb-4">{result.period}</p>
+          <div className="bg-card rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 className="font-bold text-foreground mb-1">Auto Bill Run Complete</h3>
+            <p className="text-xs text-muted-foreground mb-4">{result.period}</p>
 
             {result.error ? (
               <p className="text-sm text-red-600">{result.error}</p>
@@ -745,16 +745,16 @@ function AutoBillRunButton() {
                     ✓ {result.created?.length ?? 0} invoice{result.created?.length !== 1 ? 's' : ''} created &amp; emailed
                   </div>
                   {result.created?.map(c => (
-                    <div key={c.number} className="text-gray-600 pl-3">{c.number} — {c.tenant}</div>
+                    <div key={c.number} className="text-muted-foreground pl-3">{c.number} — {c.tenant}</div>
                   ))}
                 </div>
                 {result.skipped?.length > 0 && (
                   <div>
-                    <div className="font-medium text-gray-500 mb-1">
+                    <div className="font-medium text-muted-foreground mb-1">
                       — {result.skipped.length} skipped (already invoiced)
                     </div>
                     {result.skipped.map((s, i) => (
-                      <div key={i} className="text-gray-400 pl-3">{s}</div>
+                      <div key={i} className="text-muted-foreground pl-3">{s}</div>
                     ))}
                   </div>
                 )}
@@ -771,7 +771,7 @@ function AutoBillRunButton() {
 
             <button
               onClick={() => { setResult(null); window.location.reload() }}
-              className="mt-5 w-full bg-black text-white text-sm font-semibold py-2 rounded hover:bg-gray-800"
+              className="mt-5 w-full bg-primary text-primary-foreground text-sm font-semibold py-2 rounded hover:bg-primary/90"
             >
               Close &amp; Refresh
             </button>

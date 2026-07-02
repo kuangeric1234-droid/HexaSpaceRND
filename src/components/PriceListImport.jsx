@@ -4,7 +4,7 @@ import { parsePriceList } from '../lib/pricelist.js'
 import { publishListing } from '../lib/sanity.js'
 
 const STATUS_PILL = {
-  vacant: 'bg-green-50 text-green-700', occupied: 'bg-gray-100 text-gray-600', reserved: 'bg-orange-50 text-orange-700',
+  vacant: 'bg-green-50 text-green-700', occupied: 'bg-muted text-muted-foreground', reserved: 'bg-orange-50 text-orange-700',
 }
 const norm = (s) => String(s ?? '').trim().toUpperCase()
 // Storage units have no Lot code in the PDF — match them by the "NN/NN" address token.
@@ -96,10 +96,10 @@ export default function PriceListImport({ store, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-md w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900 flex items-center gap-2"><FileText size={16} /> Import lease price list</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+      <div className="bg-card rounded-xl w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="font-semibold text-foreground flex items-center gap-2"><FileText size={16} /> Import lease price list</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
         </div>
 
         <div className="p-6 overflow-y-auto">
@@ -107,10 +107,10 @@ export default function PriceListImport({ store, onClose }) {
 
           {stage === 'upload' && (
             <div className="text-center py-10">
-              <FileText size={32} className="mx-auto text-gray-300 mb-3" />
-              <p className="text-sm text-gray-500 mb-1">Upload the weekly Found Huntingdale lease price list (PDF).</p>
-              <p className="text-xs text-gray-400 mb-5">Claude reads it and shows you exactly what will change before anything is saved.</p>
-              <label className="inline-flex items-center gap-2 bg-black text-white px-4 py-2.5 rounded-md text-sm font-semibold hover:bg-gray-800 cursor-pointer">
+              <FileText size={32} className="mx-auto text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground mb-1">Upload the weekly Found Huntingdale lease price list (PDF).</p>
+              <p className="text-xs text-muted-foreground mb-5">Claude reads it and shows you exactly what will change before anything is saved.</p>
+              <label className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-md text-sm font-semibold hover:bg-primary/90 cursor-pointer">
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />} {loading ? 'Reading…' : 'Choose PDF'}
                 <input type="file" accept="application/pdf" onChange={onFile} disabled={loading} className="hidden" />
               </label>
@@ -122,31 +122,31 @@ export default function PriceListImport({ store, onClose }) {
               <div className="flex flex-wrap gap-2 mb-4 text-xs">
                 <Badge cls="bg-green-50 text-green-700">{counts.new || 0} new</Badge>
                 <Badge cls="bg-blue-50 text-blue-700">{counts.updated || 0} updated</Badge>
-                <Badge cls="bg-gray-100 text-gray-500">{counts.unchanged || 0} unchanged</Badge>
+                <Badge cls="bg-muted text-muted-foreground">{counts.unchanged || 0} unchanged</Badge>
                 {missing.length > 0 && <Badge cls="bg-amber-50 text-amber-700">{missing.length} not in this list</Badge>}
               </div>
 
-              <div className="border border-gray-200 rounded-md overflow-hidden mb-4">
+              <div className="border border-border rounded-md overflow-hidden mb-4">
                 <table className="w-full text-sm">
-                  <thead><tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wide">
+                  <thead><tr className="bg-muted/50 text-left text-xs text-muted-foreground uppercase tracking-wide">
                     <th className="px-3 py-2 font-medium">Unit</th><th className="px-3 py-2 font-medium">Size</th>
                     <th className="px-3 py-2 font-medium">Rate /mo</th><th className="px-3 py-2 font-medium">Status</th>
                     <th className="px-3 py-2 font-medium text-right">Change</th>
                   </tr></thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-border">
                     {rows.filter((r) => r.kind !== 'unchanged').map((r, i) => (
                       <tr key={i} className={r.kind === 'new' ? 'bg-green-50/30' : r.kind === 'updated' ? 'bg-blue-50/30' : ''}>
-                        <td className="px-3 py-2 font-medium text-gray-900">{r.unit.unitNumber}<div className="text-xs text-gray-400 capitalize">{r.unit.type}</div></td>
-                        <td className="px-3 py-2 text-gray-600">{r.unit.size || '—'}</td>
-                        <td className="px-3 py-2 text-gray-600">
+                        <td className="px-3 py-2 font-medium text-foreground">{r.unit.unitNumber}<div className="text-xs text-muted-foreground capitalize">{r.unit.type}</div></td>
+                        <td className="px-3 py-2 text-muted-foreground">{r.unit.size || '—'}</td>
+                        <td className="px-3 py-2 text-muted-foreground">
                           {r.kind === 'updated' && r.changes.monthlyRate != null
-                            ? <span><span className="line-through text-gray-300">${Number(r.existing.monthlyRate).toLocaleString('en-AU')}</span> ${Number(r.unit.monthlyRate).toLocaleString('en-AU')}</span>
+                            ? <span><span className="line-through text-muted-foreground">${Number(r.existing.monthlyRate).toLocaleString('en-AU')}</span> ${Number(r.unit.monthlyRate).toLocaleString('en-AU')}</span>
                             : `$${Number(r.unit.monthlyRate || 0).toLocaleString('en-AU')}`}
                         </td>
                         <td className="px-3 py-2">
                           {r.kind === 'updated' && r.changes.status
                             ? <span className="text-xs"><span className={`px-1.5 py-0.5 rounded line-through opacity-50 ${STATUS_PILL[r.existing.status] ?? ''}`}>{r.existing.status}</span> → <span className={`px-1.5 py-0.5 rounded ${STATUS_PILL[r.unit.status] ?? ''}`}>{r.unit.status}</span></span>
-                            : <span className={`text-xs px-1.5 py-0.5 rounded capitalize ${STATUS_PILL[r.unit.status] ?? 'bg-gray-100 text-gray-600'}`}>{r.unit.status}</span>}
+                            : <span className={`text-xs px-1.5 py-0.5 rounded capitalize ${STATUS_PILL[r.unit.status] ?? 'bg-muted text-muted-foreground'}`}>{r.unit.status}</span>}
                         </td>
                         <td className="px-3 py-2 text-right">
                           {r.kind === 'new' ? <span className="text-xs text-green-700 flex items-center justify-end gap-1"><Plus size={11} /> New</span>
@@ -155,7 +155,7 @@ export default function PriceListImport({ store, onClose }) {
                       </tr>
                     ))}
                     {rows.filter((r) => r.kind !== 'unchanged').length === 0 && (
-                      <tr><td colSpan={5} className="px-3 py-6 text-center text-gray-400 text-sm">Everything already matches — no changes.</td></tr>
+                      <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground text-sm">Everything already matches — no changes.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -163,22 +163,22 @@ export default function PriceListImport({ store, onClose }) {
 
               <div className="space-y-2 mb-4">
                 {newCount > 0 && (
-                  <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
-                    <input type="checkbox" checked={publishNew} onChange={(e) => setPublishNew(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300" />
+                  <label className="flex items-start gap-2 text-sm text-muted-foreground cursor-pointer">
+                    <input type="checkbox" checked={publishNew} onChange={(e) => setPublishNew(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-input" />
                     <span>Publish the <strong>{newCount}</strong> new available unit{newCount === 1 ? '' : 's'} to the website now (data only — add photos in Sanity afterwards).</span>
                   </label>
                 )}
                 {missing.length > 0 && (
-                  <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
-                    <input type="checkbox" checked={markMissing} onChange={(e) => setMarkMissing(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300" />
+                  <label className="flex items-start gap-2 text-sm text-muted-foreground cursor-pointer">
+                    <input type="checkbox" checked={markMissing} onChange={(e) => setMarkMissing(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-input" />
                     <span>Mark the <strong>{missing.length}</strong> unit{missing.length === 1 ? '' : 's'} not on this list ({missing.map((s) => s.unitNumber).join(', ')}) as <strong>occupied</strong> (they may have been leased).</span>
                   </label>
                 )}
               </div>
 
               <div className="flex justify-end gap-3">
-                <button onClick={() => setStage('upload')} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Choose another</button>
-                <button onClick={apply} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800 font-medium">
+                <button onClick={() => setStage('upload')} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Choose another</button>
+                <button onClick={apply} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">
                   Apply {((counts.new || 0) + (counts.updated || 0)) || 0} change{((counts.new || 0) + (counts.updated || 0)) === 1 ? '' : 's'}
                 </button>
               </div>
@@ -188,10 +188,10 @@ export default function PriceListImport({ store, onClose }) {
           {stage === 'done' && (
             <div className="text-center py-10">
               <CheckCircle2 size={32} className="mx-auto text-green-500 mb-3" />
-              <p className="text-sm text-gray-800 font-medium mb-1">Spaces updated.</p>
-              <p className="text-xs text-gray-500">{result.added} added · {result.updated} updated{result.marked ? ` · ${result.marked} marked occupied` : ''}{result.published ? ` · ${result.published} published to website` : ''}.</p>
-              <p className="text-xs text-gray-400 mt-3">Published units now reflect on the website. Add photos to any new ones in Sanity Studio.</p>
-              <button onClick={onClose} className="mt-5 px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800 font-medium">Done</button>
+              <p className="text-sm text-foreground font-medium mb-1">Spaces updated.</p>
+              <p className="text-xs text-muted-foreground">{result.added} added · {result.updated} updated{result.marked ? ` · ${result.marked} marked occupied` : ''}{result.published ? ` · ${result.published} published to website` : ''}.</p>
+              <p className="text-xs text-muted-foreground mt-3">Published units now reflect on the website. Add photos to any new ones in Sanity Studio.</p>
+              <button onClick={onClose} className="mt-5 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">Done</button>
             </div>
           )}
         </div>

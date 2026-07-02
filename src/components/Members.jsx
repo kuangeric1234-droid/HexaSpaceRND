@@ -94,46 +94,46 @@ export default function Members() {
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-2xl font-bold text-gray-900">Members</h1>
+        <h1 className="text-2xl font-bold text-foreground">Members</h1>
         <div className="flex items-center gap-2">
-          <button disabled className="px-3 py-2 text-sm border border-gray-200 rounded-md text-gray-400 cursor-not-allowed">Invite</button>
-          <button disabled className="px-3 py-2 text-sm border border-gray-200 rounded-md text-gray-400 cursor-not-allowed">Import</button>
-          <button disabled className="px-3 py-2 text-sm border border-gray-200 rounded-md text-gray-400 cursor-not-allowed">Export</button>
-          <button onClick={openAdd} className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800"><Plus size={15} /> Add Member</button>
+          <button disabled className="px-3 py-2 text-sm border border-border rounded-md text-muted-foreground cursor-not-allowed">Invite</button>
+          <button disabled className="px-3 py-2 text-sm border border-border rounded-md text-muted-foreground cursor-not-allowed">Import</button>
+          <button disabled className="px-3 py-2 text-sm border border-border rounded-md text-muted-foreground cursor-not-allowed">Export</button>
+          <button onClick={openAdd} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90"><Plus size={15} /> Add Member</button>
         </div>
       </div>
 
       <div className="flex items-center justify-between mb-5 mt-3">
         <input type="text" placeholder="Search members…" value={search} onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-sm border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black" />
+          className="w-full max-w-sm border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40" />
         <div className="flex gap-2 text-xs">
           {[['all', `All ${members.length}`], ['Active', `Active (${counts.active})`], ['Drop In', `Drop-in (${counts.dropin})`], ['Pending', `Pending (${counts.pending})`], ['portal', `Portal Users (${counts.portal})`]].map(([v, label]) => (
-            <button key={v} onClick={() => setFilter(v)} className={`px-3 py-1.5 rounded-md border ${filter === v ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{label}</button>
+            <button key={v} onClick={() => setFilter(v)} className={`px-3 py-1.5 rounded-md border ${filter === v ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground hover:bg-muted/50'}`}>{label}</button>
           ))}
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-muted/50 border-b border-border">
             <tr>
               {['Name', 'Company', 'Location', 'Status', 'Access', ''].map((h) => (
-                <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">No members yet. Click <strong>Add Member</strong> to create one.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">No members yet. Click <strong>Add Member</strong> to create one.</td></tr>
             )}
             {filtered.map((m) => {
               const st = displayStatus(m, hasMem(m))
               return (
-                <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer" onClick={() => setSelected(m)}>
+                <tr key={m.id} className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer" onClick={() => setSelected(m)}>
                   <td className="px-4 py-3 font-medium text-blue-700 hover:underline">{m.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{companyName(m.companyId)}</td>
-                  <td className="px-4 py-3 text-gray-500">Hexa Space</td>
-                  <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-0.5 rounded ${STATUS_STYLE[st] || 'bg-gray-100 text-gray-600'}`}>{st}</span></td>
+                  <td className="px-4 py-3 text-muted-foreground">{companyName(m.companyId)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">Hexa Space</td>
+                  <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-0.5 rounded ${STATUS_STYLE[st] || 'bg-muted text-muted-foreground'}`}>{st}</span></td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {accessRoles(m).map((a) => (
@@ -142,7 +142,7 @@ export default function Members() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => setSelected(m)} className="text-sm border border-gray-200 rounded px-3 py-1 hover:bg-gray-50">View Details</button>
+                    <button onClick={() => setSelected(m)} className="text-sm border border-input rounded px-3 py-1 hover:bg-muted/50">View Details</button>
                   </td>
                 </tr>
               )
@@ -158,10 +158,10 @@ export default function Members() {
 
 // ── Add/Edit Member modal — General / Address / Billing / E-Invoicing ──
 const TABS = ['General', 'Address', 'Billing Details', 'E-Invoicing']
-const ic = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black'
+const ic = 'w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
 
 function F({ label, children, required }) {
-  return <label className="block"><span className="block text-xs font-medium text-gray-600 mb-1">{label}{required && <span className="text-red-500"> *</span>}</span>{children}</label>
+  return <label className="block"><span className="block text-xs font-medium text-muted-foreground mb-1">{label}{required && <span className="text-red-500"> *</span>}</span>{children}</label>
 }
 
 function MemberModal({ open, editId, form, setForm, tenants, onClose, onSubmit }) {
@@ -172,14 +172,14 @@ function MemberModal({ open, editId, form, setForm, tenants, onClose, onSubmit }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-md w-full max-w-lg shadow-xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">{editId ? 'Edit Member' : 'Add Member'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+      <div className="bg-card rounded-xl w-full max-w-lg shadow-xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="font-semibold text-foreground">{editId ? 'Edit Member' : 'Add Member'}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
         </div>
-        <div className="flex gap-5 px-6 pt-3 border-b border-gray-200 text-sm overflow-x-auto">
+        <div className="flex gap-5 px-6 pt-3 border-b border-border text-sm overflow-x-auto">
           {TABS.map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`pb-2 whitespace-nowrap border-b-2 -mb-px ${tab === t ? 'border-black text-black font-medium' : 'border-transparent text-gray-400 hover:text-gray-700'}`}>{t}</button>
+            <button key={t} onClick={() => setTab(t)} className={`pb-2 whitespace-nowrap border-b-2 -mb-px ${tab === t ? 'border-primary text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>{t}</button>
           ))}
         </div>
 
@@ -201,9 +201,9 @@ function MemberModal({ open, editId, form, setForm, tenants, onClose, onSubmit }
                 <F label="Status"><select value={form.status} onChange={up('status')} className={ic}><option>Auto</option><option>Active</option><option>Drop In</option><option>Pending</option><option>Former</option></select></F>
                 <F label="Booking Credits"><input type="number" step="0.5" value={form.credits} onChange={up('credits')} className={ic} /></F>
               </div>
-              <span className="text-[11px] text-gray-400 -mt-2 block">Status Auto = from memberships · 1 credit = $40 of room bookings.</span>
-              <div className="border-t border-gray-100 pt-3">
-                <span className="block text-xs font-medium text-gray-600 mb-2">Access</span>
+              <span className="text-[11px] text-muted-foreground -mt-2 block">Status Auto = from memberships · 1 credit = $40 of room bookings.</span>
+              <div className="border-t border-border pt-3">
+                <span className="block text-xs font-medium text-muted-foreground mb-2">Access</span>
                 {[['contactPerson', 'Contact Person'], ['billingPerson', 'Billing Person'], ['portalAccess', 'Member Portal User']].map(([k, label]) => (
                   <label key={k} className="flex items-center gap-2 text-sm py-0.5"><input type="checkbox" checked={!!form[k]} onChange={tog(k)} /> {label}</label>
                 ))}
@@ -228,15 +228,15 @@ function MemberModal({ open, editId, form, setForm, tenants, onClose, onSubmit }
           )}
           {tab === 'E-Invoicing' && (
             <>
-              <p className="text-xs text-gray-400">E-invoicing (PEPPOL) identifiers — optional.</p>
+              <p className="text-xs text-muted-foreground">E-invoicing (PEPPOL) identifiers — optional.</p>
               <div className="grid grid-cols-2 gap-4"><F label="Endpoint ID"><input value={form.eInvoiceId} onChange={up('eInvoiceId')} className={ic} /></F><F label="Scheme"><input value={form.eInvoiceScheme} onChange={up('eInvoiceScheme')} placeholder="e.g. 0151 (ABN)" className={ic} /></F></div>
             </>
           )}
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Close</button>
-          <button type="button" onClick={() => { if (!form.name) { setTab('General'); return } onSubmit() }} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">{editId ? 'Save' : 'Add'}</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Close</button>
+          <button type="button" onClick={() => { if (!form.name) { setTab('General'); return } onSubmit() }} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90">{editId ? 'Save' : 'Add'}</button>
         </div>
       </div>
     </div>

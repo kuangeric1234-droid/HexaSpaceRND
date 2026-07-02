@@ -106,19 +106,19 @@ export default function Memberships() {
   return (
     <div className="p-8">
       <div className="flex items-end justify-between mb-2">
-        <h1 className="text-2xl font-bold text-gray-900">Memberships</h1>
-        <span className="text-sm text-gray-500">{activeCount} active this period</span>
+        <h1 className="text-2xl font-bold text-foreground">Memberships</h1>
+        <span className="text-sm text-muted-foreground">{activeCount} active this period</span>
       </div>
-      <p className="text-sm text-gray-500 mb-5">By type — desks &amp; virtual offices from signed contracts; Private Office follows the floor plan in Spaces.</p>
+      <p className="text-sm text-muted-foreground mb-5">By type — desks &amp; virtual offices from signed contracts; Private Office follows the floor plan in Spaces.</p>
 
       {/* Billing-period navigator */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <button onClick={() => setOffset((o) => o - 1)} className="p-1.5 border border-gray-200 rounded-md hover:bg-gray-50"><ChevronLeft size={16} /></button>
-          <div className="px-4 py-1.5 border border-gray-200 rounded-md bg-white text-sm font-semibold text-gray-900 min-w-[150px] text-center">{monthLabel}</div>
-          <button onClick={() => setOffset((o) => o + 1)} className="p-1.5 border border-gray-200 rounded-md hover:bg-gray-50"><ChevronRight size={16} /></button>
+          <button onClick={() => setOffset((o) => o - 1)} className="p-1.5 border border-border rounded-md hover:bg-muted/50"><ChevronLeft size={16} /></button>
+          <div className="px-4 py-1.5 border border-border rounded-md bg-card text-sm font-semibold text-foreground min-w-[150px] text-center">{monthLabel}</div>
+          <button onClick={() => setOffset((o) => o + 1)} className="p-1.5 border border-border rounded-md hover:bg-muted/50"><ChevronRight size={16} /></button>
           {offset !== 0 && <button onClick={() => setOffset(0)} className="text-xs text-blue-600 hover:underline ml-1">This month</button>}
-          <span className="text-xs text-gray-400 ml-2">Billing period {format(monthStart, 'd MMM')} – {format(monthEnd, 'd MMM yyyy')}</span>
+          <span className="text-xs text-muted-foreground ml-2">Billing period {format(monthStart, 'd MMM')} – {format(monthEnd, 'd MMM yyyy')}</span>
         </div>
         {overdueCount > 0 && (
           <span className="flex items-center gap-1.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-1.5">
@@ -131,26 +131,26 @@ export default function Memberships() {
         {TYPES.map((type) => {
           const items = byType[type]
           return (
-            <div key={type} className={`bg-gray-50 border border-gray-200 border-t-2 ${COL_ACCENT[type]} rounded-md`}>
+            <div key={type} className={`bg-muted/50 border border-border border-t-2 ${COL_ACCENT[type]} rounded-xl`}>
               <div className="px-4 py-3 flex items-center justify-between">
-                <span className="font-semibold text-gray-900 text-sm">{type}</span>
-                <span className="text-xs font-semibold text-gray-500 bg-white border border-gray-200 rounded-full px-2 py-0.5">{type === 'Private Office' ? `${occupiedOffices}/${officeItems.length}` : items.length}</span>
+                <span className="font-semibold text-foreground text-sm">{type}</span>
+                <span className="text-xs font-semibold text-muted-foreground bg-card border border-border rounded-full px-2 py-0.5">{type === 'Private Office' ? `${occupiedOffices}/${officeItems.length}` : items.length}</span>
               </div>
               <div className="px-3 pb-3 space-y-2 min-h-[120px]">
-                {items.length === 0 && <div className="text-xs text-gray-300 text-center py-8">None this period.</div>}
+                {items.length === 0 && <div className="text-xs text-muted-foreground text-center py-8">None this period.</div>}
                 {items.map((r) => (
-                  <div key={r.id} className={`bg-white border rounded-md p-3 ${r.overdue ? 'border-red-300' : r.vacant ? 'border-dashed border-gray-200' : 'border-gray-200'}`}>
+                  <div key={r.id} className={`bg-card border rounded-md p-3 ${r.overdue ? 'border-red-300' : r.vacant ? 'border-dashed border-border' : 'border-border'}`}>
                     <div className="flex items-start justify-between gap-2">
-                      <span className="font-medium text-gray-900 text-sm leading-tight">{r.unit}{r.level ? <span className="text-gray-400 font-normal"> · {r.level}</span> : null}</span>
+                      <span className="font-medium text-foreground text-sm leading-tight">{r.unit}{r.level ? <span className="text-muted-foreground font-normal"> · {r.level}</span> : null}</span>
                       {r.overdue
                         ? <span className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-700 shrink-0"><AlertTriangle size={10} /> Overdue</span>
                         : r.vacant
-                          ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 bg-gray-100 text-gray-400">Vacant</span>
-                          : <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${r.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>{r.status || 'active'}</span>}
+                          ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 bg-muted text-muted-foreground">Vacant</span>
+                          : <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${r.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-muted text-muted-foreground'}`}>{r.status || 'active'}</span>}
                     </div>
-                    <div className={`text-xs mt-0.5 ${r.vacant ? 'text-gray-400 italic' : 'text-gray-700'}`}>{r.companyName}</div>
+                    <div className={`text-xs mt-0.5 ${r.vacant ? 'text-muted-foreground italic' : 'text-foreground'}`}>{r.companyName}</div>
                     {!r.vacant && (
-                      <div className="text-[11px] text-gray-400 mt-1.5">
+                      <div className="text-[11px] text-muted-foreground mt-1.5">
                         {r.startDate ? format(parseISO(r.startDate), 'd MMM yyyy') : '—'} – {r.endDate ? format(parseISO(r.endDate), 'd MMM yyyy') : 'Month-to-month'}
                         {r.monthlyRent != null ? ` · A$${Number(r.monthlyRent).toLocaleString('en-AU')}/mo` : ''}
                       </div>
@@ -164,7 +164,7 @@ export default function Memberships() {
       </div>
 
       {leases.length === 0 && (
-        <p className="text-sm text-gray-400 mt-8 text-center">
+        <p className="text-sm text-muted-foreground mt-8 text-center">
           No memberships yet — they appear here automatically when a member signs a contract for a space, and roll forward each billing period.
         </p>
       )}

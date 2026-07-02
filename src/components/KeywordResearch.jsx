@@ -33,11 +33,11 @@ export default function KeywordResearch({ store, onBack }) {
   }
   const allKeywords = data ? [...data.groups.flatMap((g) => g.keywords), ...(data.longTail ?? [])].join('\n') : ''
 
-  const input = 'w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black'
+  const input = 'w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
 
   return (
     <div>
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-black mb-4"><ArrowLeft size={14} /> Back to campaigns</button>
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-black mb-4"><ArrowLeft size={14} /> Back to campaigns</button>
 
       <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-5 text-xs text-blue-800 flex gap-2">
         <Search size={15} className="shrink-0 mt-0.5" />
@@ -45,10 +45,10 @@ export default function KeywordResearch({ store, onBack }) {
       </div>
 
       {/* Controls */}
-      <div className="bg-white border border-gray-200 rounded-md p-5 mb-5 max-w-2xl">
+      <div className="bg-card border border-border rounded-xl shadow-sm p-5 mb-5 max-w-2xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Space to research</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Space to research</label>
             <select value={spaceId} onChange={(e) => setSpaceId(e.target.value)} className={input}>
               <option value="">— General / available spaces —</option>
               {vacant.length > 0 && <optgroup label="Vacant">{vacant.map((s) => <option key={s.id} value={s.id}>{s.unitNumber} — {s.address ?? s.type}</option>)}</optgroup>}
@@ -56,12 +56,12 @@ export default function KeywordResearch({ store, onBack }) {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Focus / seed (optional)</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Focus / seed (optional)</label>
             <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. fulfilment, 3PL, cold storage" className={input} />
           </div>
         </div>
         <button onClick={run} disabled={loading}
-          className="mt-4 flex items-center gap-2 bg-black text-white px-4 py-2.5 rounded-md text-sm font-semibold hover:bg-gray-800 disabled:opacity-40">
+          className="mt-4 flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-40">
           {loading ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />} {data ? 'Regenerate' : 'Research keywords'}
         </button>
         {error && <div className="mt-3 bg-red-50 border border-red-200 rounded-md p-3 text-xs text-red-700 flex gap-2"><AlertCircle size={14} className="shrink-0 mt-0.5" /> {error}</div>}
@@ -71,7 +71,7 @@ export default function KeywordResearch({ store, onBack }) {
       {data && (
         <div className="space-y-4">
           <div className="flex justify-end">
-            <button onClick={() => copy('all', allKeywords)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-black">
+            <button onClick={() => copy('all', allKeywords)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-black">
               {copied === 'all' ? <><Check size={12} /> Copied all</> : <><Copy size={12} /> Copy all keywords</>}
             </button>
           </div>
@@ -79,19 +79,19 @@ export default function KeywordResearch({ store, onBack }) {
           {/* Ad-group themes */}
           <div className="grid md:grid-cols-2 gap-3">
             {data.groups.map((g, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-md p-4">
+              <div key={i} className="bg-card border border-border rounded-xl shadow-sm p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-gray-900">{g.name}</span>
+                    <span className="text-sm font-bold text-foreground">{g.name}</span>
                     {g.intent && <span className={`text-xs px-1.5 py-0.5 rounded border capitalize ${INTENT[g.intent?.toLowerCase()] ?? INTENT.low}`}>{g.intent} intent</span>}
                   </div>
                   <button onClick={() => copy(`g${i}`, g.keywords.join('\n'))} className="text-gray-300 hover:text-black">
                     {copied === `g${i}` ? <Check size={13} /> : <Copy size={13} />}
                   </button>
                 </div>
-                {g.matchType && <div className="text-xs text-gray-400 mb-2">Suggested match: <span className="font-medium text-gray-600 capitalize">{g.matchType}</span></div>}
+                {g.matchType && <div className="text-xs text-muted-foreground mb-2">Suggested match: <span className="font-medium text-muted-foreground capitalize">{g.matchType}</span></div>}
                 <div className="flex flex-wrap gap-1.5">
-                  {g.keywords.map((k, ki) => <span key={ki} className="text-xs px-2 py-0.5 rounded bg-gray-50 text-gray-700 border border-gray-100 flex items-center gap-1"><Tag size={10} /> {k}</span>)}
+                  {g.keywords.map((k, ki) => <span key={ki} className="text-xs px-2 py-0.5 rounded bg-muted/50 text-foreground border border-border flex items-center gap-1"><Tag size={10} /> {k}</span>)}
                 </div>
               </div>
             ))}
@@ -114,7 +114,7 @@ export default function KeywordResearch({ store, onBack }) {
           {/* Competitor angles */}
           {data.competitorAngles?.length > 0 && (
             <Section title="Competitor angles" icon={Swords}>
-              <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">{data.competitorAngles.map((a, i) => <li key={i}>{a}</li>)}</ul>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">{data.competitorAngles.map((a, i) => <li key={i}>{a}</li>)}</ul>
             </Section>
           )}
         </div>
@@ -125,8 +125,8 @@ export default function KeywordResearch({ store, onBack }) {
 
 function Section({ title, icon: Icon, children }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-md p-4">
-      <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2 flex items-center gap-1.5"><Icon size={13} /> {title}</h4>
+    <div className="bg-card border border-border rounded-xl shadow-sm p-4">
+      <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5"><Icon size={13} /> {title}</h4>
       {children}
     </div>
   )

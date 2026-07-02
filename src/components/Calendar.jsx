@@ -120,30 +120,30 @@ export default function Calendar() {
       {/* Top bar */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <button onClick={() => setDay(new Date())} className="px-3 py-1.5 text-sm border border-gray-200 rounded-md hover:bg-gray-50">Today</button>
+          <button onClick={() => setDay(new Date())} className="px-3 py-1.5 text-sm border border-input rounded-md hover:bg-muted/50">Today</button>
           <div className="flex items-center">
-            <button onClick={() => setDay((d) => addDays(d, -1))} className="p-1.5 border border-gray-200 rounded-l-md hover:bg-gray-50"><ChevronLeft size={16} /></button>
-            <button onClick={() => setDay((d) => addDays(d, 1))} className="p-1.5 border border-gray-200 border-l-0 rounded-r-md hover:bg-gray-50"><ChevronRight size={16} /></button>
+            <button onClick={() => setDay((d) => addDays(d, -1))} className="p-1.5 border border-input rounded-l-md hover:bg-muted/50"><ChevronLeft size={16} /></button>
+            <button onClick={() => setDay((d) => addDays(d, 1))} className="p-1.5 border border-input border-l-0 rounded-r-md hover:bg-muted/50"><ChevronRight size={16} /></button>
           </div>
-          <span className="font-semibold text-gray-900">{format(day, 'EEEE, d MMMM yyyy')}</span>
+          <span className="font-semibold text-foreground">{format(day, 'EEEE, d MMMM yyyy')}</span>
         </div>
-        <select value={resType} onChange={(e) => setResType(e.target.value)} className="border border-gray-200 rounded-md px-3 py-1.5 text-sm bg-white">
+        <select value={resType} onChange={(e) => setResType(e.target.value)} className="border border-input rounded-md px-3 py-1.5 text-sm bg-card">
           {RESOURCE_TYPES.map((r) => <option key={r.type} value={r.type}>{r.label}</option>)}
         </select>
       </div>
 
       {rooms.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-md p-12 text-center text-gray-400 text-sm">No {RESOURCE_TYPES.find((r) => r.type === resType)?.label.toLowerCase()} yet. Add spaces of this type in Spaces.</div>
+        <div className="bg-card border border-border rounded-xl shadow-sm p-12 text-center text-muted-foreground text-sm">No {RESOURCE_TYPES.find((r) => r.type === resType)?.label.toLowerCase()} yet. Add spaces of this type in Spaces.</div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           <div className="flex">
             {/* time gutter */}
-            <div className="w-14 shrink-0 border-r border-gray-200">
-              <div className="h-16 border-b border-gray-200" />
+            <div className="w-14 shrink-0 border-r border-border">
+              <div className="h-16 border-b border-border" />
               {/* hour labels sit just below each gridline; +1 row gives 5pm a box under it */}
               <div className="relative" style={{ height: (HOURS.length + 1) * HOUR_H }}>
                 {LABEL_HOURS.map((h) => (
-                  <span key={h} style={{ top: (h - DAY_START) * HOUR_H + 4 }} className="absolute right-2 text-[11px] text-gray-400">{t12(h)}</span>
+                  <span key={h} style={{ top: (h - DAY_START) * HOUR_H + 4 }} className="absolute right-2 text-[11px] text-muted-foreground">{t12(h)}</span>
                 ))}
               </div>
             </div>
@@ -152,17 +152,17 @@ export default function Calendar() {
               const color = ROOM_COLORS[ri % ROOM_COLORS.length]
               const roomBookings = dayBookings.filter((b) => b.resourceId === room.id)
               return (
-                <div key={room.id} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
-                  <div className="h-16 border-b border-gray-200 px-2 py-1.5" style={{ borderTop: `3px solid ${color}` }}>
-                    <div className="font-semibold text-xs text-gray-900 truncate">{room.unitNumber}</div>
-                    <div className="text-[10px] text-gray-400 truncate">{room.hourlyRate ? `$${room.hourlyRate}/hr` : '—'}{room.size ? ` · ${room.size}` : ''}</div>
+                <div key={room.id} className="flex-1 min-w-0 border-r border-border last:border-r-0">
+                  <div className="h-16 border-b border-border px-2 py-1.5" style={{ borderTop: `3px solid ${color}` }}>
+                    <div className="font-semibold text-xs text-foreground truncate">{room.unitNumber}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">{room.hourlyRate ? `$${room.hourlyRate}/hr` : '—'}{room.size ? ` · ${room.size}` : ''}</div>
                   </div>
                   {/* +1 trailing box so the 5pm line has a cell beneath it */}
                   <div className="relative" style={{ height: (HOURS.length + 1) * HOUR_H }}>
                     {HOURS.map((h) => (
-                      <div key={h} onClick={() => openSlot(room.id, h)} style={{ height: HOUR_H }} className="border-b border-gray-100 hover:bg-blue-50/50 cursor-pointer" />
+                      <div key={h} onClick={() => openSlot(room.id, h)} style={{ height: HOUR_H }} className="border-b border-border hover:bg-blue-50/50 cursor-pointer" />
                     ))}
-                    <div style={{ height: HOUR_H }} className="border-b border-gray-100" />
+                    <div style={{ height: HOUR_H }} className="border-b border-border" />
                     {roomBookings.map((b) => {
                       const top = (toDec(b.startTime) - DAY_START) * HOUR_H
                       const height = Math.max(18, (toDec(b.endTime) - toDec(b.startTime)) * HOUR_H)
@@ -190,7 +190,7 @@ export default function Calendar() {
         </div>
       )}
 
-      <p className="text-xs text-gray-400 mt-3">Click a slot to book · click a booking to edit. Credits = ${CREDIT_VALUE}/credit · deducted from the company's monthly allowance · overage billed as a fee on the month-end invoice.</p>
+      <p className="text-xs text-muted-foreground mt-3">Click a slot to book · click a booking to edit. Credits = ${CREDIT_VALUE}/credit · deducted from the company's monthly allowance · overage billed as a fee on the month-end invoice.</p>
 
       {modal && (
         <BookingModal
@@ -211,8 +211,8 @@ export default function Calendar() {
   )
 }
 
-const ic = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black'
-const lbl = 'block text-xs font-medium text-gray-600 mb-1'
+const ic = 'w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
+const lbl = 'block text-xs font-medium text-muted-foreground mb-1'
 
 function BookingModal({ init, rooms, roomLabel = 'Room', members, tenants, addMember, onClose, onSave, onCancelBooking, onDelete }) {
   const edit = init.mode === 'edit'
@@ -276,10 +276,10 @@ function BookingModal({ init, rooms, roomLabel = 'Room', members, tenants, addMe
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-md w-full max-w-lg shadow-xl max-h-[92vh] overflow-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white">
-          <h2 className="font-semibold text-gray-900">{edit ? `Edit Booking ${init.reference || ''}`.trim() : 'New Booking'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+      <div className="bg-card rounded-xl w-full max-w-lg shadow-xl max-h-[92vh] overflow-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card">
+          <h2 className="font-semibold text-foreground">{edit ? `Edit Booking ${init.reference || ''}`.trim() : 'New Booking'}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
         </div>
 
         <div className="px-6 py-5 space-y-4">
@@ -324,7 +324,7 @@ function BookingModal({ init, rooms, roomLabel = 'Room', members, tenants, addMe
             <label className="block"><span className={lbl}>Start</span><input type="time" value={f.startTime} onChange={up('startTime')} className={ic} /></label>
             <label className="block"><span className={lbl}>To</span><input type="time" value={f.endTime} onChange={up('endTime')} className={ic} /></label>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-400 -mt-1">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground -mt-1">
             <Clock size={12} /> {hrs ? `${hrs} hour${hrs !== 1 ? 's' : ''}` : '—'} · (GMT +10:00) Australia/Sydney
           </div>
 
@@ -333,7 +333,7 @@ function BookingModal({ init, rooms, roomLabel = 'Room', members, tenants, addMe
             <span className={lbl}>Preparation time</span>
             <div className="flex items-center gap-2">
               <input type="number" min="0" value={f.prepMinutes} onChange={up('prepMinutes')} className={ic} />
-              <span className="text-xs text-gray-500 shrink-0">minutes</span>
+              <span className="text-xs text-muted-foreground shrink-0">minutes</span>
             </div>
           </label>
 
@@ -346,24 +346,24 @@ function BookingModal({ init, rooms, roomLabel = 'Room', members, tenants, addMe
           </div>
 
           {/* Booking fee + balance */}
-          <div className="bg-gray-50 border border-gray-200 rounded-md p-3 text-xs space-y-1">
-            <div className="flex justify-between"><span className="text-gray-500 flex items-center gap-1"><Users size={12} /> Booking Fee</span>
-              <span className="font-semibold text-gray-900">{f.free ? 'Free' : `${credits} credit${credits !== 1 ? 's' : ''} · A$${cost.toLocaleString('en-AU')}`}</span></div>
+          <div className="bg-muted/50 border border-border rounded-md p-3 text-xs space-y-1">
+            <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><Users size={12} /> Booking Fee</span>
+              <span className="font-semibold text-foreground">{f.free ? 'Free' : `${credits} credit${credits !== 1 ? 's' : ''} · A$${cost.toLocaleString('en-AU')}`}</span></div>
             {company && !f.free && (
-              <div className="flex justify-between"><span className="text-gray-500">{company.businessName ?? 'Company'} allowance</span>
+              <div className="flex justify-between"><span className="text-muted-foreground">{company.businessName ?? 'Company'} allowance</span>
                 <span className={bal >= credits ? 'text-green-700 font-semibold' : 'text-amber-700 font-semibold'}>{bal} credit{bal !== 1 ? 's' : ''}{bal < credits ? ' — overage billed as a fee' : ''}</span></div>
             )}
-            {edit && <div className="flex justify-between"><span className="text-gray-500">Booking Reference</span><span className="font-mono text-gray-700">{init.reference || '—'}</span></div>}
+            {edit && <div className="flex justify-between"><span className="text-muted-foreground">Booking Reference</span><span className="font-mono text-foreground">{init.reference || '—'}</span></div>}
           </div>
 
           {!f.memberId && <div className="bg-red-50 border border-red-200 text-red-700 rounded-md px-3 py-2 text-xs">Member not selected.</div>}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 sticky bottom-0 bg-white">
-          <label className="flex items-center gap-2 text-xs text-gray-600"><input type="checkbox" checked={f.notify} onChange={chk('notify')} /> Send notification</label>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border sticky bottom-0 bg-card">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={f.notify} onChange={chk('notify')} /> Send notification</label>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Close</button>
+            <button onClick={onClose} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Close</button>
             {edit && <button onClick={() => { if (window.confirm('Delete this booking?')) onDelete() }} className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700">Delete</button>}
             {edit && init.status !== 'Cancelled' && <button onClick={onCancelBooking} className="px-4 py-2 text-sm bg-amber-500 text-white rounded-md hover:bg-amber-600">Cancel</button>}
             <button onClick={save} disabled={!f.memberId || !f.resourceId} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">{edit ? 'Update' : 'Book Now'}</button>

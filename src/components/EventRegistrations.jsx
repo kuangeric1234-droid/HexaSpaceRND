@@ -86,7 +86,7 @@ export default function EventRegistrations({ store }) {
     a.click()
   }
 
-  if (loading) return <p className="text-sm text-gray-400 py-8 text-center">Loading events…</p>
+  if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Loading events…</p>
 
   return (
     <div>
@@ -96,14 +96,14 @@ export default function EventRegistrations({ store }) {
           <div>Events from Sanity appear here. RSVPs are captured into Hexa Space, and a reminder auto-emails registrants the day before the event.</div>
         </div>
         <button onClick={emailSample} disabled={testing}
-          className="shrink-0 flex items-center gap-1.5 text-xs font-medium border border-gray-300 px-3 py-2 rounded-md hover:bg-gray-50 disabled:opacity-40">
+          className="shrink-0 flex items-center gap-1.5 text-xs font-medium border border-input px-3 py-2 rounded-md hover:bg-muted/50 disabled:opacity-40">
           {testing ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />} Email me a sample
         </button>
       </div>
-      {testMsg && <div className="mb-4 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-md px-3 py-2">{testMsg}</div>}
+      {testMsg && <div className="mb-4 text-xs text-muted-foreground bg-muted/50 border border-border rounded-md px-3 py-2">{testMsg}</div>}
 
       {allGroups.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-md p-12 text-center text-gray-400">
+        <div className="bg-card border border-border rounded-xl shadow-sm p-12 text-center text-muted-foreground">
           <Ticket size={26} className="mx-auto mb-2 text-gray-300" />
           <p className="text-sm">No events found in Sanity yet.</p>
         </div>
@@ -115,32 +115,32 @@ export default function EventRegistrations({ store }) {
             const reminded = group.regs.filter((r) => r.reminderSentAt).length
             const cal = group.ev?.startsAt ? calendarLinks({ title: group.ev.title, date: group.ev.startsAt, endDate: group.ev.endsAt, location: group.ev.location, summary: group.ev.description }) : null
             return (
-              <div key={group.key} className="bg-white border border-gray-200 rounded-md overflow-hidden">
-                <div onClick={() => toggle(group)} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50">
-                  {open ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
+              <div key={group.key} className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                <div onClick={() => toggle(group)} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/50">
+                  {open ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900">{group.title}</div>
-                    {group.date && <div className="text-xs text-gray-400">{fmtDate(group.date)}</div>}
+                    <div className="font-semibold text-foreground">{group.title}</div>
+                    {group.date && <div className="text-xs text-muted-foreground">{fmtDate(group.date)}</div>}
                   </div>
                   {unread > 0 && <span className="bg-blue-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{unread} new</span>}
                   {reminded > 0 && <span className="text-xs text-green-600 font-medium hidden sm:inline">{reminded} reminded</span>}
                   {group.regs.length > 0 && (
                     <button onClick={(e) => sendReminders(group, e)} disabled={sendingKey === group.key} title="Email a reminder to registrants now"
-                      className="flex items-center gap-1 text-xs border border-gray-200 px-2 py-1 rounded hover:bg-gray-50 disabled:opacity-40">
+                      className="flex items-center gap-1 text-xs border border-input px-2 py-1 rounded hover:bg-muted/50 disabled:opacity-40">
                       {sendingKey === group.key ? <Loader2 size={12} className="animate-spin" /> : <Bell size={12} />} Remind
                     </button>
                   )}
-                  <span className="flex items-center gap-1 text-sm text-gray-500"><Users size={14} /> {group.regs.length}</span>
+                  <span className="flex items-center gap-1 text-sm text-muted-foreground"><Users size={14} /> {group.regs.length}</span>
                   {group.regs.length > 0 && (
                     <button onClick={(e) => { e.stopPropagation(); exportCsv(group) }} title="Export CSV"
-                      className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700"><Download size={14} /></button>
+                      className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"><Download size={14} /></button>
                   )}
                 </div>
 
                 {open && (
-                  <div className="border-t border-gray-100">
+                  <div className="border-t border-border">
                     {cal && (
-                      <div className="px-4 py-2.5 border-b border-gray-100 text-xs text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <div className="px-4 py-2.5 border-b border-border text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="flex items-center gap-1"><CalendarPlus size={13} /> Add to calendar:</span>
                         <a href={cal.google} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Google</a><span>·</span>
                         <a href={cal.outlook} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Outlook</a><span>·</span>
@@ -150,30 +150,30 @@ export default function EventRegistrations({ store }) {
                     )}
                     {sendMsg?.key === group.key && <div className="px-4 py-2 text-xs text-green-700 bg-green-50/50">{sendMsg.text}</div>}
                     {group.regs.length === 0 ? (
-                      <p className="px-4 py-4 text-sm text-gray-400">No registrations yet.</p>
+                      <p className="px-4 py-4 text-sm text-muted-foreground">No registrations yet.</p>
                     ) : (
                       <table className="w-full text-sm">
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-border">
                           {group.regs.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '')).map((r) => (
                             <tr key={r.id} className={!r.read ? 'bg-blue-50/40' : ''}>
                               <td className="px-4 py-2.5">
-                                <div className="font-medium text-gray-900">{r.name || '—'}</div>
-                                {r.businessName && <div className="text-xs text-gray-400">{r.businessName}</div>}
+                                <div className="font-medium text-foreground">{r.name || '—'}</div>
+                                {r.businessName && <div className="text-xs text-muted-foreground">{r.businessName}</div>}
                               </td>
-                              <td className="px-4 py-2.5 text-gray-500">
+                              <td className="px-4 py-2.5 text-muted-foreground">
                                 <div className="flex flex-col gap-0.5 text-xs">
                                   {r.email && <span className="flex items-center gap-1"><Mail size={11} /> {r.email}</span>}
                                   {r.phone && <span className="flex items-center gap-1"><Phone size={11} /> {r.phone}</span>}
                                 </div>
                               </td>
-                              <td className="px-4 py-2.5 text-gray-500 text-xs">{r.guests ? `${r.guests} guest${r.guests > 1 ? 's' : ''}` : ''}</td>
-                              <td className="px-4 py-2.5 text-gray-400 text-xs whitespace-nowrap">
+                              <td className="px-4 py-2.5 text-muted-foreground text-xs">{r.guests ? `${r.guests} guest${r.guests > 1 ? 's' : ''}` : ''}</td>
+                              <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-nowrap">
                                 {fmtDate(r.createdAt?.split('T')[0])}
                                 {r.reminderSentAt && <div className="text-green-600 flex items-center gap-1 mt-0.5"><Check size={10} /> reminded</div>}
                               </td>
                               <td className="px-4 py-2.5 text-right">
                                 <button onClick={() => { if (window.confirm('Delete this registration?')) deleteEventRegistration(r.id) }}
-                                  className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 size={13} /></button>
+                                  className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600"><Trash2 size={13} /></button>
                               </td>
                             </tr>
                           ))}

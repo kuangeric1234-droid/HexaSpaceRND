@@ -35,8 +35,8 @@ function cellCls(space, isSelected) {
 function DetailRow({ label, children }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-gray-400">{label}</span>
-      <span className="text-sm text-gray-900">{children}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm text-foreground">{children}</span>
     </div>
   )
 }
@@ -97,8 +97,8 @@ export default function FloorPlan({ spaces, leases, tenants, onNewContract }) {
               onClick={() => switchView(id)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 view === id
-                  ? 'bg-black text-white'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-card border border-border text-muted-foreground hover:bg-muted/50'
               }`}
             >
               <Icon size={14} />
@@ -119,7 +119,7 @@ export default function FloorPlan({ spaces, leases, tenants, onNewContract }) {
             </div>
 
             {warehouseSpaces.length === 0 ? (
-              <div className="p-10 text-center text-gray-400 text-sm italic">
+              <div className="p-10 text-center text-muted-foreground text-sm italic">
                 No warehouse units — add spaces of type "Warehouse" to see them here.
               </div>
             ) : (
@@ -183,7 +183,7 @@ export default function FloorPlan({ spaces, leases, tenants, onNewContract }) {
             </div>
 
             {storageSpaces.length === 0 ? (
-              <div className="p-10 text-center text-gray-400 text-sm italic">
+              <div className="p-10 text-center text-muted-foreground text-sm italic">
                 No storage units — add spaces of type "Storage" to see them here.
               </div>
             ) : (
@@ -230,7 +230,7 @@ export default function FloorPlan({ spaces, leases, tenants, onNewContract }) {
 
         {/* Legend — only shown for interactive views */}
         {view !== 'siteplan' && (
-          <div className="flex gap-5 mt-4 text-xs text-gray-500">
+          <div className="flex gap-5 mt-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-sm bg-gray-900 inline-block" /> Occupied
             </span>
@@ -246,17 +246,17 @@ export default function FloorPlan({ spaces, leases, tenants, onNewContract }) {
 
       {/* ── Detail panel ── */}
       {selected && (
-        <div className="w-60 shrink-0 bg-white border border-gray-200 rounded-md p-4 sticky top-4 self-start">
+        <div className="w-60 shrink-0 bg-card border border-border rounded-xl p-4 sticky top-4 self-start">
           <div className="flex items-start justify-between mb-3">
             <div>
-              <div className="font-bold text-gray-900 text-base">{selected.unitNumber}</div>
+              <div className="font-bold text-foreground text-base">{selected.unitNumber}</div>
               {selected.address && (
-                <div className="text-xs text-gray-400 mt-0.5">{selected.address}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{selected.address}</div>
               )}
             </div>
             <button
               onClick={() => setSelected(null)}
-              className="text-gray-400 hover:text-gray-700 mt-0.5"
+              className="text-muted-foreground hover:text-foreground mt-0.5"
             >
               <X size={14} />
             </button>
@@ -264,7 +264,7 @@ export default function FloorPlan({ spaces, leases, tenants, onNewContract }) {
 
           <div className="space-y-2 mb-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">Status</span>
+              <span className="text-xs text-muted-foreground">Status</span>
               <span
                 className={`text-xs font-semibold px-2 py-0.5 rounded capitalize ${
                   selected.status === 'occupied'
@@ -292,28 +292,28 @@ export default function FloorPlan({ spaces, leases, tenants, onNewContract }) {
           </div>
 
           {selected.attributes && (
-            <div className="py-3 border-t border-gray-100">
-              <p className="text-xs text-gray-500 leading-relaxed">{selected.attributes}</p>
+            <div className="py-3 border-t border-border">
+              <p className="text-xs text-muted-foreground leading-relaxed">{selected.attributes}</p>
             </div>
           )}
 
           {selectedTenant && (
-            <div className="pt-3 border-t border-gray-100">
-              <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Current Tenant</div>
-              <div className="font-semibold text-gray-900 text-sm leading-tight">
+            <div className="pt-3 border-t border-border">
+              <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Current Tenant</div>
+              <div className="font-semibold text-foreground text-sm leading-tight">
                 {selectedTenant.businessName}
               </div>
               {selectedTenant.contactName && (
-                <div className="text-xs text-gray-500 mt-0.5">{selectedTenant.contactName}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{selectedTenant.contactName}</div>
               )}
               {selectedTenant.email && (
-                <div className="text-xs text-gray-500">{selectedTenant.email}</div>
+                <div className="text-xs text-muted-foreground">{selectedTenant.email}</div>
               )}
               {selectedTenant.phone && (
-                <div className="text-xs text-gray-500">{selectedTenant.phone}</div>
+                <div className="text-xs text-muted-foreground">{selectedTenant.phone}</div>
               )}
               {selectedLease && (
-                <div className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-100">
+                <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border">
                   Lease to {format(parseISO(selectedLease.endDate), 'dd/MM/yyyy')}
                 </div>
               )}
@@ -321,17 +321,17 @@ export default function FloorPlan({ spaces, leases, tenants, onNewContract }) {
           )}
 
           {selected.status === 'vacant' && (
-            <div className="pt-3 border-t border-gray-100">
+            <div className="pt-3 border-t border-border">
               <p className="text-xs text-green-700 font-semibold">Available now</p>
               {onNewContract ? (
                 <button
                   onClick={() => onNewContract(selected)}
-                  className="mt-2 w-full bg-black text-white text-xs font-semibold py-2 rounded hover:bg-gray-800"
+                  className="mt-2 w-full bg-primary text-primary-foreground text-xs font-semibold py-2 rounded hover:bg-primary/90"
                 >
                   + New Contract
                 </button>
               ) : (
-                <p className="text-xs text-gray-400 mt-0.5">Go to Leases to assign a tenant</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Go to Leases to assign a tenant</p>
               )}
             </div>
           )}

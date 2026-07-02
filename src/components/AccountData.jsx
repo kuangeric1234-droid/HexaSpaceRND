@@ -44,7 +44,7 @@ export default function AccountData({ store, onBack }) {
 
   return (
     <div>
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-black mb-4"><ArrowLeft size={14} /> Back to campaigns</button>
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={14} /> Back to campaigns</button>
 
       {/* Conversion tracking checklist */}
       <div className="bg-amber-50 border border-amber-200 rounded-md mb-5 text-xs text-amber-900">
@@ -67,18 +67,18 @@ export default function AccountData({ store, onBack }) {
 
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="flex gap-1 bg-gray-100 rounded-md p-0.5">
+        <div className="flex gap-1 bg-muted rounded-md p-0.5">
           {REPORTS.map((r) => (
             <button key={r.key} onClick={() => setReportType(r.key)}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${reportType === r.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${reportType === r.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
               {r.label}
             </button>
           ))}
         </div>
-        <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} className="border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-black">
+        <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} className="border border-input rounded px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
           {RANGES.map((r) => <option key={r.v} value={r.v}>{r.label}</option>)}
         </select>
-        <button onClick={load} disabled={loading} className="ml-auto flex items-center gap-1.5 text-sm text-gray-600 hover:text-black disabled:opacity-40">
+        <button onClick={load} disabled={loading} className="ml-auto flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground disabled:opacity-40">
           {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Refresh
         </button>
       </div>
@@ -96,19 +96,19 @@ export default function AccountData({ store, onBack }) {
       )}
 
       {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-gray-400 text-sm"><Loader2 size={18} className="animate-spin mx-auto mb-2" /> Loading…</div>
+          <div className="p-10 text-center text-muted-foreground text-sm"><Loader2 size={18} className="animate-spin mx-auto mb-2" /> Loading…</div>
         ) : rows.length === 0 ? (
-          <div className="p-10 text-center text-gray-400">
-            <BarChart2 size={24} className="mx-auto mb-2 text-gray-300" />
+          <div className="p-10 text-center text-muted-foreground">
+            <BarChart2 size={24} className="mx-auto mb-2 text-muted-foreground" />
             <p className="text-sm">{error ? 'Could not load data.' : 'No data for this report / date range yet.'}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wide">
+                <tr className="bg-muted/50 text-left text-xs text-muted-foreground uppercase tracking-wide">
                   <th className="px-4 py-2.5 font-medium">{REPORTS.find((r) => r.key === reportType)?.label.replace(/s$/, '')}</th>
                   <th className="px-4 py-2.5 font-medium text-right">Impr</th>
                   <th className="px-4 py-2.5 font-medium text-right">Clicks</th>
@@ -119,22 +119,22 @@ export default function AccountData({ store, onBack }) {
                   <th className="px-4 py-2.5 font-medium text-right">CPA</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border">
                 {rows.map((r, i) => (
-                  <tr key={i} className="hover:bg-gray-50">
+                  <tr key={i} className="hover:bg-muted/50">
                     <td className="px-4 py-2.5">
-                      <div className="font-medium text-gray-900">{r.name || '—'}</div>
+                      <div className="font-medium text-foreground">{r.name || '—'}</div>
                       {(r.campaign || r.matchType || r.status) && (
-                        <div className="text-xs text-gray-400">{[r.campaign, r.matchType, r.status].filter(Boolean).join(' · ')}</div>
+                        <div className="text-xs text-muted-foreground">{[r.campaign, r.matchType, r.status].filter(Boolean).join(' · ')}</div>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-right text-gray-600">{num(r.impressions)}</td>
-                    <td className="px-4 py-2.5 text-right text-gray-600">{num(r.clicks)}</td>
-                    <td className="px-4 py-2.5 text-right text-gray-600">{r.ctr != null ? `${r.ctr}%` : '—'}</td>
-                    <td className="px-4 py-2.5 text-right text-gray-600">{r.avgCpc ? $(r.avgCpc) : '—'}</td>
-                    <td className="px-4 py-2.5 text-right font-medium text-gray-900">{$(r.cost)}</td>
-                    <td className="px-4 py-2.5 text-right text-gray-600">{r.conversions ?? 0}</td>
-                    <td className="px-4 py-2.5 text-right text-gray-600">{r.costPerConv ? $(r.costPerConv) : '—'}</td>
+                    <td className="px-4 py-2.5 text-right text-muted-foreground">{num(r.impressions)}</td>
+                    <td className="px-4 py-2.5 text-right text-muted-foreground">{num(r.clicks)}</td>
+                    <td className="px-4 py-2.5 text-right text-muted-foreground">{r.ctr != null ? `${r.ctr}%` : '—'}</td>
+                    <td className="px-4 py-2.5 text-right text-muted-foreground">{r.avgCpc ? $(r.avgCpc) : '—'}</td>
+                    <td className="px-4 py-2.5 text-right font-medium text-foreground">{$(r.cost)}</td>
+                    <td className="px-4 py-2.5 text-right text-muted-foreground">{r.conversions ?? 0}</td>
+                    <td className="px-4 py-2.5 text-right text-muted-foreground">{r.costPerConv ? $(r.costPerConv) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -148,9 +148,9 @@ export default function AccountData({ store, onBack }) {
 
 function Stat({ label, value }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-md p-3">
-      <div className="text-xs text-gray-500">{label}</div>
-      <div className="text-lg font-bold text-gray-900 mt-0.5">{value}</div>
+    <div className="bg-card border border-border rounded-xl shadow-sm p-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-lg font-bold text-foreground mt-0.5">{value}</div>
     </div>
   )
 }

@@ -55,14 +55,14 @@ export default function BulkPhotos({ store, onClose }) {
     setApplying(null); setDone({ units: ids.length, photos: photos.length })
   }
 
-  const input = 'w-full border border-gray-300 rounded px-3 py-2 text-sm'
+  const input = 'w-full border border-input rounded px-3 py-2 text-sm'
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-md w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900 flex items-center gap-2"><Images size={16} /> Bulk add photos</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+      <div className="bg-card rounded-xl w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="font-semibold text-foreground flex items-center gap-2"><Images size={16} /> Bulk add photos</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
         </div>
 
         <div className="p-6 overflow-y-auto">
@@ -71,50 +71,50 @@ export default function BulkPhotos({ store, onClose }) {
           {done ? (
             <div className="text-center py-10">
               <Check size={30} className="mx-auto text-green-500 mb-3" />
-              <p className="text-sm text-gray-800 font-medium">Added {done.photos} photo{done.photos === 1 ? '' : 's'} to {done.units} unit{done.units === 1 ? '' : 's'}.</p>
-              <p className="text-xs text-gray-400 mt-2">They're published — the website listings update within ~60s.</p>
-              <button onClick={onClose} className="mt-5 px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800 font-medium">Done</button>
+              <p className="text-sm text-foreground font-medium">Added {done.photos} photo{done.photos === 1 ? '' : 's'} to {done.units} unit{done.units === 1 ? '' : 's'}.</p>
+              <p className="text-xs text-muted-foreground mt-2">They're published — the website listings update within ~60s.</p>
+              <button onClick={onClose} className="mt-5 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">Done</button>
             </div>
           ) : (
             <>
               {/* 1. Units */}
               <section className="mb-5">
-                <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">1. Units to update</h3>
-                <div className="flex gap-1 bg-gray-100 rounded-md p-0.5 mb-3 w-max">
+                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2">1. Units to update</h3>
+                <div className="flex gap-1 bg-muted rounded-md p-0.5 mb-3 w-max">
                   {types.map((t) => (
                     <button key={t} onClick={() => pickType(t)}
-                      className={`px-3 py-1.5 text-sm font-medium rounded capitalize ${typeFilter === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{t}</button>
+                      className={`px-3 py-1.5 text-sm font-medium rounded capitalize ${typeFilter === t ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>{t}</button>
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {matching.map((s) => (
                     <button key={s.id} onClick={() => toggle(s.id)}
-                      className={`text-xs px-2 py-1 rounded border ${selected.has(s.id) ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200'}`}>
+                      className={`text-xs px-2 py-1 rounded border ${selected.has(s.id) ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border'}`}>
                       {s.unitNumber}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 mt-2">{selected.size} of {matching.length} selected</p>
+                <p className="text-xs text-muted-foreground mt-2">{selected.size} of {matching.length} selected</p>
               </section>
 
               {/* 2. Photos */}
               <section className="mb-5">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">2. Photos for these units</h3>
-                  <label className="flex items-center gap-1.5 text-xs font-medium text-white bg-black px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-800">
+                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">2. Photos for these units</h3>
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-primary-foreground bg-primary px-3 py-1.5 rounded-md cursor-pointer hover:bg-primary/90">
                     {uploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />} {uploading ? 'Uploading…' : 'Upload images'}
                     <input type="file" accept="image/*" multiple onChange={onFiles} disabled={uploading} className="hidden" />
                   </label>
                 </div>
                 {photos.length === 0 ? (
-                  <div className="border border-dashed border-gray-300 rounded-md p-6 text-center text-xs text-gray-400">No photos uploaded yet.</div>
+                  <div className="border border-dashed border-border rounded-md p-6 text-center text-xs text-muted-foreground">No photos uploaded yet.</div>
                 ) : (
                   <div className="grid grid-cols-4 gap-2">
                     {photos.map((p, i) => (
-                      <div key={p.assetId} className="relative border border-gray-200 rounded-md overflow-hidden group">
+                      <div key={p.assetId} className="relative border border-border rounded-md overflow-hidden group">
                         <img src={p.url} alt="" className="w-full h-20 object-cover" />
                         <button onClick={() => setPhotos((arr) => arr.filter((_, idx) => idx !== i))}
-                          className="absolute top-1 right-1 bg-white/90 rounded p-0.5 text-gray-500 hover:text-red-600"><Trash2 size={12} /></button>
+                          className="absolute top-1 right-1 bg-white/90 rounded p-0.5 text-muted-foreground hover:text-red-600"><Trash2 size={12} /></button>
                       </div>
                     ))}
                   </div>
@@ -123,14 +123,14 @@ export default function BulkPhotos({ store, onClose }) {
 
               {/* 3. Mode + apply */}
               <section className="flex items-center justify-between">
-                <label className="flex items-center gap-2 text-sm text-gray-600">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
                   <select value={mode} onChange={(e) => setMode(e.target.value)} className={input.replace('w-full', 'w-auto')}>
                     <option value="replace">Replace existing photos</option>
                     <option value="append">Add to existing photos</option>
                   </select>
                 </label>
                 <button onClick={apply} disabled={!!applying || !selected.size || !photos.length}
-                  className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-gray-800 disabled:opacity-40">
+                  className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-40">
                   {applying ? <Loader2 size={15} className="animate-spin" /> : <Images size={15} />}
                   {applying ? `Applying ${applying.done}/${applying.total}…` : `Apply to ${selected.size} unit${selected.size === 1 ? '' : 's'}`}
                 </button>

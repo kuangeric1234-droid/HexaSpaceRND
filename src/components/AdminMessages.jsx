@@ -93,24 +93,24 @@ export default function AdminMessages() {
   }
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-full bg-muted/50">
       {/* Thread list */}
-      <div className="w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col">
-        <div className="px-5 py-4 border-b border-gray-200">
+      <div className="w-72 shrink-0 bg-card border-r border-border flex flex-col">
+        <div className="px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold text-gray-900">Portal Messages</h1>
+            <h1 className="text-base font-bold text-foreground">Portal Messages</h1>
             {totalUnread > 0 && (
               <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
                 {totalUnread}
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">Messages from members</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Messages from members</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+        <div className="flex-1 overflow-y-auto divide-y divide-border">
           {tenantThreads.length === 0 ? (
-            <div className="px-5 py-8 text-sm text-gray-400 text-center">No messages yet.</div>
+            <div className="px-5 py-8 text-sm text-muted-foreground text-center">No messages yet.</div>
           ) : (
             tenantThreads.map(({ tenant, msgs, unread, lastTs }) => {
               const last = msgs[msgs.length - 1]
@@ -118,25 +118,25 @@ export default function AdminMessages() {
                 <button
                   key={tenant.id}
                   onClick={() => setSelectedTenantId(tenant.id)}
-                  className={`w-full text-left px-4 py-3.5 hover:bg-gray-50 transition-colors ${
-                    selectedTenantId === tenant.id ? 'bg-gray-50 border-l-2 border-black' : ''
+                  className={`w-full text-left px-4 py-3.5 hover:bg-muted/50 transition-colors ${
+                    selectedTenantId === tenant.id ? 'bg-muted/50 border-l-2 border-primary' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className={`text-sm truncate ${unread > 0 ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                    <span className={`text-sm truncate ${unread > 0 ? 'font-semibold text-foreground' : 'text-foreground'}`}>
                       {tenant.businessName}
                     </span>
                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
                       {unread > 0 && (
-                        <span className="bg-black text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                        <span className="bg-primary text-primary-foreground text-xs font-bold px-1.5 py-0.5 rounded-full">
                           {unread}
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-400 truncate flex-1">{last?.content}</p>
-                    <span className="text-xs text-gray-300 ml-2 shrink-0">{fmtTime(lastTs)}</span>
+                    <p className="text-xs text-muted-foreground truncate flex-1">{last?.content}</p>
+                    <span className="text-xs text-muted-foreground ml-2 shrink-0">{fmtTime(lastTs)}</span>
                   </div>
                 </button>
               )
@@ -148,17 +148,17 @@ export default function AdminMessages() {
       {/* Thread view */}
       <div className="flex-1 flex flex-col min-w-0">
         {!selectedThread ? (
-          <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
+          <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
             <div className="text-center">
-              <MessageSquare size={32} className="mx-auto mb-3 text-gray-300" />
+              <MessageSquare size={32} className="mx-auto mb-3 text-muted-foreground" />
               Select a conversation
             </div>
           </div>
         ) : (
           <>
-            <div className="bg-white border-b border-gray-200 px-6 py-4 shrink-0">
-              <div className="font-semibold text-gray-900">{selectedThread.tenant.businessName}</div>
-              <div className="text-xs text-gray-400">{selectedThread.tenant.email}</div>
+            <div className="bg-card border-b border-border px-6 py-4 shrink-0">
+              <div className="font-semibold text-foreground">{selectedThread.tenant.businessName}</div>
+              <div className="text-xs text-muted-foreground">{selectedThread.tenant.email}</div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-3">
@@ -166,8 +166,8 @@ export default function AdminMessages() {
                 <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-sm px-4 py-2.5 rounded-xl text-sm ${
                     msg.sender === 'admin'
-                      ? 'bg-black text-white rounded-br-sm'
-                      : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
+                      ? 'bg-primary text-primary-foreground rounded-br-sm'
+                      : 'bg-card border border-border text-foreground rounded-bl-sm'
                   }`}>
                     <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                     <p className="text-xs mt-1 opacity-50">
@@ -179,20 +179,20 @@ export default function AdminMessages() {
               <div ref={bottomRef} />
             </div>
 
-            <form onSubmit={sendReply} className="border-t border-gray-200 bg-white p-4 flex gap-3 shrink-0">
+            <form onSubmit={sendReply} className="border-t border-border bg-card p-4 flex gap-3 shrink-0">
               <input
                 ref={inputRef}
                 value={reply}
                 onChange={e => setReply(e.target.value)}
                 placeholder={`Reply to ${selectedThread.tenant.businessName}…`}
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                className="flex-1 border border-input rounded-lg px-4 py-2.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 disabled={sending}
                 autoFocus
               />
               <button
                 type="submit"
                 disabled={sending || !reply.trim()}
-                className="bg-black text-white px-4 py-2.5 rounded-lg hover:bg-gray-800 disabled:opacity-40 flex items-center gap-2 text-sm font-medium shrink-0"
+                className="bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:bg-primary/90 disabled:opacity-40 flex items-center gap-2 text-sm font-medium shrink-0"
               >
                 <Send size={14} /> Send
               </button>

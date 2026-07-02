@@ -40,7 +40,7 @@ function Toggle({ checked, onChange }) {
       type="button"
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-        checked ? 'bg-blue-600' : 'bg-gray-300'
+        checked ? 'bg-blue-600' : 'bg-muted'
       }`}
     >
       <span
@@ -54,10 +54,10 @@ function Toggle({ checked, onChange }) {
 
 function FormRow({ label, description, children }) {
   return (
-    <div className="flex items-start justify-between py-4 border-b border-gray-100 last:border-0">
+    <div className="flex items-start justify-between py-4 border-b border-border last:border-0">
       <div className="flex-1 mr-8 min-w-0">
-        <div className="text-sm font-medium text-gray-800">{label}</div>
-        {description && <div className="text-xs text-gray-500 mt-0.5">{description}</div>}
+        <div className="text-sm font-medium text-foreground">{label}</div>
+        {description && <div className="text-xs text-muted-foreground mt-0.5">{description}</div>}
       </div>
       <div className="w-72 shrink-0">{children}</div>
     </div>
@@ -66,7 +66,7 @@ function FormRow({ label, description, children }) {
 
 function TabBar({ tabs, active, onSelect }) {
   return (
-    <div className="flex border-b border-gray-200 mb-6">
+    <div className="flex border-b border-border mb-6">
       {tabs.map(([key, label]) => (
         <button
           key={key}
@@ -74,7 +74,7 @@ function TabBar({ tabs, active, onSelect }) {
           className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
             active === key
               ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-800'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           {label}
@@ -86,7 +86,7 @@ function TabBar({ tabs, active, onSelect }) {
 
 function SaveButton({ onClick, saved }) {
   return (
-    <div className="mt-6 pt-4 border-t border-gray-100 flex items-center gap-3">
+    <div className="mt-6 pt-4 border-t border-border flex items-center gap-3">
       <button
         onClick={onClick}
         className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md font-medium hover:bg-blue-700"
@@ -109,7 +109,7 @@ function TextInput({ value, onChange, type = 'text', placeholder = '', mono = fa
       value={value ?? ''}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${mono ? 'font-mono' : ''}`}
+      className={`w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${mono ? 'font-mono' : ''}`}
     />
   )
 }
@@ -132,8 +132,8 @@ function CompanyBillingSection({ settings, updateSettings }) {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Company & Billing</h1>
-      <p className="text-sm text-gray-500 mb-6">Manage your company details and billing information used on invoices and contracts.</p>
+      <h1 className="text-xl font-bold text-foreground mb-1">Company & Billing</h1>
+      <p className="text-sm text-muted-foreground mb-6">Manage your company details and billing information used on invoices and contracts.</p>
 
       <TabBar
         tabs={[['company', 'Company Info'], ['billing', 'Billing Details']]}
@@ -155,7 +155,7 @@ function CompanyBillingSection({ settings, updateSettings }) {
           <FormRow label="Company Logo" description="Upload a logo for invoices and contracts (PNG, JPG)">
             {companyForm.logo ? (
               <div className="flex items-center gap-3">
-                <img src={companyForm.logo} alt="Logo" className="h-10 max-w-[140px] object-contain border border-gray-200 rounded px-1" />
+                <img src={companyForm.logo} alt="Logo" className="h-10 max-w-[140px] object-contain border border-border rounded px-1" />
                 <button
                   onClick={() => setCompanyForm((p) => ({ ...p, logo: '' }))}
                   className="text-xs text-red-500 hover:text-red-700"
@@ -165,7 +165,7 @@ function CompanyBillingSection({ settings, updateSettings }) {
               </div>
             ) : (
               <label className="cursor-pointer">
-                <div className="border border-dashed border-gray-300 rounded-md px-4 py-2.5 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors text-center">
+                <div className="border border-dashed border-input rounded-md px-4 py-2.5 text-sm text-muted-foreground hover:border-blue-400 hover:text-blue-500 transition-colors text-center">
                   Click to upload logo
                 </div>
                 <input
@@ -247,26 +247,26 @@ function AddExistingUserForm({ users, updateSettings }) {
     <form onSubmit={handleAdd} className="space-y-3">
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Name</label>
+          <label className="block text-xs text-muted-foreground mb-1">Name</label>
           <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-            placeholder="Full name" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black" />
+            placeholder="Full name" className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40" />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Email *</label>
+          <label className="block text-xs text-muted-foreground mb-1">Email *</label>
           <input type="email" required value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-            placeholder="user@hexaspace.com.au" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black" />
+            placeholder="user@hexaspace.com.au" className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40" />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Role</label>
+          <label className="block text-xs text-muted-foreground mb-1">Role</label>
           <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black bg-white">
+            className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 bg-card">
             <option value="Admin">Admin</option>
             <option value="Super Admin">Super Admin</option>
           </select>
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <button type="submit" className="px-4 py-2 bg-black text-white text-sm rounded-md font-medium hover:bg-gray-800">
+        <button type="submit" className="px-4 py-2 bg-primary text-primary-foreground text-sm rounded-md font-medium hover:bg-primary/90">
           Add User
         </button>
         {done && <span className="text-sm text-green-600">✓ Added successfully</span>}
@@ -330,43 +330,43 @@ function AdminUsersSection({ settings, updateSettings }) {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Admin Users</h1>
-      <p className="text-sm text-gray-500 mb-6">
+      <h1 className="text-xl font-bold text-foreground mb-1">Admin Users</h1>
+      <p className="text-sm text-muted-foreground mb-6">
         Manage who has access to Hexa Space and their permission level.
       </p>
 
       {/* Current users table */}
       {users.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-md overflow-hidden mb-6">
-          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
-            <span className="text-sm font-semibold text-gray-700">Current Users</span>
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden mb-6">
+          <div className="px-5 py-3 border-b border-border bg-muted/50">
+            <span className="text-sm font-semibold text-foreground">Current Users</span>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
+              <tr className="border-b border-border">
+                <th className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Name</th>
+                <th className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</th>
+                <th className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Role</th>
                 <th className="px-5 py-2.5" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border">
               {users.map(u => (
-                <tr key={u.id} className="hover:bg-gray-50">
-                  <td className="px-5 py-3 font-medium text-gray-900">{u.name}</td>
-                  <td className="px-5 py-3 text-gray-500">{u.email}</td>
+                <tr key={u.id} className="hover:bg-muted/50">
+                  <td className="px-5 py-3 font-medium text-foreground">{u.name}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{u.email}</td>
                   <td className="px-5 py-3">
                     <select
                       value={u.role}
                       onChange={e => updateUserRole(u.id, e.target.value)}
-                      className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-black bg-white"
+                      className="border border-input rounded px-2 py-1 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 bg-card"
                     >
                       <option value="Admin">Admin</option>
                       <option value="Super Admin">Super Admin</option>
                     </select>
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <button onClick={() => removeUser(u.id)} className="text-xs text-gray-400 hover:text-red-500">
+                    <button onClick={() => removeUser(u.id)} className="text-xs text-muted-foreground hover:text-red-500">
                       Remove
                     </button>
                   </td>
@@ -378,49 +378,49 @@ function AdminUsersSection({ settings, updateSettings }) {
       )}
 
       {/* Role explanation */}
-      <div className="bg-white border border-gray-200 rounded-md p-5 mb-6">
-        <h3 className="text-sm font-semibold text-gray-800 mb-3">Role Permissions</h3>
+      <div className="bg-card border border-border rounded-xl shadow-sm p-5 mb-6">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Role Permissions</h3>
         <div className="space-y-2 text-sm">
           <div className="flex items-start gap-3">
             <span className="text-xs font-semibold px-2 py-0.5 rounded bg-gray-900 text-white shrink-0">Super Admin</span>
-            <span className="text-gray-600">Full access — including permanently deleting invoices from the system.</span>
+            <span className="text-muted-foreground">Full access — including permanently deleting invoices from the system.</span>
           </div>
           <div className="flex items-start gap-3">
             <span className="text-xs font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-300 shrink-0">Admin</span>
-            <span className="text-gray-600">Standard access — can manage everything except permanent invoice deletion.</span>
+            <span className="text-muted-foreground">Standard access — can manage everything except permanent invoice deletion.</span>
           </div>
         </div>
       </div>
 
       {/* Add existing user (no invite email) */}
-      <div className="bg-white border border-gray-200 rounded-md p-6 mb-4">
-        <h2 className="text-sm font-semibold text-gray-800 mb-1">Add existing user</h2>
-        <p className="text-xs text-gray-400 mb-4">Already have a Supabase login? Add them to the admin list without sending an email.</p>
+      <div className="bg-card border border-border rounded-xl shadow-sm p-6 mb-4">
+        <h2 className="text-sm font-semibold text-foreground mb-1">Add existing user</h2>
+        <p className="text-xs text-muted-foreground mb-4">Already have a Supabase login? Add them to the admin list without sending an email.</p>
         <AddExistingUserForm users={users} updateSettings={updateSettings} />
       </div>
 
       {/* Invite form */}
-      <div className="bg-white border border-gray-200 rounded-md p-6 mb-6">
-        <h2 className="text-sm font-semibold text-gray-800 mb-1">Invite a new team member</h2>
-        <p className="text-xs text-gray-400 mb-4">Creates a Supabase account and sends them a setup email.</p>
+      <div className="bg-card border border-border rounded-xl shadow-sm p-6 mb-6">
+        <h2 className="text-sm font-semibold text-foreground mb-1">Invite a new team member</h2>
+        <p className="text-xs text-muted-foreground mb-4">Creates a Supabase account and sends them a setup email.</p>
         <form onSubmit={handleInvite} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Name</label>
+              <label className="block text-xs text-muted-foreground mb-1">Name</label>
               <input
                 type="text"
                 value={inviteName}
                 onChange={e => setInviteName(e.target.value)}
                 placeholder="Full name"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Role</label>
+              <label className="block text-xs text-muted-foreground mb-1">Role</label>
               <select
                 value={inviteRole}
                 onChange={e => setInviteRole(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black bg-white"
+                className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 bg-card"
               >
                 <option value="Admin">Admin</option>
                 <option value="Super Admin">Super Admin</option>
@@ -429,20 +429,20 @@ function AdminUsersSection({ settings, updateSettings }) {
           </div>
           <div className="flex gap-3 items-end">
             <div className="flex-1">
-              <label className="block text-xs text-gray-500 mb-1">Email address *</label>
+              <label className="block text-xs text-muted-foreground mb-1">Email address *</label>
               <input
                 type="email"
                 value={inviteEmail}
                 onChange={e => setInviteEmail(e.target.value)}
                 placeholder="teammate@hexaspace.com.au"
                 required
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               />
             </div>
             <button
               type="submit"
               disabled={status === 'sending'}
-              className="flex items-center gap-1.5 px-4 py-2 bg-black text-white text-sm rounded-md font-medium hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-md font-medium hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap"
             >
               <Plus size={14} />
               {status === 'sending' ? 'Sending…' : 'Send Invite'}
@@ -480,8 +480,8 @@ function EmailsSection({ settings, updateSettings }) {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Emails & Notifications</h1>
-      <p className="text-sm text-gray-500 mb-6">Configure email addresses for invoices, contracts, and system notifications.</p>
+      <h1 className="text-xl font-bold text-foreground mb-1">Emails & Notifications</h1>
+      <p className="text-sm text-muted-foreground mb-6">Configure email addresses for invoices, contracts, and system notifications.</p>
 
       <FormRow label="Notification Email" description="Receive system notifications at this address">
         <TextInput type="email" value={form.notificationEmail} onChange={set('notificationEmail')} />
@@ -497,8 +497,8 @@ function EmailsSection({ settings, updateSettings }) {
       </FormRow>
 
       <div className="pt-4 pb-2 mt-2">
-        <div className="text-sm font-semibold text-gray-700">Sender Details</div>
-        <p className="text-xs text-gray-500 mt-0.5">Used as the From address when emails are sent to tenants.</p>
+        <div className="text-sm font-semibold text-foreground">Sender Details</div>
+        <p className="text-xs text-muted-foreground mt-0.5">Used as the From address when emails are sent to tenants.</p>
       </div>
 
       <FormRow label="From Name" description="Display name on outbound emails">
@@ -550,8 +550,8 @@ function ContractsSection({ settings, updateSettings }) {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Contracts</h1>
-      <p className="text-sm text-gray-500 mb-6">Configure contract numbering, eSignature sender, and termination reasons.</p>
+      <h1 className="text-xl font-bold text-foreground mb-1">Contracts</h1>
+      <p className="text-sm text-muted-foreground mb-6">Configure contract numbering, eSignature sender, and termination reasons.</p>
 
       <TabBar
         tabs={[['general', 'General'], ['esign', 'eSignatures'], ['termination', 'Termination Reasons']]}
@@ -564,7 +564,7 @@ function ContractsSection({ settings, updateSettings }) {
           <FormRow label="Contract Number Template" description="Use {{number}} as the auto-increment placeholder">
             <div className="space-y-1">
               <TextInput value={form.numberTemplate} onChange={set('numberTemplate')} mono />
-              <div className="text-xs text-gray-400">Preview: {numPreview}</div>
+              <div className="text-xs text-muted-foreground">Preview: {numPreview}</div>
             </div>
           </FormRow>
           <FormRow label="Approval Required" description="Require manager approval before contracts can be sent">
@@ -582,7 +582,7 @@ function ContractsSection({ settings, updateSettings }) {
             <TextInput value={form.eSignName} onChange={set('eSignName')} />
           </FormRow>
           <FormRow label="eSign Platform" description="Signing service used for electronic signatures">
-            <div className="text-sm text-gray-500 bg-gray-50 rounded-md px-3 py-2 border border-gray-200">
+            <div className="text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2 border border-border">
               Hexa eSign (Built-in)
             </div>
           </FormRow>
@@ -592,7 +592,7 @@ function ContractsSection({ settings, updateSettings }) {
       {tab === 'termination' && (
         <>
           <div className="mb-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               These reasons appear in the <strong>Terminate Contract</strong> dropdown. Edit or add your own.
             </p>
           </div>
@@ -607,11 +607,11 @@ function ContractsSection({ settings, updateSettings }) {
                     updated[i] = e.target.value
                     setReasons(updated)
                   }}
-                  className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 border border-input rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   onClick={() => setReasons((prev) => prev.filter((_, j) => j !== i))}
-                  className="text-gray-400 hover:text-red-500 shrink-0"
+                  className="text-muted-foreground hover:text-red-500 shrink-0"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -630,7 +630,7 @@ function ContractsSection({ settings, updateSettings }) {
                 }
               }}
               placeholder="Add new termination reason…"
-              className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 border border-input rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               onClick={() => {
@@ -639,7 +639,7 @@ function ContractsSection({ settings, updateSettings }) {
                   setNewReason('')
                 }
               }}
-              className="px-3 py-1.5 text-sm bg-gray-800 text-white rounded font-medium hover:bg-black"
+              className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded font-medium hover:bg-primary/90"
             >
               <Plus size={14} />
             </button>
@@ -667,8 +667,8 @@ function BillingRulesSection({ settings, updateSettings }) {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Billing Rules</h1>
-      <p className="text-sm text-gray-500 mb-6">Configure billing periods, taxes, and multi-location billing.</p>
+      <h1 className="text-xl font-bold text-foreground mb-1">Billing Rules</h1>
+      <p className="text-sm text-muted-foreground mb-6">Configure billing periods, taxes, and multi-location billing.</p>
 
       <FormRow label="Billing Period Start Day" description="Day of month when billing periods start (1 = 1st of month)">
         <div className="flex items-center gap-2">
@@ -678,9 +678,9 @@ function BillingRulesSection({ settings, updateSettings }) {
             max={28}
             value={form.billingPeriodStartDay ?? 1}
             onChange={(e) => setForm((p) => ({ ...p, billingPeriodStartDay: Math.min(28, Math.max(1, Number(e.target.value))) }))}
-            className="w-20 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+            className="w-20 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
           />
-          <span className="text-xs text-gray-500">of the month</span>
+          <span className="text-xs text-muted-foreground">of the month</span>
         </div>
       </FormRow>
       <FormRow label="Tax (GST)" description="Apply GST to all invoices by default">
@@ -694,9 +694,9 @@ function BillingRulesSection({ settings, updateSettings }) {
             max={100}
             value={form.taxRate ?? 10}
             onChange={(e) => setForm((p) => ({ ...p, taxRate: Number(e.target.value) }))}
-            className="w-20 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+            className="w-20 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
           />
-          <span className="text-xs text-gray-500">%</span>
+          <span className="text-xs text-muted-foreground">%</span>
         </div>
       </FormRow>
       <FormRow label="Multi-Location Billing" description="Enable billing across multiple locations on a single invoice">
@@ -725,13 +725,13 @@ function InvoicingSection({ settings, updateSettings }) {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Invoicing</h1>
-      <p className="text-sm text-gray-500 mb-6">Configure invoice generation, numbering, due dates, and sending rules.</p>
+      <h1 className="text-xl font-bold text-foreground mb-1">Invoicing</h1>
+      <p className="text-sm text-muted-foreground mb-6">Configure invoice generation, numbering, due dates, and sending rules.</p>
 
       <FormRow label="Invoice Number Template" description="Use {{number}} as the auto-increment placeholder">
         <div className="space-y-1">
           <TextInput value={form.invoiceNumberTemplate} onChange={set('invoiceNumberTemplate')} mono />
-          <div className="text-xs text-gray-400">Preview: {invPreview}</div>
+          <div className="text-xs text-muted-foreground">Preview: {invPreview}</div>
         </div>
       </FormRow>
       <FormRow label="Due Date" description="Number of days after invoice issue date that payment is due">
@@ -742,9 +742,9 @@ function InvoicingSection({ settings, updateSettings }) {
             max={90}
             value={form.dueDateDays ?? 14}
             onChange={(e) => setForm((p) => ({ ...p, dueDateDays: Number(e.target.value) }))}
-            className="w-20 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+            className="w-20 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
           />
-          <span className="text-xs text-gray-500">days after issue</span>
+          <span className="text-xs text-muted-foreground">days after issue</span>
         </div>
       </FormRow>
       <FormRow label="Proration" description="Prorate first month's invoice when a tenant starts mid-month">
@@ -764,9 +764,9 @@ function InvoicingSection({ settings, updateSettings }) {
             max={60}
             value={form.overdueReminderDays ?? 7}
             onChange={(e) => setForm((p) => ({ ...p, overdueReminderDays: Number(e.target.value) }))}
-            className="w-20 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+            className="w-20 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
           />
-          <span className="text-xs text-gray-500">days past due</span>
+          <span className="text-xs text-muted-foreground">days past due</span>
         </div>
       </FormRow>
 
@@ -820,46 +820,46 @@ function EmailTemplatesSection({ settings, updateSettings }) {
     setTimeout(() => setSaved(false), 2500)
   }
 
-  const input = 'w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500'
+  const input = 'w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500'
 
   return (
     <div>
-      <div className="px-6 py-5 border-b border-gray-100">
-        <h2 className="text-base font-semibold text-gray-900">Email Templates</h2>
-        <p className="text-sm text-gray-500 mt-1">
+      <div className="px-6 py-5 border-b border-border">
+        <h2 className="text-base font-semibold text-foreground">Email Templates</h2>
+        <p className="text-sm text-muted-foreground mt-1">
           Customise the subject and opening paragraph for each email type. Use placeholders shown below each field.
         </p>
       </div>
       <div className="px-6 py-4 space-y-8">
         {EMAIL_TEMPLATE_DEFS.map(({ key, label, vars }) => (
-          <div key={key} className="border border-gray-200 rounded-md p-5">
-            <h3 className="text-sm font-semibold text-gray-800 mb-4">{label}</h3>
+          <div key={key} className="border border-border rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-4">{label}</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Subject line</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Subject line</label>
                 <input
                   value={form[key]?.subject ?? ''}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: { ...f[key], subject: e.target.value } }))}
                   className={input}
                 />
-                <p className="text-xs text-gray-400 mt-1">Available: {vars}</p>
+                <p className="text-xs text-muted-foreground mt-1">Available: {vars}</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Opening paragraph</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Opening paragraph</label>
                 <textarea
                   rows={3}
                   value={form[key]?.intro ?? ''}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: { ...f[key], intro: e.target.value } }))}
                   className={`${input} resize-none`}
                 />
-                <p className="text-xs text-gray-400 mt-1">Available: {vars}</p>
+                <p className="text-xs text-muted-foreground mt-1">Available: {vars}</p>
               </div>
             </div>
           </div>
         ))}
         <div className="flex justify-end pt-2">
           <button onClick={save}
-            className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800">
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90">
             {saved ? <><Check size={14} /> Saved</> : 'Save Email Templates'}
           </button>
         </div>
@@ -893,8 +893,8 @@ function XeroSection({ settings, updateSettings }) {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Xero</h1>
-      <p className="text-sm text-gray-500 mb-6">Map Hexa Space charges to your Xero revenue accounts. Level 2 bills to its own accounts, separate from Level 4 &amp; 5.</p>
+      <h1 className="text-xl font-bold text-foreground mb-1">Xero</h1>
+      <p className="text-sm text-muted-foreground mb-6">Map Hexa Space charges to your Xero revenue accounts. Level 2 bills to its own accounts, separate from Level 4 &amp; 5.</p>
 
       <TabBar
         tabs={[['revenue', 'Revenue Accounts'], ['payment', 'Payment Accounts'], ['tax', 'Tax Rates']]}
@@ -909,7 +909,7 @@ function XeroSection({ settings, updateSettings }) {
               <select
                 value={form[key] ?? ''}
                 onChange={(e) => set(key)(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-input rounded-md px-3 py-2 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {XERO_ACCOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
@@ -920,7 +920,7 @@ function XeroSection({ settings, updateSettings }) {
       )}
 
       {tab !== 'revenue' && (
-        <div className="py-12 text-center text-sm text-gray-400">
+        <div className="py-12 text-center text-sm text-muted-foreground">
           {tab === 'payment' ? 'Payment account mapping' : 'Tax rate mapping'} — coming with the live Xero connection.
         </div>
       )}
@@ -945,16 +945,16 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-full bg-muted/50">
       {/* Left sidebar */}
-      <aside className="w-56 shrink-0 border-r border-gray-200 bg-white h-full overflow-y-auto">
-        <div className="px-5 py-5 border-b border-gray-100">
-          <h2 className="text-base font-bold text-gray-900">Settings</h2>
+      <aside className="w-56 shrink-0 border-r border-border bg-card h-full overflow-y-auto">
+        <div className="px-5 py-5 border-b border-border">
+          <h2 className="text-base font-bold text-foreground">Settings</h2>
         </div>
         <nav className="py-3">
           {MENU.map(({ section, items }) => (
             <div key={section} className="mb-2">
-              <div className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <div className="px-4 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 {section}
               </div>
               {items.map(({ key, label }) => (
@@ -964,7 +964,7 @@ export default function Settings() {
                   className={`w-full text-left px-4 py-2 text-sm transition-colors ${
                     selectedKey === key
                       ? 'bg-blue-50 text-blue-700 font-medium border-r-2 border-blue-600'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                   }`}
                 >
                   {label}

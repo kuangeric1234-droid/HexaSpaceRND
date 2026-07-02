@@ -4,12 +4,12 @@ import { X, Check, Building2, User, FileText, ClipboardCheck } from 'lucide-reac
 import ContractForm from './ContractForm.jsx'
 
 const today = () => new Date().toISOString().split('T')[0]
-const ic = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black'
+const ic = 'w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
 
 function Field({ label, required, children }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium text-gray-500 mb-1">{label}{required && <span className="text-red-500"> *</span>}</span>
+      <span className="block text-xs font-medium text-muted-foreground mb-1">{label}{required && <span className="text-red-500"> *</span>}</span>
       {children}
     </label>
   )
@@ -104,23 +104,23 @@ export default function SignupWizard({ onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
       <div className="min-h-full flex items-start justify-center p-4 pt-8">
-        <div className="bg-white rounded-md w-full max-w-4xl shadow-2xl">
+        <div className="bg-card rounded-xl w-full max-w-4xl shadow-2xl">
           {/* Header + stepper */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <h2 className="font-semibold text-gray-900">Sign up new company</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <h2 className="font-semibold text-foreground">Sign up new company</h2>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={20} /></button>
           </div>
-          <div className="flex items-center gap-1 px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-1 px-6 py-4 border-b border-border">
             {STEP_META.map((s, i) => {
               const Icon = s.icon
               const done = i < step
               const cur = i === step
               return (
                 <div key={s.key} className="flex items-center gap-1">
-                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${cur ? 'bg-black text-white' : done ? 'text-green-700' : 'text-gray-400'}`}>
+                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${cur ? 'bg-primary text-primary-foreground' : done ? 'text-green-700' : 'text-muted-foreground'}`}>
                     {done ? <Check size={13} /> : <Icon size={13} />} {s.label}
                   </div>
-                  {i < STEP_META.length - 1 && <div className={`w-6 h-px ${done ? 'bg-green-400' : 'bg-gray-200'}`} />}
+                  {i < STEP_META.length - 1 && <div className={`w-6 h-px ${done ? 'bg-green-400' : 'bg-muted'}`} />}
                 </div>
               )
             })}
@@ -141,8 +141,8 @@ export default function SignupWizard({ onClose }) {
                 <Field label="City"><input value={co.city} onChange={(e) => setCo({ ...co, city: e.target.value })} className={ic} /></Field>
                 <Field label="State"><input value={co.state} onChange={(e) => setCo({ ...co, state: e.target.value })} className={ic} /></Field>
               </div>
-              <div className="border-t border-gray-100 pt-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Billing defaults</p>
+              <div className="border-t border-border pt-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Billing defaults</p>
                 <div className="grid grid-cols-3 gap-4">
                   <Field label="Payment method">
                     <select value={co.paymentMethod} onChange={(e) => setCo({ ...co, paymentMethod: e.target.value })} className={ic}>
@@ -154,8 +154,8 @@ export default function SignupWizard({ onClose }) {
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Cancel</button>
-                <button onClick={saveCompany} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">Next: Contact →</button>
+                <button onClick={onClose} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Cancel</button>
+                <button onClick={saveCompany} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90">Next: Contact →</button>
               </div>
             </div>
           )}
@@ -163,7 +163,7 @@ export default function SignupWizard({ onClose }) {
           {/* Step 1 — Contact */}
           {step === 1 && (
             <div className="p-6 space-y-4">
-              <p className="text-sm text-gray-500">Primary contact for <span className="font-medium text-gray-800">{tenant?.businessName}</span>. Their email is used for signing, invoices and the portal invite.</p>
+              <p className="text-sm text-muted-foreground">Primary contact for <span className="font-medium text-foreground">{tenant?.businessName}</span>. Their email is used for signing, invoices and the portal invite.</p>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Full name" required><input value={contact.name} onChange={(e) => setContact({ ...contact, name: e.target.value })} className={ic} /></Field>
                 <Field label="Email" required><input value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} className={ic} /></Field>
@@ -171,14 +171,14 @@ export default function SignupWizard({ onClose }) {
               </div>
               <div className="flex flex-wrap gap-5 pt-1">
                 {[['contactPerson', 'Contact person'], ['billingPerson', 'Billing person'], ['portalAccess', 'Portal access']].map(([k, l]) => (
-                  <label key={k} className="flex items-center gap-2 text-sm text-gray-700">
-                    <input type="checkbox" checked={contact[k]} onChange={(e) => setContact({ ...contact, [k]: e.target.checked })} className="h-4 w-4 rounded border-gray-300" /> {l}
+                  <label key={k} className="flex items-center gap-2 text-sm text-foreground">
+                    <input type="checkbox" checked={contact[k]} onChange={(e) => setContact({ ...contact, [k]: e.target.checked })} className="h-4 w-4 rounded border-input" /> {l}
                   </label>
                 ))}
               </div>
               <div className="flex justify-between gap-3 pt-2">
-                <button onClick={() => { setErr(''); setStep(0) }} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">← Back</button>
-                <button onClick={saveContact} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">Next: Contract →</button>
+                <button onClick={() => { setErr(''); setStep(0) }} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">← Back</button>
+                <button onClick={saveContact} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90">Next: Contract →</button>
               </div>
             </div>
           )}
@@ -204,40 +204,40 @@ export default function SignupWizard({ onClose }) {
                 <Check size={16} /> Company, contact and contract created.
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="border border-gray-200 rounded-md p-4">
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Company</p>
-                  <p className="font-medium text-gray-900">{tenant?.businessName}</p>
-                  <p className="text-gray-500 text-xs mt-1">{contact.name} · {contact.email}</p>
+                <div className="border border-border rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Company</p>
+                  <p className="font-medium text-foreground">{tenant?.businessName}</p>
+                  <p className="text-muted-foreground text-xs mt-1">{contact.name} · {contact.email}</p>
                 </div>
-                <div className="border border-gray-200 rounded-md p-4">
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Contract</p>
-                  <p className="font-medium text-gray-900">{lease?.contractNumber} · {unitName}</p>
-                  <p className="text-gray-500 text-xs mt-1">
+                <div className="border border-border rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Contract</p>
+                  <p className="font-medium text-foreground">{lease?.contractNumber} · {unitName}</p>
+                  <p className="text-muted-foreground text-xs mt-1">
                     {lease?.startDate} – {lease?.endDate || '∞'} · ${Number(lease?.monthlyRent || 0).toLocaleString('en-AU')}/mo
                   </p>
                 </div>
               </div>
 
-              <div className="border border-gray-200 rounded-md p-4">
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Billing</p>
+              <div className="border border-border rounded-xl p-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Billing</p>
                 {depositAmount > 0 ? (
                   depositRaised ? (
                     <p className="text-sm text-green-700 flex items-center gap-2"><Check size={15} /> Security deposit invoice raised — ${depositAmount.toLocaleString('en-AU')} (due in 14 days).</p>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-700">Security deposit: <span className="font-semibold">${depositAmount.toLocaleString('en-AU')}</span></span>
-                      <button onClick={raiseDeposit} className="text-sm bg-black text-white px-3 py-1.5 rounded-md hover:bg-gray-800">Raise deposit invoice</button>
+                      <span className="text-sm text-foreground">Security deposit: <span className="font-semibold">${depositAmount.toLocaleString('en-AU')}</span></span>
+                      <button onClick={raiseDeposit} className="text-sm bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/90">Raise deposit invoice</button>
                     </div>
                   )
                 ) : (
-                  <p className="text-sm text-gray-500">No security deposit on this contract.</p>
+                  <p className="text-sm text-muted-foreground">No security deposit on this contract.</p>
                 )}
-                <p className="text-xs text-gray-400 mt-2">The first monthly invoice is raised automatically by the bill run for the billing period.</p>
+                <p className="text-xs text-muted-foreground mt-2">The first monthly invoice is raised automatically by the bill run for the billing period.</p>
               </div>
 
               <div className="flex justify-between gap-3 pt-1">
-                <button onClick={() => finish(false)} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Finish</button>
-                <button onClick={() => finish(true)} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">Finish & send for signing →</button>
+                <button onClick={() => finish(false)} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Finish</button>
+                <button onClick={() => finish(true)} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90">Finish & send for signing →</button>
               </div>
             </div>
           )}

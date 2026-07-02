@@ -538,15 +538,15 @@ export default function ContractDetail({
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-muted/50">
       {/* Top bar */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shrink-0">
+      <div className="bg-card border-b border-border px-6 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-1.5 text-sm">
           <button onClick={onBack} className="text-blue-600 hover:underline flex items-center gap-1">
             Contracts
           </button>
-          <span className="text-gray-400">/</span>
-          <span className="text-gray-700 font-semibold">{contractNum}</span>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-foreground font-semibold">{contractNum}</span>
         </div>
         <div className="flex items-center gap-2">
           {/* Copy feedback toast */}
@@ -558,15 +558,15 @@ export default function ContractDetail({
           <div className="relative">
             <button
               onClick={() => setShowMenu((v) => !v)}
-              className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50 text-gray-600 font-bold text-sm"
+              className="w-8 h-8 flex items-center justify-center border border-input rounded hover:bg-muted/50 text-foreground font-bold text-sm"
             >
               ...
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-9 bg-white border border-gray-200 rounded-md shadow-lg z-50 w-44 py-1">
+              <div className="absolute right-0 top-9 bg-card border border-border rounded-xl shadow-lg z-50 w-44 py-1">
                 <button
                   onClick={() => { setShowMenu(false); setShowNoticeModal(true) }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/50"
                 >
                   Serve Notice to Vacate
                 </button>
@@ -584,7 +584,7 @@ export default function ContractDetail({
           {isSigned ? (
             <button
               onClick={onRenew}
-              className="border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+              className="border border-input rounded px-3 py-1.5 text-sm text-foreground hover:bg-muted/50"
             >
               Renew
             </button>
@@ -592,21 +592,21 @@ export default function ContractDetail({
             <div className="relative">
               <button
                 onClick={() => setShowSignMenu((v) => !v)}
-                className="flex items-center gap-1.5 border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 font-medium"
+                className="flex items-center gap-1.5 border border-input rounded px-3 py-1.5 text-sm text-foreground hover:bg-muted/50 font-medium"
               >
                 Sign <ChevronDown size={13} />
               </button>
               {showSignMenu && (
-                <div className="absolute right-0 top-9 bg-white border border-gray-200 rounded-md shadow-lg z-50 w-44 py-1">
+                <div className="absolute right-0 top-9 bg-card border border-border rounded-xl shadow-lg z-50 w-44 py-1">
                   <button
                     onClick={handleSendForESign}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/50"
                   >
                     Send for eSign
                   </button>
                   <button
                     onClick={handleMarkAsSigned}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted/50"
                   >
                     Mark as Signed
                   </button>
@@ -649,34 +649,34 @@ export default function ContractDetail({
       <div className="flex-1 overflow-hidden flex">
 
         {/* ── Left panel ── */}
-        <div className="w-72 shrink-0 border-r border-gray-200 bg-white overflow-y-auto p-5">
+        <div className="w-72 shrink-0 border-r border-border bg-card overflow-y-auto p-5">
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-gray-900">{contractNum}</h2>
-            <p className="text-sm text-gray-600 mt-0.5">{lease.documentType ?? 'License Agreement'}</p>
+            <h2 className="text-xl font-bold text-foreground">{contractNum}</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">{lease.documentType ?? 'License Agreement'}</p>
             {lease.createdAt && (
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 Created: {format(parseISO(lease.createdAt), 'dd/MM/yyyy')}
               </p>
             )}
             {tenant?.contactName && (
-              <p className="text-xs text-gray-400">Creator: {tenant.contactName}</p>
+              <p className="text-xs text-muted-foreground">Creator: {tenant.contactName}</p>
             )}
           </div>
 
           {/* Previous contract link */}
           {prevNum && (
-            <div className="mb-4 pb-4 border-b border-gray-100">
-              <p className="text-xs text-gray-500">
+            <div className="mb-4 pb-4 border-b border-border">
+              <p className="text-xs text-muted-foreground">
                 Renewed Contract (Previous):{' '}
                 <span className="text-blue-600 font-medium cursor-pointer hover:underline">{prevNum}</span>
               </p>
             </div>
           )}
 
-          <div className="border-t border-gray-100 pt-4 space-y-4">
+          <div className="border-t border-border pt-4 space-y-4">
             {/* Stage */}
             <div>
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1">
                 <span>▪</span> Stage
               </p>
               <div className="flex flex-wrap gap-1">
@@ -690,7 +690,7 @@ export default function ContractDetail({
 
             {/* Signature Status */}
             <div>
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1">
                 <span>✍</span> Signature Status
               </p>
               {sigMeta ? (
@@ -706,13 +706,13 @@ export default function ContractDetail({
                         {eSignData.licensee_signer_name} signed on {eSignData.licensee_signed_at ? format(parseISO(eSignData.licensee_signed_at), 'dd/MM/yyyy HH:mm') : '—'}
                       </p>
                       {eSignData.licensee_signature_data && (
-                        <div className="border border-orange-200 rounded bg-white p-1 mb-2 inline-block">
+                        <div className="border border-orange-200 rounded bg-card p-1 mb-2 inline-block">
                           <img src={eSignData.licensee_signature_data} alt="Tenant signature" className="h-8 max-w-[140px] object-contain" />
                         </div>
                       )}
                       <button
                         onClick={() => setShowCountersignModal(true)}
-                        className="w-full bg-black text-white text-xs py-1.5 rounded font-semibold hover:bg-gray-800"
+                        className="w-full bg-primary text-primary-foreground text-xs py-1.5 rounded font-semibold hover:bg-primary/90"
                       >
                         Countersign Now →
                       </button>
@@ -723,11 +723,11 @@ export default function ContractDetail({
                     <div className="mt-2 space-y-2">
                       {eSignData?.licensee_signer_name && (
                         <div>
-                          <p className="text-xs font-medium text-gray-500">Licensee</p>
-                          <p className="text-xs text-gray-700">{eSignData.licensee_signer_name}</p>
-                          {eSignData.licensee_signed_at && <p className="text-xs text-gray-400">{format(parseISO(eSignData.licensee_signed_at), 'dd/MM/yyyy HH:mm')}</p>}
+                          <p className="text-xs font-medium text-muted-foreground">Licensee</p>
+                          <p className="text-xs text-foreground">{eSignData.licensee_signer_name}</p>
+                          {eSignData.licensee_signed_at && <p className="text-xs text-muted-foreground">{format(parseISO(eSignData.licensee_signed_at), 'dd/MM/yyyy HH:mm')}</p>}
                           {eSignData.licensee_signature_data && (
-                            <div className="mt-1 border border-gray-200 rounded bg-white p-1 inline-block">
+                            <div className="mt-1 border border-border rounded bg-card p-1 inline-block">
                               <img src={eSignData.licensee_signature_data} alt="Licensee sig" className="h-8 max-w-[140px] object-contain" />
                             </div>
                           )}
@@ -735,11 +735,11 @@ export default function ContractDetail({
                       )}
                       {eSignData?.licensor_signer_name && (
                         <div>
-                          <p className="text-xs font-medium text-gray-500">Licensor</p>
-                          <p className="text-xs text-gray-700">{eSignData.licensor_signer_name}</p>
-                          {eSignData.licensor_signed_at && <p className="text-xs text-gray-400">{format(parseISO(eSignData.licensor_signed_at), 'dd/MM/yyyy HH:mm')}</p>}
+                          <p className="text-xs font-medium text-muted-foreground">Licensor</p>
+                          <p className="text-xs text-foreground">{eSignData.licensor_signer_name}</p>
+                          {eSignData.licensor_signed_at && <p className="text-xs text-muted-foreground">{format(parseISO(eSignData.licensor_signed_at), 'dd/MM/yyyy HH:mm')}</p>}
                           {eSignData.licensor_signature_data && (
-                            <div className="mt-1 border border-gray-200 rounded bg-white p-1 inline-block">
+                            <div className="mt-1 border border-border rounded bg-card p-1 inline-block">
                               <img src={eSignData.licensor_signature_data} alt="Licensor sig" className="h-8 max-w-[140px] object-contain" />
                             </div>
                           )}
@@ -749,7 +749,7 @@ export default function ContractDetail({
                   )}
                   {isOutForSign && (
                     <div className="mt-2">
-                      <p className="text-xs font-medium text-gray-500 mb-1.5">🔗 eSign Links:</p>
+                      <p className="text-xs font-medium text-muted-foreground mb-1.5">🔗 eSign Links:</p>
                       <div className="space-y-1.5">
                         <button
                           onClick={() => copyLink(eSignAdminLink, 'Admin link')}
@@ -765,7 +765,7 @@ export default function ContractDetail({
                         </button>
                       </div>
                       {lease.eSignSentAt && (
-                        <p className="text-xs text-gray-400 mt-1.5">
+                        <p className="text-xs text-muted-foreground mt-1.5">
                           Sent {format(new Date(lease.eSignSentAt), 'dd/MM/yyyy HH:mm')}
                         </p>
                       )}
@@ -773,17 +773,17 @@ export default function ContractDetail({
                   )}
                 </>
               ) : (
-                <span className="text-xs text-gray-400">—</span>
+                <span className="text-xs text-muted-foreground">—</span>
               )}
             </div>
 
-            <div className="border-t border-gray-100 pt-4 space-y-2.5">
+            <div className="border-t border-border pt-4 space-y-2.5">
               {/* Member */}
               <div className="flex items-start gap-2">
-                <span className="text-gray-300 text-xs mt-0.5">👤</span>
+                <span className="text-muted-foreground text-xs mt-0.5">👤</span>
                 <div>
-                  <p className="text-xs font-medium text-gray-500">Member</p>
-                  <p className="text-sm text-gray-800">
+                  <p className="text-xs font-medium text-muted-foreground">Member</p>
+                  <p className="text-sm text-foreground">
                     {lease.memberName || tenant?.contactName || '—'}
                     {tenant?.businessName ? ` at ${tenant.businessName}` : ''}
                   </p>
@@ -792,23 +792,23 @@ export default function ContractDetail({
 
               {/* Location */}
               <div className="flex items-start gap-2">
-                <span className="text-gray-300 text-xs mt-0.5">📍</span>
+                <span className="text-muted-foreground text-xs mt-0.5">📍</span>
                 <div>
-                  <p className="text-xs font-medium text-gray-500">Location</p>
-                  <p className="text-sm text-gray-800">{settings?.billing?.address ?? 'Level 4, 830 Whitehorse Road, Box Hill VIC 3128'}</p>
+                  <p className="text-xs font-medium text-muted-foreground">Location</p>
+                  <p className="text-sm text-foreground">{settings?.billing?.address ?? 'Level 4, 830 Whitehorse Road, Box Hill VIC 3128'}</p>
                 </div>
               </div>
 
               {/* Duration */}
               <div className="flex items-start gap-2">
-                <span className="text-gray-300 text-xs mt-0.5">📅</span>
+                <span className="text-muted-foreground text-xs mt-0.5">📅</span>
                 <div>
-                  <p className="text-xs font-medium text-gray-500">Duration</p>
-                  <p className="text-sm text-gray-800">
+                  <p className="text-xs font-medium text-muted-foreground">Duration</p>
+                  <p className="text-sm text-foreground">
                     {lease.startDate ? format(parseISO(lease.startDate), 'dd/MM/yyyy') : '—'} –{' '}
                     {isMonthToMonth ? '∞' : lease.endDate ? format(parseISO(lease.endDate), 'dd/MM/yyyy') : '—'}
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     Notice: {lease.noticePeriodMonths ?? 1} Month{(lease.noticePeriodMonths ?? 1) !== 1 ? 's' : ''}
                   </p>
                 </div>
@@ -816,10 +816,10 @@ export default function ContractDetail({
 
               {/* Value */}
               <div className="flex items-start gap-2">
-                <span className="text-gray-300 text-xs mt-0.5">💰</span>
+                <span className="text-muted-foreground text-xs mt-0.5">💰</span>
                 <div>
-                  <p className="text-xs font-medium text-gray-500">Value</p>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-xs font-medium text-muted-foreground">Value</p>
+                  <p className="text-sm font-semibold text-foreground">
                     {isMonthToMonth ? 'N/A' : annualValue
                       ? `A$${annualValue.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`
                       : '—'}
@@ -830,15 +830,15 @@ export default function ContractDetail({
 
             {/* Last generated badge */}
             {lease.lastGeneratedAt && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="mt-4 pt-4 border-t border-border">
                 <div className="flex items-start gap-2">
                   <CheckCircle2 size={14} className="text-green-500 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs font-semibold text-green-700">Document Generated</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {format(new Date(lease.lastGeneratedAt), 'dd/MM/yyyy HH:mm')}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{lease.lastGeneratedFile}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{lease.lastGeneratedFile}</p>
                     <button
                       className="mt-2 text-xs text-blue-500 hover:underline font-medium"
                       onClick={() => alert('E-sign integration coming soon.')}
@@ -855,24 +855,24 @@ export default function ContractDetail({
         {/* ── Right panel ── */}
         <div className="flex-1 overflow-y-auto">
           {/* Template toolbar */}
-          <div className="bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between shrink-0">
+          <div className="bg-card border-b border-border px-5 py-3 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500">Template</span>
-              <select className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white focus:outline-none w-52">
+              <span className="text-sm text-muted-foreground">Template</span>
+              <select className="border border-input rounded px-3 py-1.5 text-sm bg-card focus:outline-none w-52">
                 <option>{lease.documentType ?? 'License Agreement'}</option>
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex border border-gray-300 rounded overflow-hidden text-sm">
+              <div className="flex border border-input rounded overflow-hidden text-sm">
                 <button
                   onClick={() => setView('template')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${view === 'template' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${view === 'template' ? 'bg-blue-600 text-white' : 'bg-card text-muted-foreground hover:bg-muted/50'}`}
                 >
                   <FileText size={13} /> Template View
                 </button>
                 <button
                   onClick={() => setView('grid')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 border-l border-gray-300 transition-colors ${view === 'grid' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 border-l border-input transition-colors ${view === 'grid' ? 'bg-blue-600 text-white' : 'bg-card text-muted-foreground hover:bg-muted/50'}`}
                 >
                   <LayoutGrid size={13} /> Grid View
                 </button>
@@ -889,12 +889,12 @@ export default function ContractDetail({
 
           {/* ── Template View ── */}
           {view === 'template' && (
-            <div className="overflow-auto bg-gray-100 flex-1">
+            <div className="overflow-auto bg-muted flex-1">
               <ContractTemplate lease={lease} tenant={tenant} space={space} templates={templates} settings={settings} />
               {attachedTemplates.map((tmpl) => (
-                <div key={tmpl.id} className="bg-white max-w-4xl mx-auto mb-6 px-12 py-10 text-sm text-gray-800 font-sans shadow-sm">
-                  <h2 className="text-base font-bold uppercase tracking-widest text-gray-900 mb-3">{tmpl.name}</h2>
-                  <hr className="border-gray-300 mb-6" />
+                <div key={tmpl.id} className="bg-card max-w-4xl mx-auto mb-6 px-12 py-10 text-sm text-foreground font-sans shadow-sm">
+                  <h2 className="text-base font-bold uppercase tracking-widest text-foreground mb-3">{tmpl.name}</h2>
+                  <hr className="border-border mb-6" />
                   <div
                     style={{ lineHeight: 1.6 }}
                     className="template-html-body"
@@ -933,15 +933,15 @@ export default function ContractDetail({
             )}
 
             {/* ── Resources ── */}
-            <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-100">
-                <h3 className="font-semibold text-gray-800">Resources</h3>
+            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-border">
+                <h3 className="font-semibold text-foreground">Resources</h3>
               </div>
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-100">
+                <thead className="border-b border-border">
                   <tr>
                     {['Resource', 'List Price', 'Deposit', 'Steps', 'Final Price'].map((h) => (
-                      <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                         {h}
                       </th>
                     ))}
@@ -953,24 +953,24 @@ export default function ContractDetail({
                     const resourceName = itemSpace?.unitNumber ?? space?.unitNumber ?? `Resource ${idx + 1}`
                     const resourceSub = itemSpace?.size ?? space?.size ?? ''
                     return (
-                      <tr key={idx} className="border-b border-gray-100 last:border-0">
+                      <tr key={idx} className="border-b border-border last:border-0">
                         <td className="px-5 py-3">
-                          <div className="font-medium text-gray-900">{resourceName}</div>
+                          <div className="font-medium text-foreground">{resourceName}</div>
                           {resourceSub && <div className="text-xs text-blue-500 mt-0.5">{resourceSub}</div>}
                         </td>
                         <td className="px-5 py-3">
                           {(item.steps ?? []).map((step, si) => (
-                            <div key={si} className="text-gray-800">
+                            <div key={si} className="text-foreground">
                               A${Number(step.listPrice ?? 0).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
                             </div>
                           ))}
                         </td>
-                        <td className="px-5 py-3 text-gray-700">
+                        <td className="px-5 py-3 text-foreground">
                           A${Number(item.deposit ?? 0).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
                         </td>
                         <td className="px-5 py-3">
                           {(item.steps ?? []).map((step, si) => (
-                            <div key={si} className="text-gray-600 text-xs">
+                            <div key={si} className="text-muted-foreground text-xs">
                               {step.startDate && step.endDate
                                 ? `${format(parseISO(step.startDate), 'dd/MM/yyyy')} – ${format(parseISO(step.endDate), 'dd/MM/yyyy')}`
                                 : '—'}
@@ -984,7 +984,7 @@ export default function ContractDetail({
                               ? Number(step.listPrice ?? 0) * (1 - disc / 100)
                               : Number(step.listPrice ?? 0)
                             return (
-                              <div key={si} className="text-gray-800 text-right">
+                              <div key={si} className="text-foreground text-right">
                                 A${finalPrice.toLocaleString('en-AU', { minimumFractionDigits: 2 })}
                               </div>
                             )
@@ -998,15 +998,15 @@ export default function ContractDetail({
             </div>
 
             {/* ── Setup Fees ── (shown if notes contain fees or as placeholder) */}
-            <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-100">
-                <h3 className="font-semibold text-gray-800">Setup Fees</h3>
+            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-border">
+                <h3 className="font-semibold text-foreground">Setup Fees</h3>
               </div>
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-100">
+                <thead className="border-b border-border">
                   <tr>
                     {['Setup Fee', 'List Price', 'Quantity', 'Source Plan', 'Final Price'].map((h) => (
-                      <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                         {h}
                       </th>
                     ))}
@@ -1014,7 +1014,7 @@ export default function ContractDetail({
                 </thead>
                 <tbody>
                   <tr>
-                    <td colSpan={5} className="px-5 py-5 text-sm text-gray-400 text-center">
+                    <td colSpan={5} className="px-5 py-5 text-sm text-muted-foreground text-center">
                       No setup fees on this contract.
                     </td>
                   </tr>
@@ -1023,20 +1023,20 @@ export default function ContractDetail({
             </div>
 
             {/* ── Terms & Conditions ── */}
-            <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-100">
-                <h3 className="font-semibold text-gray-800">Terms &amp; Conditions</h3>
+            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-border">
+                <h3 className="font-semibold text-foreground">Terms &amp; Conditions</h3>
               </div>
               <div className="px-5 py-4">
                 {attachedTemplates.length === 0 ? (
-                  <p className="text-sm text-gray-400">No documents attached to this contract.</p>
+                  <p className="text-sm text-muted-foreground">No documents attached to this contract.</p>
                 ) : (
                   <ul className="space-y-1">
                     {attachedTemplates.map((tmpl) => (
                       <li key={tmpl.id} className="flex items-center gap-2 text-sm text-blue-600 hover:underline cursor-pointer">
-                        <span className="text-gray-400">📄</span>
+                        <span className="text-muted-foreground">📄</span>
                         {tmpl.name}
-                        <span className="text-xs text-gray-400">{tmpl.version}</span>
+                        <span className="text-xs text-muted-foreground">{tmpl.version}</span>
                       </li>
                     ))}
                   </ul>
@@ -1046,14 +1046,14 @@ export default function ContractDetail({
 
             {/* Notes (if any) */}
             {lease.notes && (
-              <div className="bg-white border border-gray-200 rounded-md p-5">
-                <h3 className="font-semibold text-gray-800 mb-2">Notes</h3>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap">{lease.notes}</p>
+              <div className="bg-card border border-border rounded-xl shadow-sm p-5">
+                <h3 className="font-semibold text-foreground mb-2">Notes</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{lease.notes}</p>
               </div>
             )}
 
             {/* Documents */}
-            <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
               <DocumentsPanel leaseId={lease.id} tenantId={lease.tenantId} title="Contract Documents" />
             </div>
           </div>
@@ -1072,38 +1072,38 @@ export default function ContractDetail({
       {/* Countersign modal */}
       {showCountersignModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-md w-full max-w-md shadow-2xl">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-bold text-gray-900">Countersign as Licensor</h2>
-              <button onClick={() => setShowCountersignModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+          <div className="bg-card rounded-xl w-full max-w-md shadow-2xl">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+              <h2 className="font-bold text-foreground">Countersign as Licensor</h2>
+              <button onClick={() => setShowCountersignModal(false)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div>
-                <p className="text-xs text-gray-500 mb-3">
+                <p className="text-xs text-muted-foreground mb-3">
                   Tenant <strong>{eSignData?.licensee_signer_name}</strong> has signed. Sign below to fully execute the agreement.
                 </p>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Licensor name</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Licensor name</label>
                 <input
                   type="text"
                   value={licensorName}
                   onChange={(e) => setLicensorName(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                  className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 />
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-gray-600">Signature</label>
-                  <button onClick={() => licensorSigRef.current?.clear()} className="text-xs text-gray-400 hover:text-gray-700 underline">Clear</button>
+                  <label className="text-xs font-medium text-muted-foreground">Signature</label>
+                  <button onClick={() => licensorSigRef.current?.clear()} className="text-xs text-muted-foreground hover:text-foreground underline">Clear</button>
                 </div>
                 <SignatureCanvas ref={licensorSigRef} height={120} />
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
-              <button onClick={() => setShowCountersignModal(false)} className="px-4 py-2 text-sm border border-gray-300 rounded text-gray-600 hover:bg-gray-50">Cancel</button>
+            <div className="px-6 py-4 border-t border-border flex gap-3 justify-end">
+              <button onClick={() => setShowCountersignModal(false)} className="px-4 py-2 text-sm border border-input rounded text-foreground hover:bg-muted/50">Cancel</button>
               <button
                 onClick={handleCountersign}
                 disabled={counterskigning}
-                className="px-4 py-2 text-sm bg-black text-white rounded font-semibold hover:bg-gray-800 disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded font-semibold hover:bg-primary/90 disabled:opacity-50"
               >
                 {counterskigning ? 'Signing…' : 'Sign & Execute'}
               </button>
@@ -1115,41 +1115,41 @@ export default function ContractDetail({
       {/* ── Notice to Vacate Modal ── */}
       {showNoticeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-md w-full max-w-md shadow-2xl">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-bold text-gray-900">Notice to Vacate</h2>
-              <button onClick={() => setShowNoticeModal(false)} className="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
+          <div className="bg-card rounded-xl w-full max-w-md shadow-2xl">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+              <h2 className="font-bold text-foreground">Notice to Vacate</h2>
+              <button onClick={() => setShowNoticeModal(false)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Notice Date</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Notice Date</label>
                 <input type="date" value={noticeForm.noticeDate}
                   onChange={(e) => setNoticeForm((f) => ({ ...f, noticeDate: e.target.value }))}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black" />
+                  className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Expected Vacate Date</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Expected Vacate Date</label>
                 <input type="date" value={noticeForm.vacateDate}
                   onChange={(e) => setNoticeForm((f) => ({ ...f, vacateDate: e.target.value }))}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black" />
+                  className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Notes</label>
                 <textarea value={noticeForm.notes} rows={3}
                   onChange={(e) => setNoticeForm((f) => ({ ...f, notes: e.target.value }))}
                   placeholder="Reason for vacating, condition notes, etc."
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black resize-none" />
+                  className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 resize-none" />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={noticeForm.bondRefunded}
                   onChange={(e) => setNoticeForm((f) => ({ ...f, bondRefunded: e.target.checked }))}
-                  className="h-4 w-4 rounded border-gray-300" />
-                <span className="text-sm text-gray-600">Bond / security deposit has been refunded</span>
+                  className="h-4 w-4 rounded border-input" />
+                <span className="text-sm text-muted-foreground">Bond / security deposit has been refunded</span>
               </label>
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
+            <div className="px-6 py-4 border-t border-border flex gap-3 justify-end">
               <button onClick={() => setShowNoticeModal(false)}
-                className="px-4 py-2 text-sm border border-gray-300 rounded text-gray-600 hover:bg-gray-50">
+                className="px-4 py-2 text-sm border border-input rounded text-foreground hover:bg-muted/50">
                 Cancel
               </button>
               <button
@@ -1163,7 +1163,7 @@ export default function ContractDetail({
                   })
                   setShowNoticeModal(false)
                 }}
-                className="px-4 py-2 text-sm bg-black text-white rounded font-semibold hover:bg-gray-800"
+                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded font-semibold hover:bg-primary/90"
               >
                 Save Notice
               </button>

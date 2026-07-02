@@ -59,11 +59,11 @@ function getStageBadges(lease) {
 function ColHeader({ label, sortKey, currentSort, onSort, filterable = true }) {
   const isActive = currentSort?.key === sortKey
   return (
-    <th className="text-left px-4 py-3 border-b border-gray-200 bg-gray-50">
-      <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+    <th className="text-left px-4 py-3 border-b border-border bg-muted/50">
+      <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
         <button
           onClick={() => sortKey && onSort(sortKey)}
-          className={`flex items-center gap-1 hover:text-gray-800 ${sortKey ? 'cursor-pointer' : 'cursor-default'}`}
+          className={`flex items-center gap-1 hover:text-foreground ${sortKey ? 'cursor-pointer' : 'cursor-default'}`}
         >
           {label}
           {sortKey && (
@@ -276,12 +276,12 @@ export default function Leases() {
   const paged = sorted.slice((safePage - 1) * perPage, safePage * perPage)
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-card">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
-        <h1 className="text-xl font-semibold text-gray-900">Contracts</h1>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+        <h1 className="text-xl font-semibold text-foreground">Contracts</h1>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
+          <button className="flex items-center gap-1.5 border border-input rounded px-3 py-1.5 text-sm text-foreground hover:bg-muted/50">
             <Settings size={13} /> Settings
           </button>
           <button
@@ -294,7 +294,7 @@ export default function Leases() {
       </div>
 
       {/* Sort info */}
-      <div className="px-6 py-1.5 text-xs text-gray-400 text-right border-b border-gray-100 shrink-0">
+      <div className="px-6 py-1.5 text-xs text-muted-foreground text-right border-b border-border shrink-0">
         Sorted By: {sort.key === 'contractNumber' ? 'Number' : 'Period'} -{' '}
         {sort.dir === 'desc' ? 'Descending' : 'Ascending'}
       </div>
@@ -310,7 +310,7 @@ export default function Leases() {
               <ColHeader label="Signature Status" currentSort={sort} onSort={handleSort} />
               <ColHeader label="Company" currentSort={sort} onSort={handleSort} />
               <ColHeader label="Period" sortKey="startDate" currentSort={sort} onSort={handleSort} />
-              <th className="text-right px-4 py-3 border-b border-gray-200 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <th className="text-right px-4 py-3 border-b border-border bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Value
               </th>
             </tr>
@@ -318,7 +318,7 @@ export default function Leases() {
           <tbody>
             {paged.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-400 text-sm">
+                <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground text-sm">
                   No contracts.{' '}
                   <button onClick={handleNew} className="text-blue-600 hover:underline">
                     Create the first one
@@ -340,7 +340,7 @@ export default function Leases() {
                 <tr
                   key={lease.id}
                   onClick={() => handleRowClick(lease)}
-                  className="border-b border-gray-100 hover:bg-blue-50/30 cursor-pointer transition-colors"
+                  className="border-b border-border hover:bg-blue-50/30 cursor-pointer transition-colors"
                 >
                   {/* NUMBER */}
                   <td className="px-4 py-3 align-top">
@@ -352,14 +352,14 @@ export default function Leases() {
                             e.stopPropagation()
                             setOpenGearId((id) => (id === lease.id ? null : lease.id))
                           }}
-                          className="text-gray-400 hover:text-gray-700 p-0.5 rounded hover:bg-gray-100"
+                          className="text-muted-foreground hover:text-foreground p-0.5 rounded hover:bg-muted"
                         >
                           <Settings2 size={13} />
                         </button>
 
                         {openGearId === lease.id && (
                           <div
-                            className="absolute left-0 top-6 bg-white border border-gray-200 rounded-md shadow-lg z-50 w-44 py-1"
+                            className="absolute left-0 top-6 bg-card border border-border rounded-xl shadow-lg z-50 w-44 py-1"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {[
@@ -372,8 +372,8 @@ export default function Leases() {
                               <button
                                 key={action}
                                 onClick={(e) => handleGearAction(e, action, lease)}
-                                className={`w-full flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-gray-50 ${
-                                  danger ? 'text-red-600 hover:bg-red-50' : 'text-gray-700'
+                                className={`w-full flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted/50 ${
+                                  danger ? 'text-red-600 hover:bg-red-50' : 'text-foreground'
                                 }`}
                               >
                                 <span className="text-xs w-4 text-center">{icon}</span>
@@ -390,13 +390,13 @@ export default function Leases() {
                   <td className="px-4 py-3 align-top">
                     <div className="text-blue-600 text-sm font-medium hover:underline">{docType}</div>
                     {tenant?.contactName && (
-                      <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
-                        <span className="text-gray-300">👤</span>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                        <span className="text-muted-foreground">👤</span>
                         {tenant.contactName}
                       </div>
                     )}
-                    <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
-                      <span className="text-gray-300">📅</span>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                      <span className="text-muted-foreground">📅</span>
                       {lease.createdAt ? format(parseISO(lease.createdAt), 'dd/MM/yyyy') : '—'}
                     </div>
                   </td>
@@ -420,35 +420,35 @@ export default function Leases() {
                           {sigMeta.label}
                         </span>
                         {tenant?.contactName && (
-                          <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                            <span className="text-gray-300">✍</span>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                            <span className="text-muted-foreground">✍</span>
                             {tenant.contactName}
                           </div>
                         )}
                         {lease.startDate && (
-                          <div className="text-xs text-gray-400 mt-0.5">
+                          <div className="text-xs text-muted-foreground mt-0.5">
                             📅 {format(parseISO(lease.startDate), 'dd/MM/yyyy')}
                           </div>
                         )}
                       </>
                     ) : (
-                      <span className="text-xs text-gray-300">—</span>
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </td>
 
                   {/* COMPANY */}
                   <td className="px-4 py-3 align-top">
-                    <div className="font-medium text-gray-900 text-sm leading-tight">
+                    <div className="font-medium text-foreground text-sm leading-tight">
                       {tenant?.businessName ?? '—'}
                     </div>
                     {tenant?.contactName && (
-                      <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
-                        <span className="text-gray-300">👤</span>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                        <span className="text-muted-foreground">👤</span>
                         {tenant.contactName}
                       </div>
                     )}
-                    <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
-                      <span className="text-gray-300">📍</span>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                      <span className="text-muted-foreground">📍</span>
                       Found Huntingdale
                     </div>
                   </td>
@@ -456,27 +456,27 @@ export default function Leases() {
                   {/* PERIOD */}
                   <td className="px-4 py-3 align-top">
                     {lease.startDate && (
-                      <div className="text-sm text-gray-800">
+                      <div className="text-sm text-foreground">
                         {format(parseISO(lease.startDate), 'dd/MM/yyyy')} –{' '}
                         {isMonthToMonth ? '∞' : lease.endDate ? format(parseISO(lease.endDate), 'dd/MM/yyyy') : '—'}
                       </div>
                     )}
-                    <div className="text-xs text-gray-400 mt-0.5">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       ⏰ {lease.noticePeriodMonths ?? 1} month{(lease.noticePeriodMonths ?? 1) !== 1 ? 's' : ''} notice
                     </div>
-                    <div className="text-xs text-gray-400 mt-0.5">Rolling Stage: Disabled</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Rolling Stage: Disabled</div>
                   </td>
 
                   {/* VALUE */}
                   <td className="px-4 py-3 align-top text-right">
                     {isMonthToMonth ? (
-                      <span className="text-sm text-gray-400">N/A</span>
+                      <span className="text-sm text-muted-foreground">N/A</span>
                     ) : annualValue ? (
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-foreground">
                         A${annualValue.toLocaleString('en-AU', { minimumFractionDigits: 2 })}
                       </span>
                     ) : (
-                      <span className="text-sm text-gray-400">—</span>
+                      <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </td>
                 </tr>
@@ -487,13 +487,13 @@ export default function Leases() {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white shrink-0 text-sm text-gray-500">
+      <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-card shrink-0 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
           <span>Items per page:</span>
           <select
             value={perPage}
             onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1) }}
-            className="border border-gray-300 rounded px-2 py-1 text-sm bg-white focus:outline-none"
+            className="border border-input rounded px-2 py-1 text-sm bg-card focus:outline-none"
           >
             {ITEMS_PER_PAGE_OPTIONS.map((n) => (
               <option key={n} value={n}>{n}</option>
@@ -508,14 +508,14 @@ export default function Leases() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage === 1}
-              className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-7 h-7 flex items-center justify-center border border-input rounded hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               &lt;
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage === totalPages}
-              className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-7 h-7 flex items-center justify-center border border-input rounded hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               &gt;
             </button>
@@ -570,13 +570,13 @@ function TerminateModal({ lease, reasons, onConfirm, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-md w-full max-w-md shadow-2xl">
+      <div className="bg-card rounded-xl w-full max-w-md shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <h2 className="font-semibold text-foreground">
             Terminate Contract — {contractNum}?
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             ✕
           </button>
         </div>
@@ -584,23 +584,23 @@ function TerminateModal({ lease, reasons, onConfirm, onClose }) {
         {/* Form */}
         <div className="px-5 py-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               Termination Date <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Reason</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Reason</label>
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-input rounded px-3 py-2 text-sm bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             >
               {allReasons.map((r) => (
                 <option key={r} value={r}>{r}</option>
@@ -609,22 +609,22 @@ function TerminateModal({ lease, reasons, onConfirm, onClose }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Comments</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Comments</label>
             <textarea
               rows={3}
               value={comments}
               onChange={(e) => setComments(e.target.value)}
               placeholder="Comments"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 resize-none"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200">
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-border">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+            className="px-4 py-2 text-sm text-foreground border border-input rounded hover:bg-muted/50"
           >
             Cancel
           </button>

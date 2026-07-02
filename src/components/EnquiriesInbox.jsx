@@ -8,7 +8,7 @@ const SOURCE_BADGE = {
   referral: 'bg-purple-50 text-purple-700',
   'walk-in': 'bg-amber-50 text-amber-700',
   phone:    'bg-green-50 text-green-700',
-  email:    'bg-gray-100 text-gray-600',
+  email:    'bg-muted text-muted-foreground',
   'book-tour': 'bg-orange-50 text-orange-700',
 }
 
@@ -39,10 +39,10 @@ export default function EnquiriesInbox({ store }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-4">
-        <div className="flex gap-1 bg-gray-100 rounded-md p-0.5">
+        <div className="flex gap-1 bg-muted rounded-md p-0.5">
           {['all', 'unread'].map((f) => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 text-sm font-medium rounded capitalize transition-colors ${filter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              className={`px-3 py-1.5 text-sm font-medium rounded capitalize transition-colors ${filter === f ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
               {f === 'all' ? `All (${leads.length})` : `Unread (${unread})`}
             </button>
           ))}
@@ -50,15 +50,15 @@ export default function EnquiriesInbox({ store }) {
       </div>
 
       {rows.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-md p-12 text-center text-gray-400">
-          <Inbox size={26} className="mx-auto mb-2 text-gray-300" />
+        <div className="bg-card border border-border rounded-xl shadow-sm p-12 text-center text-muted-foreground">
+          <Inbox size={26} className="mx-auto mb-2 text-muted-foreground" />
           <p className="text-sm">No enquiries yet. Submissions from hexaspace.com.au land here.</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wide">
+              <tr className="bg-muted/50 text-left text-xs text-muted-foreground uppercase tracking-wide">
                 <th className="px-4 py-2.5 font-medium">Date</th>
                 <th className="px-4 py-2.5 font-medium">Name</th>
                 <th className="px-4 py-2.5 font-medium">Enquiring about</th>
@@ -67,7 +67,7 @@ export default function EnquiriesInbox({ store }) {
                 <th className="px-4 py-2.5 font-medium text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border">
               {rows.map((lead) => {
                 // What they're enquiring about — the structured interest from the
                 // website (e.g. "Virtual Office", "Private Office"); tours show
@@ -79,32 +79,32 @@ export default function EnquiriesInbox({ store }) {
                 const converted = lead.tenantId
                 return (
                   <tr key={lead.id} onClick={() => openDetail(lead)}
-                    className={`cursor-pointer hover:bg-gray-50 ${!lead.read ? 'bg-blue-50/40' : ''}`}>
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                    className={`cursor-pointer hover:bg-muted/50 ${!lead.read ? 'bg-blue-50/40' : ''}`}>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                       <span className="flex items-center gap-2">
                         {!lead.read && <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />}
                         {fmt(lead.createdAt)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className={`${!lead.read ? 'font-semibold' : 'font-medium'} text-gray-900 hover:underline`}>{lead.name || '—'}</div>
-                      {lead.businessName && <div className="text-xs text-gray-400">{lead.businessName}</div>}
+                      <div className={`${!lead.read ? 'font-semibold' : 'font-medium'} text-foreground hover:underline`}>{lead.name || '—'}</div>
+                      {lead.businessName && <div className="text-xs text-muted-foreground">{lead.businessName}</div>}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{about || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{about || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded capitalize ${SOURCE_BADGE[lead.source] ?? 'bg-gray-100 text-gray-600'}`}>{lead.source ?? '—'}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded capitalize ${SOURCE_BADGE[lead.source] ?? 'bg-muted text-muted-foreground'}`}>{lead.source ?? '—'}</span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{stageName(lead.stageId)}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{stageName(lead.stageId)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         {converted ? (
                           <span className="flex items-center gap-1 text-xs text-green-600 font-medium"><CheckCircle2 size={12} /> Tenant</span>
                         ) : (
                           <button onClick={() => convertLeadToTenant(lead.id)} title="Convert to tenant"
-                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-black"><UserPlus size={14} /></button>
+                            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"><UserPlus size={14} /></button>
                         )}
                         <button onClick={() => { if (window.confirm('Delete this enquiry?')) deleteLead(lead.id) }} title="Delete"
-                          className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                          className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>

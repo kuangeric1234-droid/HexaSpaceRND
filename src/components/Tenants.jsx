@@ -82,29 +82,29 @@ export default function Tenants() {
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-2xl font-bold text-gray-900">Companies</h1>
+        <h1 className="text-2xl font-bold text-foreground">Companies</h1>
         <div className="flex items-center gap-2">
           <BulkPortalInviteButton tenants={tenants} />
-          <button onClick={openAdd} className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50">
+          <button onClick={openAdd} className="flex items-center gap-2 border border-input text-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-muted/50">
             <Plus size={15} /> Add Company
           </button>
-          <button onClick={() => setShowWizard(true)} className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800">
+          <button onClick={() => setShowWizard(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90">
             <UserPlus size={15} /> Sign up company
           </button>
         </div>
       </div>
-      <p className="text-sm text-gray-500 mb-5">{tenants.length} companies</p>
+      <p className="text-sm text-muted-foreground mb-5">{tenants.length} companies</p>
 
       <input type="text" placeholder="Search companies…" value={search} onChange={(e) => setSearch(e.target.value)}
-        className="w-full max-w-sm border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black mb-4" />
+        className="w-full max-w-sm border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 mb-4" />
 
-      <div className="flex border border-gray-200 rounded-md overflow-hidden w-fit mb-5">
+      <div className="flex border border-border rounded-md overflow-hidden w-fit mb-5">
         {STATUS_TABS.map(([key, label]) => (
           <button
             key={key}
             onClick={() => setStatusFilter(key)}
-            className={`px-4 py-1.5 text-sm border-l first:border-l-0 border-gray-200 transition-colors ${
-              statusFilter === key ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+            className={`px-4 py-1.5 text-sm border-l first:border-l-0 border-border transition-colors ${
+              statusFilter === key ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted/50'
             }`}
           >
             {label}
@@ -112,41 +112,41 @@ export default function Tenants() {
         ))}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-muted/50 border-b border-border">
             <tr>
               {['Name', 'Location', 'Email', 'Status', 'Start Date', 'Active Memberships', 'Members', ''].map((h) => (
-                <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400 text-sm">No companies found.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground text-sm">No companies found.</td></tr>
             )}
             {filtered.map((t) => {
               const al = activeLeases(t.id)
               const derivedStatus = statusOf(t)
               return (
-                <tr key={t.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedTenant(t)}>
+                <tr key={t.id} className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer" onClick={() => setSelectedTenant(t)}>
                   <td className="px-4 py-3 font-medium text-blue-700 hover:underline">{t.businessName}</td>
-                  <td className="px-4 py-3 text-gray-500">Hexa Space</td>
-                  <td className="px-4 py-3 text-gray-600">{t.email}</td>
+                  <td className="px-4 py-3 text-muted-foreground">Hexa Space</td>
+                  <td className="px-4 py-3 text-muted-foreground">{t.email}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded ${STATUS_STYLE[derivedStatus] || 'bg-green-100 text-green-800'}`}>{derivedStatus}</span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{t.startDate ? format(parseISO(t.startDate), 'dd/MM/yyyy') : (t.createdAt ? format(parseISO(t.createdAt), 'dd/MM/yyyy') : '—')}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">
-                    {al.length === 0 ? <span className="text-gray-300">—</span> : al.map((l) => (
+                  <td className="px-4 py-3 text-muted-foreground">{t.startDate ? format(parseISO(t.startDate), 'dd/MM/yyyy') : (t.createdAt ? format(parseISO(t.createdAt), 'dd/MM/yyyy') : '—')}</td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">
+                    {al.length === 0 ? <span className="text-muted-foreground">—</span> : al.map((l) => (
                       <div key={l.id}>{spaceName(l.spaceId) || 'Membership'}{l.monthlyRent != null ? ` · A$${Number(l.monthlyRent).toLocaleString('en-AU')}` : ''}</div>
                     ))}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{t.contactName || t.email ? 1 : 0}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{t.contactName || t.email ? 1 : 0}</td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-2 justify-end">
-                      <button onClick={() => openEdit(t)} className="p-1.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-900"><Pencil size={14} /></button>
-                      <button onClick={() => handleDelete(t.id)} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                      <button onClick={() => openEdit(t)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"><Pencil size={14} /></button>
+                      <button onClick={() => handleDelete(t.id)} className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -164,12 +164,12 @@ export default function Tenants() {
 
 // ── Add/Edit Company modal — General / Address / Billing tabs (OfficeRND-style) ──
 const TABS = ['General', 'Address', 'Billing']
-const inputCls = 'w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black'
+const inputCls = 'w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
 
 function Field({ label, children, required }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium text-gray-600 mb-1">{label}{required && <span className="text-red-500"> *</span>}</span>
+      <span className="block text-xs font-medium text-muted-foreground mb-1">{label}{required && <span className="text-red-500"> *</span>}</span>
       {children}
     </label>
   )
@@ -182,14 +182,14 @@ function CompanyModal({ open, editId, form, setForm, onClose, onSubmit }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-md w-full max-w-lg shadow-xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">{editId ? 'Edit Company' : 'Add Company'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+      <div className="bg-card rounded-xl w-full max-w-lg shadow-xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="font-semibold text-foreground">{editId ? 'Edit Company' : 'Add Company'}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
         </div>
-        <div className="flex gap-5 px-6 pt-3 border-b border-gray-200">
+        <div className="flex gap-5 px-6 pt-3 border-b border-border">
           {TABS.map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`pb-2 text-sm border-b-2 -mb-px ${tab === t ? 'border-black text-black font-medium' : 'border-transparent text-gray-400 hover:text-gray-700'}`}>{t}</button>
+            <button key={t} onClick={() => setTab(t)} className={`pb-2 text-sm border-b-2 -mb-px ${tab === t ? 'border-primary text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>{t}</button>
           ))}
         </div>
 
@@ -246,9 +246,9 @@ function CompanyModal({ open, editId, form, setForm, onClose, onSubmit }) {
           )}
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Close</button>
-          <button type="button" onClick={() => { if (!form.businessName) { setTab('General'); return } onSubmit() }} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">{editId ? 'Save' : 'Add'}</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-border">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Close</button>
+          <button type="button" onClick={() => { if (!form.businessName) { setTab('General'); return } onSubmit() }} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90">{editId ? 'Save' : 'Add'}</button>
         </div>
       </div>
     </div>
@@ -280,22 +280,22 @@ function BulkPortalInviteButton({ tenants }) {
 
   return (
     <>
-      <button onClick={run} disabled={running} className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50 disabled:opacity-50">
+      <button onClick={run} disabled={running} className="flex items-center gap-2 border border-input text-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-muted/50 disabled:opacity-50">
         {running ? 'Checking…' : '✉ Bulk Portal Invite'}
       </button>
       {result && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Bulk Portal Invite — Done</h3>
+          <div className="bg-card rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 className="font-bold text-foreground mb-4">Bulk Portal Invite — Done</h3>
             <div className="space-y-3 text-sm">
               {result.invited.length > 0 ? (
-                <div><div className="font-medium text-green-700 mb-1">✓ {result.invited.length} invite(s) sent</div>{result.invited.map((n) => <div key={n} className="text-gray-600 pl-3">{n}</div>)}</div>
-              ) : result.failed.length === 0 && <p className="text-gray-500">No new companies to invite.</p>}
-              {result.alreadyActive > 0 && <div className="text-gray-400">— {result.alreadyActive} already active</div>}
-              {result.alreadyInvited > 0 && <div className="text-gray-400">— {result.alreadyInvited} already invited</div>}
+                <div><div className="font-medium text-green-700 mb-1">✓ {result.invited.length} invite(s) sent</div>{result.invited.map((n) => <div key={n} className="text-muted-foreground pl-3">{n}</div>)}</div>
+              ) : result.failed.length === 0 && <p className="text-muted-foreground">No new companies to invite.</p>}
+              {result.alreadyActive > 0 && <div className="text-muted-foreground">— {result.alreadyActive} already active</div>}
+              {result.alreadyInvited > 0 && <div className="text-muted-foreground">— {result.alreadyInvited} already invited</div>}
               {result.failed.length > 0 && <div><div className="font-medium text-red-600 mb-1">✗ {result.failed.length} failed</div>{result.failed.map((n) => <div key={n} className="text-red-500 pl-3">{n}</div>)}</div>}
             </div>
-            <button onClick={() => setResult(null)} className="mt-5 w-full bg-black text-white text-sm font-semibold py-2 rounded hover:bg-gray-800">Done</button>
+            <button onClick={() => setResult(null)} className="mt-5 w-full bg-primary text-primary-foreground text-sm font-semibold py-2 rounded hover:bg-primary/90">Done</button>
           </div>
         </div>
       )}

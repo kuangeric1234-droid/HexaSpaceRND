@@ -80,65 +80,65 @@ export default function AssignableResourceTab({ ctx, config }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           {items.length} {noun.toLowerCase()}{items.length === 1 ? '' : 's'} · {assigned} assigned · {items.length - assigned} available
         </p>
-        <button onClick={openNew} className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800">
+        <button onClick={openNew} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90">
           <Plus size={15} /> Add {noun}
         </button>
       </div>
-      {note && <p className="text-xs text-gray-400 mb-4">{note}</p>}
+      {note && <p className="text-xs text-muted-foreground mb-4">{note}</p>}
       {!note && <div className="mb-4" />}
 
-      <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-muted/50 border-b border-border">
             <tr>
               {[noun, 'Floor', rateLabel && rateLabel, 'Assigned to', 'Status', ''].filter((h) => h !== '' && h != null).map((h, i) => (
-                <th key={i} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                <th key={i} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {items.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">No {noun.toLowerCase()}s yet.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">No {noun.toLowerCase()}s yet.</td></tr>
             )}
             {items.map((s) => {
               const a = assignmentFor(s, members, tenants)
               return (
-                <tr key={s.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/50">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">{s.unitNumber}</div>
-                    {s.size && <div className="text-xs text-gray-400">{s.size}</div>}
+                    <div className="font-medium text-foreground">{s.unitNumber}</div>
+                    {s.size && <div className="text-xs text-muted-foreground">{s.size}</div>}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{floorLabel(s.floor)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{floorLabel(s.floor)}</td>
                   {rateLabel && (
-                    <td className="px-4 py-3 font-medium text-gray-900">
+                    <td className="px-4 py-3 font-medium text-foreground">
                       {(s.rate ?? s.monthlyRate) ? `${money(s.rate ?? s.monthlyRate)}${ratePer}` : 'Free'}
                     </td>
                   )}
                   <td className="px-4 py-3">
                     {a ? (
                       <div>
-                        <div className="text-gray-900">{a.name}</div>
-                        {a.company && <div className="text-xs text-gray-400">{a.company}</div>}
+                        <div className="text-foreground">{a.name}</div>
+                        {a.company && <div className="text-xs text-muted-foreground">{a.company}</div>}
                       </div>
-                    ) : <span className="text-gray-400">Unassigned</span>}
+                    ) : <span className="text-muted-foreground">Unassigned</span>}
                   </td>
                   <td className="px-4 py-3"><StatusPill status={s.status} /></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
                       {s.assignedMemberId ? (
-                        <button onClick={() => unassign(s)} title="Unassign" className="flex items-center gap-1 text-xs text-gray-600 border border-gray-200 px-2.5 py-1.5 rounded-md hover:bg-gray-50">
+                        <button onClick={() => unassign(s)} title="Unassign" className="flex items-center gap-1 text-xs text-foreground border border-input px-2.5 py-1.5 rounded-md hover:bg-muted/50">
                           <UserMinus size={12} /> Unassign
                         </button>
                       ) : (
-                        <button onClick={() => { setAssignFor(s); setAssignMember('') }} className="flex items-center gap-1 text-xs text-white bg-black hover:bg-gray-800 px-2.5 py-1.5 rounded-md font-medium">
+                        <button onClick={() => { setAssignFor(s); setAssignMember('') }} className="flex items-center gap-1 text-xs text-primary-foreground bg-primary hover:bg-primary/90 px-2.5 py-1.5 rounded-md font-medium">
                           <UserPlus size={12} /> Assign
                         </button>
                       )}
-                      <button onClick={() => openEdit(s)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-900"><Pencil size={14} /></button>
-                      <button onClick={() => { if (confirm(`Delete this ${noun.toLowerCase()}?`)) deleteSpace(s.id) }} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                      <button onClick={() => openEdit(s)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"><Pencil size={14} /></button>
+                      <button onClick={() => { if (confirm(`Delete this ${noun.toLowerCase()}?`)) deleteSpace(s.id) }} className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -163,8 +163,8 @@ export default function AssignableResourceTab({ ctx, config }) {
             </div>
             <Field label="Notes"><textarea rows={2} value={form.attributes} onChange={(e) => setForm({ ...form, attributes: e.target.value })} className={`${ic} resize-none`} /></Field>
             <div className="flex justify-end gap-3 pt-1">
-              <button onClick={() => setEditId(undefined)} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Cancel</button>
-              <button onClick={save} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">{editId ? 'Save' : `Add ${noun}`}</button>
+              <button onClick={() => setEditId(undefined)} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Cancel</button>
+              <button onClick={save} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90">{editId ? 'Save' : `Add ${noun}`}</button>
             </div>
           </div>
         </Modal>
@@ -179,10 +179,10 @@ export default function AssignableResourceTab({ ctx, config }) {
                 {memberOpts.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>
             </Field>
-            <p className="text-xs text-gray-400">Assigning sets this {noun.toLowerCase()} to occupied and records which member it belongs to.</p>
+            <p className="text-xs text-muted-foreground">Assigning sets this {noun.toLowerCase()} to occupied and records which member it belongs to.</p>
             <div className="flex justify-end gap-3 pt-1">
-              <button onClick={() => setAssignFor(null)} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Cancel</button>
-              <button onClick={doAssign} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">Save</button>
+              <button onClick={() => setAssignFor(null)} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Cancel</button>
+              <button onClick={doAssign} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90">Save</button>
             </div>
           </div>
         </Modal>

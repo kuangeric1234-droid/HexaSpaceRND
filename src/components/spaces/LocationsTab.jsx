@@ -19,19 +19,19 @@ export default function LocationsTab({ ctx }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
-        <p className="text-sm text-gray-500">
-          One location — <span className="font-medium text-gray-700">830 Whitehorse Road, Box Hill VIC 3128</span> · {FLOORS.length} floors
+        <p className="text-sm text-muted-foreground">
+          One location — <span className="font-medium text-foreground">830 Whitehorse Road, Box Hill VIC 3128</span> · {FLOORS.length} floors
         </p>
-        <div className="flex border border-gray-200 rounded-md overflow-hidden">
+        <div className="flex border border-border rounded-md overflow-hidden">
           <button
             onClick={() => setView('floors')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm ${view === 'floors' ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm ${view === 'floors' ? 'bg-black text-white' : 'bg-card text-muted-foreground hover:bg-muted/50'}`}
           >
             <LayoutGrid size={14} /> Floors
           </button>
           <button
             onClick={() => setView('plan')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm border-l border-gray-200 ${view === 'plan' ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm border-l border-border ${view === 'plan' ? 'bg-black text-white' : 'bg-card text-muted-foreground hover:bg-muted/50'}`}
           >
             <Map size={14} /> Floorplan
           </button>
@@ -49,33 +49,33 @@ export default function LocationsTab({ ctx }) {
               return acc
             }, {})
             return (
-              <div key={f.id} className="bg-white border border-gray-200 rounded-md p-5">
+              <div key={f.id} className="bg-card border border-border rounded-xl shadow-sm p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Building size={18} className="text-gray-400" />
-                  <span className="text-lg font-bold text-gray-900">{f.label}</span>
+                  <Building size={18} className="text-muted-foreground" />
+                  <span className="text-lg font-bold text-foreground">{f.label}</span>
                 </div>
                 <div className="flex items-baseline gap-4 mb-4">
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">{onFloor.length}</div>
-                    <div className="text-xs text-gray-400">spaces</div>
+                    <div className="text-2xl font-bold text-foreground">{onFloor.length}</div>
+                    <div className="text-xs text-muted-foreground">spaces</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">{occupied}</div>
-                    <div className="text-xs text-gray-400">occupied</div>
+                    <div className="text-2xl font-bold text-foreground">{occupied}</div>
+                    <div className="text-xs text-muted-foreground">occupied</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-green-700">{onFloor.length - occupied}</div>
-                    <div className="text-xs text-gray-400">available</div>
+                    <div className="text-xs text-muted-foreground">available</div>
                   </div>
                 </div>
                 {Object.keys(byType).length === 0 ? (
-                  <p className="text-xs text-gray-400">No private offices on this floor.</p>
+                  <p className="text-xs text-muted-foreground">No private offices on this floor.</p>
                 ) : (
-                  <div className="space-y-1 border-t border-gray-100 pt-3">
+                  <div className="space-y-1 border-t border-border pt-3">
                     {Object.entries(byType).map(([t, n]) => (
                       <div key={t} className="flex justify-between text-sm">
-                        <span className="text-gray-500">{typeLabel(t)}</span>
-                        <span className="text-gray-900 font-medium">{n}</span>
+                        <span className="text-muted-foreground">{typeLabel(t)}</span>
+                        <span className="text-foreground font-medium">{n}</span>
                       </div>
                     ))}
                   </div>
@@ -85,10 +85,10 @@ export default function LocationsTab({ ctx }) {
           })}
           {/* Unassigned bucket — private offices only */}
           {spaces.some((s) => !s.floor && s.type === 'office') && (
-            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-md p-5">
-              <div className="text-sm font-semibold text-gray-600 mb-1">Unassigned</div>
-              <div className="text-2xl font-bold text-gray-900">{spaces.filter((s) => !s.floor && s.type === 'office').length}</div>
-              <p className="text-xs text-gray-400 mt-1">
+            <div className="bg-muted/50 border border-dashed border-border rounded-xl p-5">
+              <div className="text-sm font-semibold text-muted-foreground mb-1">Unassigned</div>
+              <div className="text-2xl font-bold text-foreground">{spaces.filter((s) => !s.floor && s.type === 'office').length}</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 Offices not yet pinned to a floor. Drop them onto a floor in the Floorplan view.
               </p>
             </div>

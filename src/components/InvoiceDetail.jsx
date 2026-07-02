@@ -354,29 +354,29 @@ export default function InvoiceDetail({
 
   return (
     <>
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-muted/50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-4 shrink-0">
+      <div className="bg-card border-b border-border px-8 py-4 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900">
+            <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft size={15} /> Billing &amp; Products
             </button>
-            <span className="text-gray-300">/</span>
-            <span className="text-sm font-semibold text-gray-800">{invoice.number}</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-sm font-semibold text-foreground">{invoice.number}</span>
           </div>
           <div className="flex items-center gap-2">
             {invoice.status !== 'voided' && (invoice.lineItems ?? []).length > 0 && (
               <button
                 onClick={() => { setDetachSelected([]); setShowDetach(true) }}
-                className="flex items-center gap-1.5 text-xs border border-gray-300 rounded px-3 py-1.5 hover:bg-gray-50 text-gray-600 font-medium"
+                className="flex items-center gap-1.5 text-xs border border-input rounded px-3 py-1.5 hover:bg-muted/50 text-foreground font-medium"
               >
                 Detach
               </button>
             )}
             <button
               onClick={() => onUpdate(invoice.id, { xeroSync: !invoice.xeroSync })}
-              className="flex items-center gap-1.5 text-xs border border-gray-300 rounded px-3 py-1.5 hover:bg-gray-50 text-gray-600"
+              className="flex items-center gap-1.5 text-xs border border-input rounded px-3 py-1.5 hover:bg-muted/50 text-foreground"
             >
               {invoice.xeroSync ? <ToggleRight size={14} className="text-blue-600" /> : <ToggleLeft size={14} />}
               Sync
@@ -411,7 +411,7 @@ export default function InvoiceDetail({
               </button>
             )}
             <button onClick={handleCreditNote}
-              className="flex items-center gap-1.5 text-xs border border-gray-300 rounded px-3 py-1.5 hover:bg-gray-50 text-gray-600">
+              className="flex items-center gap-1.5 text-xs border border-input rounded px-3 py-1.5 hover:bg-muted/50 text-foreground">
               <FileMinus size={13} /> Credit Note
             </button>
             <button onClick={generatePDF}
@@ -427,10 +427,10 @@ export default function InvoiceDetail({
         <div className="flex gap-6">
           {/* Left: Invoice metadata */}
           <div className="w-72 shrink-0 space-y-4">
-            <div className="bg-white border border-gray-200 rounded-md p-5">
+            <div className="bg-card border border-border rounded-xl shadow-sm p-5">
               <div className="mb-4">
-                <div className="text-xl font-bold text-gray-900">{invoice.number}</div>
-                <div className="text-xs text-gray-400 mt-0.5">
+                <div className="text-xl font-bold text-foreground">{invoice.number}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
                   {invoice.issueDate ? format(parseISO(invoice.issueDate), 'dd MMM yyyy') : '—'}
                   {invoice.createdAt && ` · ${tenant?.contactName ?? ''}`}
                 </div>
@@ -450,13 +450,13 @@ export default function InvoiceDetail({
                   ['SENT', invoice.sentStatus === 'sent' ? 'Yes' : 'No'],
                 ].map(([label, value]) => (
                   <div key={label} className="flex items-start gap-2">
-                    <span className="text-xs text-gray-400 w-28 shrink-0">{label}</span>
+                    <span className="text-xs text-muted-foreground w-28 shrink-0">{label}</span>
                     {label === 'STATUS' ? (
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded capitalize ${STATUS_STYLE[invoice.status] ?? ''}`}>
                         {invoice.status}
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-800 break-words">{value}</span>
+                      <span className="text-xs text-foreground break-words">{value}</span>
                     )}
                   </div>
                 ))}
@@ -464,32 +464,32 @@ export default function InvoiceDetail({
             </div>
 
             {/* Xero sync status */}
-            <div className="bg-white border border-gray-200 rounded-md p-4 text-sm">
+            <div className="bg-card border border-border rounded-xl shadow-sm p-4 text-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-gray-700">Enable Sync</span>
+                <span className="text-xs font-semibold text-foreground">Enable Sync</span>
                 <button
                   onClick={() => onUpdate(invoice.id, { xeroSync: !invoice.xeroSync })}
-                  className={`text-xs px-2 py-0.5 rounded ${invoice.xeroSync ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}
+                  className={`text-xs px-2 py-0.5 rounded ${invoice.xeroSync ? 'bg-blue-100 text-blue-700' : 'bg-muted text-muted-foreground'}`}
                 >
                   {invoice.xeroSync ? 'On' : 'Off'}
                 </button>
               </div>
-              <p className="text-xs text-gray-400">Xero integration coming soon.</p>
+              <p className="text-xs text-muted-foreground">Xero integration coming soon.</p>
             </div>
           </div>
 
           {/* Right: Lines + Payments + Comments */}
           <div className="flex-1 space-y-4">
             {/* Lines */}
-            <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-                <span className="font-semibold text-gray-800">Lines</span>
+            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+                <span className="font-semibold text-foreground">Lines</span>
               </div>
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-muted/50 border-b border-border">
                   <tr>
                     {['Description', 'Revenue Account', 'Quantity', 'Discount', 'Price'].map((h) => (
-                      <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                         {h}
                       </th>
                     ))}
@@ -497,19 +497,19 @@ export default function InvoiceDetail({
                 </thead>
                 <tbody>
                   {(invoice.lineItems ?? []).map((line) => (
-                    <tr key={line.id} className="border-b border-gray-100 last:border-0">
-                      <td className="px-4 py-3 text-gray-800 text-sm">
+                    <tr key={line.id} className="border-b border-border last:border-0">
+                      <td className="px-4 py-3 text-foreground text-sm">
                         {lineDescription(line, lease, space, invoice)}
-                        {line.vatExempt && <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">GST Exempt</span>}
+                        {line.vatExempt && <span className="ml-2 text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">GST Exempt</span>}
                       </td>
                       <td className="px-4 py-2.5">
                         <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-medium">
                           {line.revenueAccount}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-gray-600">{line.qty}</td>
-                      <td className="px-4 py-2.5 text-gray-600">{line.discountPct ?? 0}%</td>
-                      <td className="px-4 py-2.5 text-gray-800 font-medium">
+                      <td className="px-4 py-2.5 text-muted-foreground">{line.qty}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{line.discountPct ?? 0}%</td>
+                      <td className="px-4 py-2.5 text-foreground font-medium">
                         ${calcLineTotal(line).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
@@ -518,27 +518,27 @@ export default function InvoiceDetail({
               </table>
 
               {/* Totals */}
-              <div className="px-5 py-4 border-t border-gray-100 flex justify-end">
+              <div className="px-5 py-4 border-t border-border flex justify-end">
                 <div className="w-56 space-y-1.5 text-sm">
-                  <div className="flex justify-between text-gray-500">
+                  <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal:</span>
                     <span>${totals.subtotal.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
                   </div>
                   {totals.discountAmount > 0 && (
-                    <div className="flex justify-between text-gray-500">
+                    <div className="flex justify-between text-muted-foreground">
                       <span>Discount:</span>
                       <span>-${totals.discountAmount.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-gray-500">
+                  <div className="flex justify-between text-muted-foreground">
                     <span>Total Tax ({taxRatePct}%):</span>
                     <span>${totals.gst.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-1.5">
+                  <div className="flex justify-between font-bold text-foreground border-t border-border pt-1.5">
                     <span>Total:</span>
                     <span>${totals.total.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-gray-900 text-base">
+                  <div className="flex justify-between font-bold text-foreground text-base">
                     <span>Amount Due:</span>
                     <span>${totals.amountDue.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
                   </div>
@@ -547,9 +547,9 @@ export default function InvoiceDetail({
             </div>
 
             {/* Payments */}
-            <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-                <span className="font-semibold text-gray-800">Payments</span>
+            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+                <span className="font-semibold text-foreground">Payments</span>
                 <button
                   onClick={() => setShowPaymentForm(!showPaymentForm)}
                   className="flex items-center gap-1.5 text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 font-medium"
@@ -559,26 +559,26 @@ export default function InvoiceDetail({
               </div>
 
               {showPaymentForm && (
-                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
+                <div className="px-5 py-4 border-b border-border bg-muted/50">
                   <div className="grid grid-cols-4 gap-3 items-end">
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Amount (AUD)</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Amount (AUD)</label>
                       <input type="number" value={payForm.amount}
                         onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })}
                         placeholder={totals.amountDue.toFixed(2)}
-                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        className="w-full border border-input rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Date</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Date</label>
                       <input type="date" value={payForm.date}
                         onChange={(e) => setPayForm({ ...payForm, date: e.target.value })}
-                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        className="w-full border border-input rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Method</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Method</label>
                       <select value={payForm.method}
                         onChange={(e) => setPayForm({ ...payForm, method: e.target.value })}
-                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        className="w-full border border-input rounded px-2 py-1.5 text-sm bg-card focus:outline-none focus:ring-1 focus:ring-blue-500">
                         {['Bank Transfer', 'Credit Card', 'Cash', 'Other'].map(m => <option key={m}>{m}</option>)}
                       </select>
                     </div>
@@ -591,25 +591,25 @@ export default function InvoiceDetail({
               )}
 
               {(invoice.payments ?? []).length === 0 && !showPaymentForm && (
-                <div className="px-5 py-6 text-sm text-gray-400 text-center">No payments to show.</div>
+                <div className="px-5 py-6 text-sm text-muted-foreground text-center">No payments to show.</div>
               )}
               {(invoice.payments ?? []).map((pay) => (
-                <div key={pay.id} className="flex items-center justify-between px-5 py-3 border-b border-gray-100 last:border-0">
+                <div key={pay.id} className="flex items-center justify-between px-5 py-3 border-b border-border last:border-0">
                   <div>
-                    <div className="text-sm font-medium text-gray-800">
+                    <div className="text-sm font-medium text-foreground">
                       ${Number(pay.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD
                     </div>
-                    {pay.note && <div className="text-xs text-gray-500">{pay.note}</div>}
+                    {pay.note && <div className="text-xs text-muted-foreground">{pay.note}</div>}
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-xs text-gray-400 text-right">
+                    <div className="text-xs text-muted-foreground text-right">
                       <div>{format(parseISO(pay.date), 'dd/MM/yyyy')}</div>
                       <div>{pay.method}</div>
                     </div>
                     {tenant?.email && (
                       <button
                         onClick={() => handleSendReceipt(pay)}
-                        className="text-xs border border-gray-200 rounded px-2 py-1 text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                        className="text-xs border border-input rounded px-2 py-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                       >
                         Receipt
                       </button>
@@ -620,31 +620,31 @@ export default function InvoiceDetail({
             </div>
 
             {/* Comments */}
-            <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-100">
-                <span className="font-semibold text-gray-800">Comments</span>
+            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-border">
+                <span className="font-semibold text-foreground">Comments</span>
               </div>
               <div className="px-5 py-4">
                 <textarea
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   rows={3}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                  className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
                   placeholder="Add a comment…"
                 />
                 <button onClick={submitComment}
                   disabled={!commentText.trim()}
-                  className="mt-2 flex items-center gap-1.5 text-xs border border-gray-300 rounded px-3 py-1.5 text-gray-600 hover:bg-gray-50 disabled:opacity-40">
+                  className="mt-2 flex items-center gap-1.5 text-xs border border-input rounded px-3 py-1.5 text-foreground hover:bg-muted/50 disabled:opacity-40">
                   <MessageSquare size={12} /> Comment
                 </button>
               </div>
               {(invoice.comments ?? []).length === 0 && (
-                <div className="px-5 pb-5 text-sm text-gray-400 text-center">No comments to show.</div>
+                <div className="px-5 pb-5 text-sm text-muted-foreground text-center">No comments to show.</div>
               )}
               {(invoice.comments ?? []).map((c) => (
-                <div key={c.id} className="px-5 py-3 border-t border-gray-100 text-sm">
-                  <div className="text-gray-800">{c.text}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">{c.createdAt}</div>
+                <div key={c.id} className="px-5 py-3 border-t border-border text-sm">
+                  <div className="text-foreground">{c.text}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{c.createdAt}</div>
                 </div>
               ))}
             </div>
@@ -656,15 +656,15 @@ export default function InvoiceDetail({
     {/* Detach modal */}
     {showDetach && (
       <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-md w-full max-w-lg shadow-2xl">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <h2 className="text-base font-semibold text-gray-900">Detach Invoice Lines</h2>
-            <button onClick={() => setShowDetach(false)} className="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
+        <div className="bg-card rounded-xl w-full max-w-lg shadow-2xl">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <h2 className="text-base font-semibold text-foreground">Detach Invoice Lines</h2>
+            <button onClick={() => setShowDetach(false)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
           </div>
           <div className="px-6 py-4">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
+                <tr className="border-b border-border">
                   <th className="text-left pb-2 w-6">
                     <input
                       type="checkbox"
@@ -673,17 +673,17 @@ export default function InvoiceDetail({
                       className="h-4 w-4"
                     />
                   </th>
-                  <th className="text-left pb-2 text-gray-600 font-semibold">Description</th>
-                  <th className="text-right pb-2 text-gray-600 font-semibold">Unit Price</th>
-                  <th className="text-right pb-2 text-gray-600 font-semibold">Quantity</th>
-                  <th className="text-right pb-2 text-gray-600 font-semibold">Price</th>
+                  <th className="text-left pb-2 text-muted-foreground font-semibold">Description</th>
+                  <th className="text-right pb-2 text-muted-foreground font-semibold">Unit Price</th>
+                  <th className="text-right pb-2 text-muted-foreground font-semibold">Quantity</th>
+                  <th className="text-right pb-2 text-muted-foreground font-semibold">Price</th>
                 </tr>
               </thead>
               <tbody>
                 {(invoice.lineItems ?? []).map((line) => {
                   const price = Math.round(line.unitPrice * line.qty * (1 - (line.discountPct ?? 0) / 100) * 100) / 100
                   return (
-                    <tr key={line.id} className="border-b border-gray-100">
+                    <tr key={line.id} className="border-b border-border">
                       <td className="py-3">
                         <input
                           type="checkbox"
@@ -692,10 +692,10 @@ export default function InvoiceDetail({
                           className="h-4 w-4"
                         />
                       </td>
-                      <td className="py-3 text-gray-700">{lineDescription(line, lease, space, invoice)}</td>
-                      <td className="py-3 text-right text-gray-700">${Number(line.unitPrice).toLocaleString('en-AU', { minimumFractionDigits: 2 })}</td>
-                      <td className="py-3 text-right text-gray-700">{line.qty}</td>
-                      <td className="py-3 text-right text-gray-700">${price.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</td>
+                      <td className="py-3 text-foreground">{lineDescription(line, lease, space, invoice)}</td>
+                      <td className="py-3 text-right text-foreground">${Number(line.unitPrice).toLocaleString('en-AU', { minimumFractionDigits: 2 })}</td>
+                      <td className="py-3 text-right text-foreground">{line.qty}</td>
+                      <td className="py-3 text-right text-foreground">${price.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</td>
                     </tr>
                   )
                 })}
@@ -707,9 +707,9 @@ export default function InvoiceDetail({
               </div>
             )}
           </div>
-          <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-200">
+          <div className="flex justify-end gap-2 px-6 py-4 border-t border-border">
             <button onClick={() => setShowDetach(false)}
-              className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+              className="px-4 py-2 text-sm text-foreground border border-input rounded hover:bg-muted/50">
               Close
             </button>
             <button

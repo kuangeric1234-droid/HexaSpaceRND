@@ -123,12 +123,12 @@ export default function Renewals() {
     const space = spaces.find((s) => s.id === lease.spaceId)
     const isSending = sending === lease.id
     return (
-      <tr className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-        <td className="px-4 py-3 font-medium text-gray-900">{tenant?.businessName ?? '—'}</td>
-        <td className="px-4 py-3 text-gray-600">{tenant?.email ?? '—'}</td>
-        <td className="px-4 py-3 text-gray-600">{tenant?.phone ?? '—'}</td>
-        <td className="px-4 py-3 text-gray-600">{space?.unitNumber ?? '—'}</td>
-        <td className="px-4 py-3 text-gray-600">{fmt(lease.endDate)}</td>
+      <tr className="border-b border-border last:border-0 hover:bg-muted/50">
+        <td className="px-4 py-3 font-medium text-foreground">{tenant?.businessName ?? '—'}</td>
+        <td className="px-4 py-3 text-muted-foreground">{tenant?.email ?? '—'}</td>
+        <td className="px-4 py-3 text-muted-foreground">{tenant?.phone ?? '—'}</td>
+        <td className="px-4 py-3 text-muted-foreground">{space?.unitNumber ?? '—'}</td>
+        <td className="px-4 py-3 text-muted-foreground">{fmt(lease.endDate)}</td>
         <td className="px-4 py-3">
           <span className={`text-xs font-semibold px-2 py-0.5 rounded ${badgeStyle}`}>{daysLabel}</span>
         </td>
@@ -143,7 +143,7 @@ export default function Renewals() {
             </button>
             <button
               onClick={() => handleOpenRenew(lease)}
-              className="flex items-center gap-1 text-xs border border-gray-200 rounded px-2 py-1 bg-black text-white hover:bg-gray-800"
+              className="flex items-center gap-1 text-xs border border-border rounded px-2 py-1 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <RefreshCw size={12} /> Renew
             </button>
@@ -156,8 +156,8 @@ export default function Renewals() {
   return (
     <div className="p-8">
       <div className="mb-7">
-        <h1 className="text-2xl font-bold text-gray-900">Renewals</h1>
-        <p className="text-sm text-gray-500 mt-1">Leases expiring within 60 days — action required.</p>
+        <h1 className="text-2xl font-bold text-foreground">Renewals</h1>
+        <p className="text-sm text-muted-foreground mt-1">Leases expiring within 60 days — action required.</p>
       </div>
 
       {expiring.length === 0 && expired.length === 0 && pendingRenewal.length === 0 && (
@@ -168,13 +168,13 @@ export default function Renewals() {
 
       {pendingRenewal.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">
             Auto-Renewed — Pending Approval ({pendingRenewal.length})
           </h2>
-          <p className="text-xs text-gray-500 mb-3">
+          <p className="text-xs text-muted-foreground mb-3">
             These leases rolled their term forward automatically because no non-renewal notice was given. Billing continues so no invoices are missed — approve to confirm, or decline to end the lease.
           </p>
-          <div className="bg-white border border-indigo-200 rounded-md overflow-hidden">
+          <div className="bg-card border border-indigo-200 rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-indigo-50 border-b border-indigo-200">
                 <tr>
@@ -188,11 +188,11 @@ export default function Renewals() {
                   const tenant = tenants.find((t) => t.id === lease.tenantId)
                   const space = spaces.find((s) => s.id === lease.spaceId)
                   return (
-                    <tr key={lease.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{tenant?.businessName ?? '—'}</td>
-                      <td className="px-4 py-3 text-gray-600">{space?.unitNumber ?? '—'}</td>
-                      <td className="px-4 py-3 text-gray-600">{fmt(lease.endDate)}</td>
-                      <td className="px-4 py-3 text-gray-500">
+                    <tr key={lease.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                      <td className="px-4 py-3 font-medium text-foreground">{tenant?.businessName ?? '—'}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{space?.unitNumber ?? '—'}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{fmt(lease.endDate)}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
                         {lease.previousEndDate ? `from ${fmt(lease.previousEndDate)}` : '—'}
                         {lease.renewalCount ? ` · renewal #${lease.renewalCount}` : ''}
                       </td>
@@ -200,7 +200,7 @@ export default function Renewals() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => approveRenewal(lease)}
-                            className="text-xs border border-gray-200 rounded px-2 py-1 bg-black text-white hover:bg-gray-800"
+                            className="text-xs border border-border rounded px-2 py-1 bg-primary text-primary-foreground hover:bg-primary/90"
                           >
                             Approve renewal
                           </button>
@@ -223,10 +223,10 @@ export default function Renewals() {
 
       {expiring.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">
             Expiring Within 60 Days ({expiring.length})
           </h2>
-          <div className="bg-white border border-amber-200 rounded-md overflow-hidden">
+          <div className="bg-card border border-amber-200 rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-amber-50 border-b border-amber-200">
                 <tr>
@@ -248,10 +248,10 @@ export default function Renewals() {
 
       {expired.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">
             Overdue / Not Renewed ({expired.length})
           </h2>
-          <div className="bg-white border border-red-200 rounded-md overflow-hidden">
+          <div className="bg-card border border-red-200 rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-red-50 border-b border-red-200">
                 <tr>
@@ -275,10 +275,10 @@ export default function Renewals() {
       {renewLease && (
         <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
           <div className="min-h-full flex items-start justify-center p-4 pt-8">
-            <div className="bg-white rounded-md w-full max-w-4xl shadow-2xl relative">
+            <div className="bg-card rounded-xl w-full max-w-4xl shadow-2xl relative">
               <button
                 onClick={() => setRenewLease(null)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 z-10"
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground z-10"
               >
                 <X size={20} />
               </button>

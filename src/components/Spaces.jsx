@@ -34,24 +34,24 @@ export default function Spaces() {
     <div className="p-8">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Spaces</h1>
-          <p className="text-sm text-gray-500 mt-1">{spaces.length} spaces across 830 Whitehorse Road, Box Hill</p>
+          <h1 className="text-2xl font-bold text-foreground">Spaces</h1>
+          <p className="text-sm text-muted-foreground mt-1">{spaces.length} spaces across 830 Whitehorse Road, Box Hill</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => resyncSpaces()} className="text-xs font-medium text-gray-700 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+          <button onClick={() => resyncSpaces()} className="text-xs font-medium text-foreground px-3 py-2 border border-input rounded-md hover:bg-muted/50">
             Sync Hexa layout
           </button>
-          <button onClick={() => resetSampleData()} className="text-xs text-gray-400 hover:text-gray-700 px-3 py-2 border border-gray-200 rounded-md hover:bg-gray-50">
+          <button onClick={() => resetSampleData()} className="text-xs text-muted-foreground hover:text-foreground px-3 py-2 border border-border rounded-md hover:bg-muted/50">
             Load sample data
           </button>
-          <button onClick={() => setShowImport(true)} className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50">
+          <button onClick={() => setShowImport(true)} className="flex items-center gap-2 border border-input px-4 py-2 rounded-md text-sm font-medium hover:bg-muted/50">
             <Upload size={15} /> Import price list
           </button>
         </div>
       </div>
 
       {/* Sub-tab navigation (OfficeRND-style) */}
-      <div className="flex items-center gap-1 mb-6 border-b border-gray-200 overflow-x-auto">
+      <div className="flex items-center gap-1 mb-6 border-b border-border overflow-x-auto">
         {SPACE_TABS.map((t) => {
           const Icon = t.icon
           const isActive = t.key === tab
@@ -60,13 +60,13 @@ export default function Spaces() {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`flex items-center gap-1.5 px-3.5 py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors ${
-                isActive ? 'border-black text-black font-semibold' : 'border-transparent text-gray-500 hover:text-gray-900'
+                isActive ? 'border-black text-black font-semibold' : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               <Icon size={15} />
               {t.label}
               {t.type && count(t.type) > 0 && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${isActive ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${isActive ? 'bg-black text-white' : 'bg-muted text-muted-foreground'}`}>
                   {count(t.type)}
                 </span>
               )}

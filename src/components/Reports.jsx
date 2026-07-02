@@ -125,16 +125,16 @@ export default function Reports() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-          <p className="text-sm text-gray-500 mt-1">Financial history and activity logs</p>
+          <h1 className="text-2xl font-bold text-foreground">Reports</h1>
+          <p className="text-sm text-muted-foreground mt-1">Financial history and activity logs</p>
         </div>
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b border-gray-200 mb-6">
+      <div className="flex border-b border-border mb-6">
         {[['financial', 'Financial Report'], ['email', 'Email Activity Log'], ['audit', 'Audit Log']].map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {label}
           </button>
         ))}
@@ -146,84 +146,84 @@ export default function Reports() {
           {/* Summary cards */}
           <div className="grid grid-cols-3 gap-4">
             {[
-              ['Total Invoiced (12 mo)', fmtAud(totals.invoiced), 'text-gray-900'],
+              ['Total Invoiced (12 mo)', fmtAud(totals.invoiced), 'text-foreground'],
               ['Total Collected (12 mo)', fmtAud(totals.collected), 'text-green-700'],
-              ['Total Outstanding', fmtAud(totals.outstanding), totals.outstanding > 0 ? 'text-red-600' : 'text-gray-900'],
+              ['Total Outstanding', fmtAud(totals.outstanding), totals.outstanding > 0 ? 'text-red-600' : 'text-foreground'],
             ].map(([label, value, cls]) => (
-              <div key={label} className="bg-white border border-gray-200 rounded-md p-5">
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{label}</p>
+              <div key={label} className="bg-card border border-border rounded-xl shadow-sm p-5">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{label}</p>
                 <p className={`text-2xl font-bold ${cls}`}>{value}</p>
               </div>
             ))}
           </div>
 
           {/* Monthly table */}
-          <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-800 text-sm">Monthly Breakdown — Last 12 Months</h3>
+          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+              <h3 className="font-semibold text-foreground text-sm">Monthly Breakdown — Last 12 Months</h3>
               <button onClick={exportFinancialCSV}
-                className="flex items-center gap-1.5 text-xs border border-gray-300 rounded px-3 py-1.5 text-gray-600 hover:bg-gray-50">
+                className="flex items-center gap-1.5 text-xs border border-input rounded px-3 py-1.5 text-foreground hover:bg-muted/50">
                 <Download size={12} /> Export CSV
               </button>
             </div>
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-muted/50 border-b border-border">
                 <tr>
                   {['Month', 'Invoices', 'Total Invoiced', 'Collected', 'Outstanding'].map((h) => (
-                    <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                    <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {monthlyData.map((row) => (
-                  <tr key={row.month} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                    <td className="px-5 py-3 font-medium text-gray-900">{format(parseISO(`${row.month}-01`), 'MMM yyyy')}</td>
-                    <td className="px-5 py-3 text-gray-600">{row.count}</td>
-                    <td className="px-5 py-3 text-gray-900">{fmtAud(row.invoiced)}</td>
+                  <tr key={row.month} className="border-b border-border last:border-0 hover:bg-muted/50">
+                    <td className="px-5 py-3 font-medium text-foreground">{format(parseISO(`${row.month}-01`), 'MMM yyyy')}</td>
+                    <td className="px-5 py-3 text-muted-foreground">{row.count}</td>
+                    <td className="px-5 py-3 text-foreground">{fmtAud(row.invoiced)}</td>
                     <td className="px-5 py-3 text-green-700">{fmtAud(row.collected)}</td>
-                    <td className={`px-5 py-3 font-medium ${row.outstanding > 0 ? 'text-red-600' : 'text-gray-400'}`}>{fmtAud(row.outstanding)}</td>
+                    <td className={`px-5 py-3 font-medium ${row.outstanding > 0 ? 'text-red-600' : 'text-muted-foreground'}`}>{fmtAud(row.outstanding)}</td>
                   </tr>
                 ))}
-                <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold">
-                  <td className="px-5 py-3 text-gray-900">Total</td>
-                  <td className="px-5 py-3 text-gray-600">{monthlyData.reduce((s, m) => s + m.count, 0)}</td>
-                  <td className="px-5 py-3 text-gray-900">{fmtAud(totals.invoiced)}</td>
+                <tr className="bg-muted/50 border-t-2 border-border font-semibold">
+                  <td className="px-5 py-3 text-foreground">Total</td>
+                  <td className="px-5 py-3 text-muted-foreground">{monthlyData.reduce((s, m) => s + m.count, 0)}</td>
+                  <td className="px-5 py-3 text-foreground">{fmtAud(totals.invoiced)}</td>
                   <td className="px-5 py-3 text-green-700">{fmtAud(totals.collected)}</td>
-                  <td className={`px-5 py-3 ${totals.outstanding > 0 ? 'text-red-600' : 'text-gray-400'}`}>{fmtAud(totals.outstanding)}</td>
+                  <td className={`px-5 py-3 ${totals.outstanding > 0 ? 'text-red-600' : 'text-muted-foreground'}`}>{fmtAud(totals.outstanding)}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           {/* By-tenant outstanding */}
-          <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-800 text-sm">Outstanding Balance by Tenant</h3>
+          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+              <h3 className="font-semibold text-foreground text-sm">Outstanding Balance by Tenant</h3>
               <button onClick={exportTenantCSV}
-                className="flex items-center gap-1.5 text-xs border border-gray-300 rounded px-3 py-1.5 text-gray-600 hover:bg-gray-50">
+                className="flex items-center gap-1.5 text-xs border border-input rounded px-3 py-1.5 text-foreground hover:bg-muted/50">
                 <Download size={12} /> Export CSV
               </button>
             </div>
             {tenantOutstanding.length === 0 ? (
-              <p className="px-5 py-5 text-sm text-gray-400">No invoice data yet.</p>
+              <p className="px-5 py-5 text-sm text-muted-foreground">No invoice data yet.</p>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-muted/50 border-b border-border">
                   <tr>
                     {['Tenant', 'Total Invoiced', 'Total Paid', 'Outstanding', 'Overdue'].map((h) => (
-                      <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                      <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {tenantOutstanding.map(({ tenant, totalInvoiced, totalPaid, outstanding, overdueCount }) => (
-                    <tr key={tenant.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                      <td className="px-5 py-3 font-medium text-gray-900">{tenant.businessName}</td>
-                      <td className="px-5 py-3 text-gray-600">{fmtAud(totalInvoiced)}</td>
+                    <tr key={tenant.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                      <td className="px-5 py-3 font-medium text-foreground">{tenant.businessName}</td>
+                      <td className="px-5 py-3 text-muted-foreground">{fmtAud(totalInvoiced)}</td>
                       <td className="px-5 py-3 text-green-700">{fmtAud(totalPaid)}</td>
-                      <td className={`px-5 py-3 font-semibold ${outstanding > 0 ? 'text-red-600' : 'text-gray-400'}`}>{fmtAud(outstanding)}</td>
+                      <td className={`px-5 py-3 font-semibold ${outstanding > 0 ? 'text-red-600' : 'text-muted-foreground'}`}>{fmtAud(outstanding)}</td>
                       <td className="px-5 py-3">
-                        {overdueCount > 0 ? <span className="text-xs bg-red-100 text-red-700 font-semibold px-2 py-0.5 rounded">{overdueCount} overdue</span> : <span className="text-xs text-gray-400">—</span>}
+                        {overdueCount > 0 ? <span className="text-xs bg-red-100 text-red-700 font-semibold px-2 py-0.5 rounded">{overdueCount} overdue</span> : <span className="text-xs text-muted-foreground">—</span>}
                       </td>
                     </tr>
                   ))}
@@ -236,23 +236,23 @@ export default function Reports() {
 
       {/* ── Email Activity Log ── */}
       {tab === 'email' && (
-        <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-2">
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+            <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
               <Mail size={15} /> Email Activity Log
             </h3>
-            <span className="text-xs text-gray-400">{emailLog.length} recent emails</span>
+            <span className="text-xs text-muted-foreground">{emailLog.length} recent emails</span>
           </div>
           {emailLoading ? (
-            <p className="px-5 py-6 text-sm text-gray-400">Loading…</p>
+            <p className="px-5 py-6 text-sm text-muted-foreground">Loading…</p>
           ) : emailLog.length === 0 ? (
-            <p className="px-5 py-6 text-sm text-gray-400">No emails logged yet. Emails will appear here after being sent.</p>
+            <p className="px-5 py-6 text-sm text-muted-foreground">No emails logged yet. Emails will appear here after being sent.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-muted/50 border-b border-border">
                 <tr>
                   {['Sent At', 'Type', 'To', 'Subject', 'Tenant', 'Attachment'].map((h) => (
-                    <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                    <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -261,17 +261,17 @@ export default function Reports() {
                   const typeMeta = EMAIL_TYPE_LABEL[log.emailType] ?? EMAIL_TYPE_LABEL.general
                   const tenant = tenants.find((t) => t.id === log.tenantId)
                   return (
-                    <tr key={log.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                      <td className="px-5 py-3 text-gray-500 text-xs whitespace-nowrap">
+                    <tr key={log.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                      <td className="px-5 py-3 text-muted-foreground text-xs whitespace-nowrap">
                         {log.sentAt ? format(parseISO(log.sentAt), 'dd/MM/yyyy HH:mm') : '—'}
                       </td>
                       <td className="px-5 py-3">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded ${typeMeta.cls}`}>{typeMeta.label}</span>
                       </td>
-                      <td className="px-5 py-3 text-gray-600 text-xs">{log.to}</td>
-                      <td className="px-5 py-3 text-gray-700 text-xs max-w-xs truncate">{log.subject}</td>
-                      <td className="px-5 py-3 text-gray-600 text-xs">{tenant?.businessName ?? '—'}</td>
-                      <td className="px-5 py-3 text-gray-400 text-xs">{log.hasAttachment ? '📎 Yes' : '—'}</td>
+                      <td className="px-5 py-3 text-muted-foreground text-xs">{log.to}</td>
+                      <td className="px-5 py-3 text-foreground text-xs max-w-xs truncate">{log.subject}</td>
+                      <td className="px-5 py-3 text-muted-foreground text-xs">{tenant?.businessName ?? '—'}</td>
+                      <td className="px-5 py-3 text-muted-foreground text-xs">{log.hasAttachment ? '📎 Yes' : '—'}</td>
                     </tr>
                   )
                 })}
@@ -283,22 +283,22 @@ export default function Reports() {
 
       {/* ── Audit Log ── */}
       {tab === 'audit' && (
-        <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-800 text-sm">Audit Log</h3>
-            <span className="text-xs text-gray-400">{auditLog.length} recent events</span>
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+            <h3 className="font-semibold text-foreground text-sm">Audit Log</h3>
+            <span className="text-xs text-muted-foreground">{auditLog.length} recent events</span>
           </div>
           {auditLoading ? (
-            <p className="px-5 py-6 text-sm text-gray-400">Loading…</p>
+            <p className="px-5 py-6 text-sm text-muted-foreground">Loading…</p>
           ) : auditLog.length === 0 ? (
-            <p className="px-5 py-6 text-sm text-gray-400">No audit events yet. Actions will be logged here automatically.</p>
+            <p className="px-5 py-6 text-sm text-muted-foreground">No audit events yet. Actions will be logged here automatically.</p>
           ) : (
             <div className="table-scroll">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-muted/50 border-b border-border">
                   <tr>
                     {['Time', 'Action', 'Type', 'Name', 'User'].map((h) => (
-                      <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -313,16 +313,16 @@ export default function Reports() {
                       sign:   'bg-teal-100 text-teal-700',
                     }[log.action] ?? 'bg-gray-100 text-gray-600'
                     return (
-                      <tr key={log.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                        <td className="px-5 py-3 text-gray-500 text-xs whitespace-nowrap">
+                      <tr key={log.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                        <td className="px-5 py-3 text-muted-foreground text-xs whitespace-nowrap">
                           {log.timestamp ? format(parseISO(log.timestamp), 'dd/MM/yyyy HH:mm') : '—'}
                         </td>
                         <td className="px-5 py-3">
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded capitalize ${actionStyle}`}>{log.action}</span>
                         </td>
-                        <td className="px-5 py-3 text-gray-600 text-xs capitalize">{log.entityType}</td>
-                        <td className="px-5 py-3 text-gray-700 text-xs font-medium">{log.entityName || log.entityId}</td>
-                        <td className="px-5 py-3 text-gray-400 text-xs">{log.userEmail}</td>
+                        <td className="px-5 py-3 text-muted-foreground text-xs capitalize">{log.entityType}</td>
+                        <td className="px-5 py-3 text-foreground text-xs font-medium">{log.entityName || log.entityId}</td>
+                        <td className="px-5 py-3 text-muted-foreground text-xs">{log.userEmail}</td>
                       </tr>
                     )
                   })}

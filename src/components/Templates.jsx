@@ -81,14 +81,14 @@ export default function Templates() {
   // ── Editor view ──────────────────────────────────────────────────────────
   if (mode === 'create' || mode === 'edit') {
     return (
-      <div className="flex flex-col h-full bg-gray-50">
+      <div className="flex flex-col h-full bg-muted/50">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-8 py-5 shrink-0">
-          <h1 className="text-lg font-semibold text-gray-900">
+        <div className="bg-card border-b border-border px-8 py-5 shrink-0">
+          <h1 className="text-lg font-semibold text-foreground">
             {mode === 'edit' ? 'Edit Template' : 'New Template'}
           </h1>
           {mode === 'edit' && (
-            <p className="text-sm text-gray-400 mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               Documents / {form.name} · {form.version}
             </p>
           )}
@@ -97,27 +97,27 @@ export default function Templates() {
         {/* Form body */}
         <div className="flex-1 overflow-y-auto px-8 py-6">
           {/* Title + version + type row — matches OfficeRND header row */}
-          <div className="bg-white border border-gray-200 rounded-md px-6 py-5 mb-4">
+          <div className="bg-card border border-border rounded-xl shadow-sm px-6 py-5 mb-4">
             <div className="grid grid-cols-4 gap-4 items-end">
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   Title *
                 </label>
                 <input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Terms and Conditions"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   Type
                 </label>
                 <select
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-input rounded px-3 py-2 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {TEMPLATE_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>
@@ -127,24 +127,24 @@ export default function Templates() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   Version
                 </label>
                 <input
                   value={form.version}
                   onChange={(e) => setForm({ ...form, version: e.target.value })}
                   placeholder="v1.0"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
           </div>
 
           {/* Rich text editor */}
-          <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-gray-50">
-              <span className="text-sm font-semibold text-gray-700">Content</span>
-              <span className="text-xs text-gray-400">
+          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-muted/50">
+              <span className="text-sm font-semibold text-foreground">Content</span>
+              <span className="text-xs text-muted-foreground">
                 Use headings for section titles, body text for clauses
               </span>
             </div>
@@ -157,11 +157,11 @@ export default function Templates() {
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 border-t border-gray-200 bg-white px-8 py-4 flex justify-end gap-3">
+        <div className="shrink-0 border-t border-border bg-card px-8 py-4 flex justify-end gap-3">
           <button
             type="button"
             onClick={() => setMode('list')}
-            className="px-5 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+            className="px-5 py-2 text-sm font-medium text-foreground border border-input rounded hover:bg-muted/50"
           >
             Discard
           </button>
@@ -196,8 +196,8 @@ export default function Templates() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Templates</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Templates</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {templates.length} document template{templates.length !== 1 ? 's' : ''} · attached to
             contracts and included in PDF agreements
           </p>
@@ -210,14 +210,14 @@ export default function Templates() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-muted/50 border-b border-border">
             <tr>
               {['Document Name', 'Type', 'Version', 'Last Updated', ''].map((h) => (
                 <th
                   key={h}
-                  className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide"
+                  className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide"
                 >
                   {h}
                 </th>
@@ -227,7 +227,7 @@ export default function Templates() {
           <tbody>
             {templates.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-gray-400 text-sm">
+                <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground text-sm">
                   No templates yet.{' '}
                   <button onClick={openNew} className="text-blue-600 hover:underline">
                     Create your first template
@@ -240,10 +240,10 @@ export default function Templates() {
               return (
                 <tr
                   key={tmpl.id}
-                  className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer"
+                  className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer"
                   onClick={() => openEdit(tmpl)}
                 >
-                  <td className="px-4 py-3 font-medium text-gray-900">{tmpl.name}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{tmpl.name}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`text-xs font-medium px-2 py-0.5 rounded border ${
@@ -253,22 +253,22 @@ export default function Templates() {
                       {typeMeta?.label ?? tmpl.type}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-600">{tmpl.version}</td>
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{tmpl.version}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
                     {tmpl.updatedAt ? format(parseISO(tmpl.updatedAt), 'dd/MM/yyyy') : '—'}
                   </td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-1.5 justify-end">
                       <button
                         onClick={() => openEdit(tmpl)}
-                        className="p-1.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-900"
+                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
                         title="Edit"
                       >
                         <Pencil size={14} />
                       </button>
                       <button
                         onClick={() => handleDelete(tmpl.id)}
-                        className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600"
+                        className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600"
                         title="Delete"
                       >
                         <Trash2 size={14} />

@@ -22,19 +22,19 @@ export default function Login({ onSuccess }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-muted/50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="text-3xl font-black tracking-widest text-gray-900">HEXA SPACE</div>
-          <p className="text-sm text-gray-500 mt-3">Management Portal</p>
+          <div className="text-3xl font-black tracking-widest text-foreground">HEXA SPACE</div>
+          <p className="text-sm text-muted-foreground mt-3">Management Portal</p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-md shadow-sm p-8">
-          <h1 className="text-lg font-bold text-gray-900 mb-6">Sign in</h1>
+        <div className="bg-card border border-border rounded-xl shadow-sm p-8">
+          <h1 className="text-lg font-bold text-foreground mb-6">Sign in</h1>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
               <input
                 type="email"
                 value={email}
@@ -42,19 +42,19 @@ export default function Login({ onSuccess }) {
                 required
                 autoFocus
                 placeholder="you@hexaspace.com.au"
-                className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                className="w-full border border-input rounded-md px-3 py-2.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                className="w-full border border-input rounded-md px-3 py-2.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               />
             </div>
 
@@ -67,14 +67,14 @@ export default function Login({ onSuccess }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-black text-white py-2.5 rounded-md text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 mt-2"
+              className="w-full bg-primary text-primary-foreground py-2.5 rounded-md text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 mt-2"
             >
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-xs text-muted-foreground mt-6">
           Hexa Space Pty Ltd · app.hexaspace.com.au
         </p>
       </div>

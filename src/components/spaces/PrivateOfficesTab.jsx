@@ -110,41 +110,41 @@ export default function PrivateOfficesTab({ ctx }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           {offices.length} offices · {offices.filter((o) => o.status === 'vacant').length} available — Level 4 &amp; Level 2 bill to separate Xero accounts
         </p>
-        <button onClick={() => openNew('l4')} className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800">
+        <button onClick={() => openNew('l4')} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90">
           <Plus size={15} /> Add Office
         </button>
       </div>
 
-      <div className="flex border border-gray-200 rounded-md overflow-hidden w-fit mb-4">
+      <div className="flex border border-border rounded-md overflow-hidden w-fit mb-4">
         {LEVEL_TABS.map(([key, label]) => (
           <button
             key={key}
             onClick={() => setLevelFilter(key)}
-            className={`flex items-center gap-1.5 px-4 py-1.5 text-sm border-l first:border-l-0 border-gray-200 transition-colors ${
-              levelFilter === key ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+            className={`flex items-center gap-1.5 px-4 py-1.5 text-sm border-l first:border-l-0 border-border transition-colors ${
+              levelFilter === key ? 'bg-black text-white' : 'bg-card text-muted-foreground hover:bg-muted/50'
             }`}
           >
             {label}
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${levelFilter === key ? 'bg-white/20' : 'bg-gray-100 text-gray-500'}`}>{levelCount(key)}</span>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${levelFilter === key ? 'bg-white/20' : 'bg-muted text-muted-foreground'}`}>{levelCount(key)}</span>
           </button>
         ))}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-muted/50 border-b border-border">
             <tr>
               {['Suite', 'Level', 'Pax', 'Placement', 'Start', 'End', 'Rate', 'Occupant', 'Salto doors', 'Status', ''].map((h) => (
-                <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {sorted.length === 0 && (
-              <tr><td colSpan={11} className="px-4 py-12 text-center text-gray-400 text-sm">No private offices yet.</td></tr>
+              <tr><td colSpan={11} className="px-4 py-12 text-center text-muted-foreground text-sm">No private offices yet.</td></tr>
             )}
             {sorted.map((o) => {
               const occ = occupantOf(o)
@@ -152,17 +152,17 @@ export default function PrivateOfficesTab({ ctx }) {
               // Status follows occupancy: occupied when someone's in it, available when not.
               const derivedStatus = occ ? 'occupied' : 'vacant'
               return (
-                <tr key={o.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-2.5 font-medium text-gray-900">{o.unitNumber}</td>
-                  <td className="px-4 py-2.5 text-gray-600">{floorLabel(o.floor)}</td>
-                  <td className="px-4 py-2.5 text-gray-600">{o.pax ?? '—'}</td>
+                <tr key={o.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                  <td className="px-4 py-2.5 font-medium text-foreground">{o.unitNumber}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{floorLabel(o.floor)}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{o.pax ?? '—'}</td>
                   <td className="px-4 py-2.5">
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${o.placement === 'internal' ? 'bg-gray-100 text-gray-600' : 'bg-blue-50 text-blue-700'}`}>
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${o.placement === 'internal' ? 'bg-muted text-muted-foreground' : 'bg-blue-50 text-blue-700'}`}>
                       {o.placement === 'internal' ? 'Internal' : 'External'}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{fmtDate(lease?.startDate)}</td>
-                  <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">
+                  <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{fmtDate(lease?.startDate)}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
                     {lease && isSuperAdmin ? (
                       editEndId === lease.id ? (
                         <input
@@ -171,13 +171,13 @@ export default function PrivateOfficesTab({ ctx }) {
                           defaultValue={lease.endDate || ''}
                           onBlur={(e) => { updateLease(lease.id, { endDate: e.target.value || '' }); setEditEndId(null) }}
                           onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditEndId(null) }}
-                          className="border border-gray-300 rounded px-1.5 py-0.5 text-sm"
+                          className="border border-input rounded px-1.5 py-0.5 text-sm"
                         />
                       ) : (
                         <button
                           onClick={() => setEditEndId(lease.id)}
                           title="Click to change the end date (updates the lease & bill run)"
-                          className="hover:underline decoration-dotted underline-offset-2 hover:text-gray-900"
+                          className="hover:underline decoration-dotted underline-offset-2 hover:text-foreground"
                         >
                           {fmtDate(lease.endDate)}
                         </button>
@@ -185,9 +185,9 @@ export default function PrivateOfficesTab({ ctx }) {
                     ) : fmtDate(lease?.endDate)}
                   </td>
                   <td className="px-4 py-2.5">
-                    <div className="font-medium text-gray-900">{money(o.monthlyRate)}/mo</div>
+                    <div className="font-medium text-foreground">{money(o.monthlyRate)}/mo</div>
                     {o.discount > 0 && (
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-muted-foreground">
                         <span className="line-through">{money(o.listPrice)}</span>
                         <span className="text-green-700 ml-1">−{money(o.discount)}</span>
                       </div>
@@ -196,26 +196,26 @@ export default function PrivateOfficesTab({ ctx }) {
                   <td className="px-4 py-2.5">
                     {occ ? (
                       <button onClick={() => navigate('/leases')} className="text-left group">
-                        <div className="text-gray-900 group-hover:underline">{occ.name}</div>
-                        {occ.contract && <div className="text-xs text-gray-400 flex items-center gap-1"><FileText size={11} /> {occ.contract}</div>}
+                        <div className="text-foreground group-hover:underline">{occ.name}</div>
+                        {occ.contract && <div className="text-xs text-muted-foreground flex items-center gap-1"><FileText size={11} /> {occ.contract}</div>}
                       </button>
-                    ) : <span className="text-gray-400">Vacant</span>}
+                    ) : <span className="text-muted-foreground">Vacant</span>}
                   </td>
                   <td className="px-4 py-2.5">
                     {o.saltoDoors
-                      ? <span className="inline-flex items-center gap-1 text-xs text-gray-600"><DoorClosed size={12} /> {o.saltoDoors}</span>
-                      : <span className="text-xs text-gray-300">—</span>}
+                      ? <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><DoorClosed size={12} /> {o.saltoDoors}</span>
+                      : <span className="text-xs text-muted-foreground">—</span>}
                   </td>
                   <td className="px-4 py-2.5"><StatusPill status={derivedStatus} /></td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center justify-end gap-1">
                       {derivedStatus === 'vacant' && (
-                        <button onClick={() => setContractSpace(o)} className="flex items-center gap-1 text-xs text-white bg-black hover:bg-gray-800 px-2.5 py-1.5 rounded-md font-medium">
+                        <button onClick={() => setContractSpace(o)} className="flex items-center gap-1 text-xs text-primary-foreground bg-primary hover:bg-primary/90 px-2.5 py-1.5 rounded-md font-medium">
                           <FileText size={12} /> Contract
                         </button>
                       )}
-                      <button onClick={() => openEdit(o)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-900"><Pencil size={14} /></button>
-                      <button onClick={() => { if (confirm('Delete this office?')) deleteSpace(o.id) }} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                      <button onClick={() => openEdit(o)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"><Pencil size={14} /></button>
+                      <button onClick={() => { if (confirm('Delete this office?')) deleteSpace(o.id) }} className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -247,20 +247,20 @@ export default function PrivateOfficesTab({ ctx }) {
             <Field label="Monthly Rate (AUD)">
               <input type="number" min="0" value={form.monthlyRate} onChange={(e) => setForm({ ...form, monthlyRate: e.target.value, rateTouched: true })} className={ic} />
             </Field>
-            <p className="text-xs text-gray-400 -mt-2">
-              Auto: {form.pax || 0} pax × {money(ppRate(form.floor, form.placement))}pp ({form.placement}, {floorLabel(form.floor)}) = <span className="font-medium text-gray-600">{money(officeRate(form.floor, form.placement, form.pax))}/mo</span>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Auto: {form.pax || 0} pax × {money(ppRate(form.floor, form.placement))}pp ({form.placement}, {floorLabel(form.floor)}) = <span className="font-medium text-muted-foreground">{money(officeRate(form.floor, form.placement, form.pax))}/mo</span>
               {form.rateTouched && form.monthlyRate !== '' && Number(form.monthlyRate) !== officeRate(form.floor, form.placement, form.pax) && ' · manual override'}
             </p>
-            <div className="bg-gray-50 rounded-md px-3 py-2 text-xs text-gray-600">
-              Bills to Xero account: <span className="font-medium text-gray-800">{previewAccount}</span>
+            <div className="bg-muted/50 rounded-md px-3 py-2 text-xs text-muted-foreground">
+              Bills to Xero account: <span className="font-medium text-foreground">{previewAccount}</span>
             </div>
             <Field label={<span className="flex items-center gap-1"><KeyRound size={12} /> Salto doors (comma-separated)</span>}>
               <input value={form.saltoDoors} onChange={(e) => setForm({ ...form, saltoDoors: e.target.value })} placeholder="L4 Lift, Suite 1 Door" className={ic} />
             </Field>
             <Field label="Notes"><textarea rows={2} value={form.attributes} onChange={(e) => setForm({ ...form, attributes: e.target.value })} className={`${ic} resize-none`} /></Field>
             <div className="flex justify-end gap-3 pt-1">
-              <button onClick={() => setEditId(undefined)} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50">Cancel</button>
-              <button onClick={save} className="px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">{editId ? 'Save' : 'Add Office'}</button>
+              <button onClick={() => setEditId(undefined)} className="px-4 py-2 text-sm text-foreground border border-input rounded-md hover:bg-muted/50">Cancel</button>
+              <button onClick={save} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90">{editId ? 'Save' : 'Add Office'}</button>
             </div>
           </div>
         </Modal>
@@ -269,10 +269,10 @@ export default function PrivateOfficesTab({ ctx }) {
       {contractSpace && (
         <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
           <div className="min-h-full flex items-start justify-center p-4 pt-8">
-            <div className="bg-white rounded-md w-full max-w-4xl shadow-2xl relative">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-900">New Contract — {contractSpace.unitNumber} · {floorLabel(contractSpace.floor)}</h2>
-                <button onClick={() => setContractSpace(null)} className="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
+            <div className="bg-card rounded-xl w-full max-w-4xl shadow-2xl relative">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+                <h2 className="font-semibold text-foreground">New Contract — {contractSpace.unitNumber} · {floorLabel(contractSpace.floor)}</h2>
+                <button onClick={() => setContractSpace(null)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
               </div>
               <ContractForm
                 editLease={{ spaceId: contractSpace.id, monthlyRent: contractSpace.monthlyRate }}

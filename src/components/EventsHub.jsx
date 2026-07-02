@@ -18,13 +18,13 @@ export default function EventsHub() {
   return (
     <div>
       <div className="px-6 md:px-8 pt-6">
-        <div className="border-b border-gray-200 flex">
+        <div className="border-b border-border flex">
           {TABS.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
               className={`px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2 ${
-                tab === key ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'
+                tab === key ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               {label}
