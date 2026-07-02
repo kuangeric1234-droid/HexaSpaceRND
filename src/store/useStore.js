@@ -6,7 +6,8 @@ import { descPrefix, unitNameFor } from '../lib/billing.js'
 import { sendEmail } from '../lib/sendEmail.js'
 import {
   accessGateMet, desiredSpaceStatus, shouldOnboard, requiresAccessGate, depositAmount,
-  onboardingEmailHtml, resolveOnboardingCopy,
+  onboardingEmailHtml, resolveOnboardingCopy, renderOnboardingTemplate,
+  DEFAULT_ONBOARDING_EMAIL_SUBJECT, DEFAULT_ONBOARDING_EMAIL_HTML,
   resolveBondRefundCopy, bondRefundEmailHtml,
   provisionSaltoAccess, revokeSaltoAccess,
 } from '../lib/onboarding.js'
@@ -32,7 +33,7 @@ function pickPrimaryContact(tenant, members) {
   return mine.find((m) => m.contactPerson) ?? mine.find((m) => m.billingPerson) ?? mine[0] ?? null
 }
 
-async function onboardLease({ lease, tenant, space, members, settings, updateLease, updateMember }) {
+async function onboardLease({ lease, tenant, space, members, settings, templates, updateLease, updateMember }) {
   try {
     const primary = pickPrimaryContact(tenant, members)
     const email = primary?.email || tenant?.email
@@ -55,15 +56,17 @@ async function onboardLease({ lease, tenant, space, members, settings, updateLea
     // 2. Onboarding email (how-to's + portal + Salto link) — subject/intro from
     //    the editable Settings → Email Templates → Onboarding template.
     try {
-      const { subject } = resolveOnboardingCopy({ lease, tenant, space, settings })
-      await sendEmail({
-        to: email,
-        subject,
-        html: onboardingEmailHtml({ lease, tenant, space, settings, saltoLink }),
-        settings,
-        tenantId: tenant?.id,
-        emailType: 'onboarding',
-      })
+      // Prefer the editable Templates → Emails → Onboarding template if present,
+      // otherwise fall back to the built-in default email.
+      const onbTpl = (templates ?? []).find((t) => t.category === 'email' && t.emailType === 'onboarding' && t.content)
+      let subject, html
+      if (onbTpl) {
+        ({ subject, html } = renderOnboardingTemplate({ template: onbTpl, lease, tenant, space, settings, saltoLink }))
+      } else {
+        subject = resolveOnboardingCopy({ lease, tenant, space, settings }).subject
+        html = onboardingEmailHtml({ lease, tenant, space, settings, saltoLink })
+      }
+      await sendEmail({ to: email, subject, html, settings, tenantId: tenant?.id, emailType: 'onboarding' })
     } catch (e) { console.error('Onboarding email failed:', e) }
 
     // 3. Portal invite (creates the Supabase auth user + set-password email)
@@ -343,6 +346,17 @@ const SAMPLE_TEMPLATES = [
     content: `<h2>Found Huntingdale — House Rules</h2><p>These House Rules govern the use of the Found Huntingdale premises at 17–31 Franklyn Street, Huntingdale VIC 3166 ("the Premises"), operated by Hexa Space Pty Ltd ("Hexa Space"). They apply to all Licensees, their employees, contractors, agents, and visitors. Hexa Space reserves the right to amend these House Rules at any time with reasonable notice.</p><h3>1. Access &amp; Security</h3><p>Access to the Premises is provided 24 hours a day, 7 days a week via electronic access credentials (key fob, access card, or digital key). Licensees are responsible for the security of their access credentials and must not share, duplicate, or transfer them to unauthorised persons. Any loss, theft, or suspected compromise of access credentials must be reported to Hexa Space in writing immediately. Replacement fees apply at Hexa Space's prevailing rates. All visitors must register with Hexa Space management or sign in at the access point. The Licensee is responsible for the conduct of all visitors to their unit at all times.</p><h3>2. Loading, Deliveries &amp; Vehicle Movements</h3><p>All loading and unloading must be conducted using the designated loading docks and access points allocated to each unit. Vehicles must not obstruct common driveways, access roads, loading areas, fire lanes, or emergency exits at any time. Large vehicle movements (semi-trailers, B-doubles, over-dimensional loads) must be pre-approved by Hexa Space management and coordinated to avoid peak access periods. Forklifts, pallet jacks, and other materials-handling equipment are permitted within the Licensee's allocated unit and designated loading areas only. All operators must hold current and appropriate licences and certifications. Hexa Space accepts no liability for deliveries received in common areas or outside the Licensee's unit.</p><h3>3. Parking</h3><p>Car parking spaces allocated under the Licence Agreement are for the exclusive use of the Licensee's personnel. Vehicles must not be parked in fire lanes, loading zones, or in a manner that obstructs other Licensees' access. Unallocated vehicles may be towed at the owner's expense without notice. Overnight vehicle storage and long-term trailer storage within the complex require prior written approval from Hexa Space and may be subject to additional charges.</p><h3>4. Prohibited Items &amp; Hazardous Materials</h3><p>The following are strictly prohibited from the Premises unless specifically authorised in writing by Hexa Space:</p><ul><li>Flammable, explosive, or combustible materials beyond quantities permitted under applicable codes and the Dangerous Goods Act 1985 (Vic)</li><li>Toxic, corrosive, radioactive, or chemically reactive substances</li><li>Illegal goods, stolen property, or contraband of any kind</li><li>Firearms, weapons, or ammunition</li><li>Livestock or animals (except approved assistance animals)</li><li>Any goods producing excessive odour, dust, or noise that may affect other Licensees or neighbouring properties</li></ul><p>Where the Licensee's operations involve regulated dangerous goods, the Licensee must comply with all applicable regulations and provide Hexa Space with current compliance documentation upon request. Any chemical spill or environmental incident must be reported to Hexa Space and relevant authorities immediately.</p><h3>5. Fire Safety &amp; Emergency Procedures</h3><p>Licensees must not obstruct fire exits, fire extinguisher access points, sprinkler systems, or emergency evacuation routes at any time. Storage within 600mm of any sprinkler head is strictly prohibited. A clear evacuation path must be maintained within each unit at all times. In the event of fire or emergency, the Licensee must evacuate immediately, call emergency services (000), and notify Hexa Space. The Premises must not be re-entered until cleared by emergency services and Hexa Space. Hot works (welding, cutting, grinding) require a written hot works permit from Hexa Space management at least 48 hours in advance. Fire extinguishers and safety equipment within the unit must be maintained in serviceable condition at the Licensee's expense.</p><h3>6. Structural Alterations &amp; Fit-Out</h3><p>No structural alterations, penetrations, drilling, or modifications to walls, floors, ceilings, roller doors, or building services may be made without prior written consent from Hexa Space. All approved works must be conducted by appropriately licensed tradespeople in compliance with the Building Act 1993 (Vic), National Construction Code, and all applicable Australian Standards. The Licensee is responsible for all associated costs, including council approvals where required. The Premises must be restored to original condition at the Licensee's cost upon vacating unless otherwise agreed in writing.</p><h3>7. Waste Management &amp; Cleanliness</h3><p>The Licensee is responsible for the disposal of all waste generated by its operations using the designated waste areas and bins. Bulk waste, pallets, and cardboard must be broken down and placed in allocated recycling areas. Waste must not be placed in common driveways, car parks, or in a manner that obstructs access or creates a hazard. Hazardous, chemical, and e-waste must be disposed of in accordance with applicable Victorian regulations and must not be placed in general waste receptacles. Units must be kept in a clean and tidy condition at all times. Hexa Space reserves the right to charge a cleaning fee if a unit is left in an unsatisfactory condition.</p><h3>8. Noise &amp; Hours of Operation</h3><p>While 24/7 access is available, operational activities generating significant noise — including heavy machinery, power tools, and loading equipment — must be conducted between 7:00 AM and 9:00 PM Monday to Saturday. Activities outside these hours require prior written approval from Hexa Space. Operations must not cause unreasonable interference with other Licensees or neighbouring properties at any time. The Licensee must comply with the Environment Protection Act 2017 (Vic) noise provisions and any applicable EPA guidelines.</p><h3>9. Maintenance &amp; Reporting</h3><p>The Licensee must promptly report any damage to the unit, building services, roller doors, or common areas to Hexa Space management in writing. The Licensee is responsible for maintaining the interior of their unit in good condition, including replacing globes and maintaining any fixtures specific to their occupation. Hexa Space is responsible for structural maintenance, common area upkeep, and building services outside the unit boundary. Routine maintenance requests should be submitted in writing with reasonable notice.</p><h3>10. Compliance with Laws</h3><p>Licensees must at all times comply with all applicable Commonwealth and Victorian laws, regulations, and by-laws relevant to their operations, including but not limited to the Occupational Health and Safety Act 2004 (Vic), Environmental Protection Act 2017 (Vic), Dangerous Goods Act 1985 (Vic), Building Act 1993 (Vic), Workplace Injury Rehabilitation and Compensation Act 2013 (Vic), and relevant Australian Standards. The Licensee must not use the Premises for any unlawful purpose. Hexa Space reserves the right to immediately suspend or terminate access if a breach of law is identified or reasonably suspected.</p>`,
     updatedAt: '2026-05-15',
     createdAt: '2025-01-01',
+  },
+  {
+    id: 'tmpl_email_onboarding',
+    category: 'email',
+    emailType: 'onboarding',
+    name: 'Onboarding / Welcome',
+    version: 'v1.0',
+    subject: DEFAULT_ONBOARDING_EMAIL_SUBJECT,
+    content: DEFAULT_ONBOARDING_EMAIL_HTML,
+    updatedAt: '2026-07-02',
+    createdAt: '2026-07-02',
   },
 ]
 
@@ -728,6 +742,7 @@ export function useStore() {
   const spacesRef = useRef([]);   useEffect(() => { spacesRef.current = spaces }, [spaces])
   const membersRef = useRef([]);  useEffect(() => { membersRef.current = members }, [members])
   const tenantsRef = useRef([]);  useEffect(() => { tenantsRef.current = tenants }, [tenants])
+  const templatesRef = useRef([]); useEffect(() => { templatesRef.current = templates }, [templates])
   const feesRef = useRef([]);     useEffect(() => { feesRef.current = fees }, [fees])
   // Late-bound ref so updateLease can invoke offboardLease without a dependency cycle.
   const offboardLeaseRef = useRef(null)
@@ -1076,7 +1091,7 @@ export function useStore() {
           updateLease(lease.id, { onboardedAt: lease.activatedAt ?? new Date().toISOString() })
         } else {
           const tenant = tenants.find((t) => t.id === lease.tenantId)
-          onboardLease({ lease, tenant, space, members, settings, updateLease, updateMember })
+          onboardLease({ lease, tenant, space, members, settings, templates, updateLease, updateMember })
         }
       }
     })
@@ -1263,7 +1278,7 @@ export function useStore() {
     // If the space was already occupied, this tenant is already moved in — stamp
     // onboardedAt to suppress a retroactive welcome rather than re-sending it.
     if (alreadyOccupied) { updateLease(leaseId, { onboardedAt: lease.activatedAt ?? new Date().toISOString() }); return }
-    onboardLease({ lease, tenant, space, members: membersRef.current, settings: settingsRef.current, updateLease, updateMember })
+    onboardLease({ lease, tenant, space, members: membersRef.current, settings: settingsRef.current, templates: templatesRef.current, updateLease, updateMember })
   }, [updateSpace, updateLease, updateMember])
 
   const deleteLease = useCallback((id) => {

@@ -228,6 +228,72 @@ export function onboardingEmailHtml({ lease, tenant, space, settings, saltoLink 
 </html>`
 }
 
+// ── Editable onboarding email TEMPLATE (Templates → Emails) ─────────────────────
+// The admin can edit this in the Templates section. It's full HTML so the design
+// (branded header, styled portal button) is preserved; {{placeholders}} are filled
+// at send time. Supported: {{company}} {{tenantName}} {{unit}} {{startDate}}
+// {{contract}} {{portalUrl}} {{website}} {{address}} {{saltoBlock}}.
+export const DEFAULT_ONBOARDING_EMAIL_SUBJECT = 'Welcome to {{company}} — your space is ready'
+export const DEFAULT_ONBOARDING_EMAIL_HTML = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="font-family:Arial,sans-serif;color:#1a1a1a;margin:0;padding:0;background:#f5f5f5">
+  <div style="max-width:600px;margin:32px auto;background:#fff;border:1px solid #e5e5e5;border-radius:6px;overflow:hidden">
+    <div style="background:#000;padding:24px 32px">
+      <span style="color:#fff;font-size:20px;font-weight:bold;letter-spacing:2px">{{company}}</span>
+    </div>
+    <div style="padding:32px">
+      <h2 style="font-size:20px;margin:0 0 16px">Welcome to {{company}} 🎉</h2>
+      <p style="margin:0 0 16px;font-size:14px">Hi {{tenantName}},</p>
+      <p style="margin:0 0 20px;font-size:14px">Your agreement for {{unit}} is signed and settled — welcome aboard. Here's everything you need to get started from {{startDate}}.</p>
+
+      <div style="background:#f9f9f9;border:1px solid #e5e5e5;border-radius:4px;padding:16px;margin:0 0 24px">
+        <p style="margin:0 0 8px;font-weight:bold;font-size:14px">Your member portal</p>
+        <p style="margin:0 0 12px;color:#555;font-size:13px">Log in to view invoices, manage your team, book meeting rooms and message our team. You'll receive a separate email to set your password.</p>
+        <a href="{{portalUrl}}" style="background:#000;color:#fff;padding:10px 24px;border-radius:4px;text-decoration:none;font-weight:bold;font-size:13px;display:inline-block">Log in to the portal</a>
+      </div>
+
+      {{saltoBlock}}
+
+      <div style="margin:0 0 24px">
+        <p style="margin:0 0 8px;font-weight:bold;font-size:14px">Getting started</p>
+        <ul style="margin:0;padding-left:18px;color:#555;font-size:13px;line-height:1.7">
+          <li>Access is 24/7 via your mobile key or access card.</li>
+          <li>Add your team members from the portal — each gets their own login.</li>
+          <li>Loading, parking and waste follow the House Rules attached to your agreement.</li>
+          <li>Report maintenance or questions through the portal messages.</li>
+        </ul>
+      </div>
+
+      <p style="font-size:12px;color:#888;margin:0">{{company}} &middot; {{address}} &middot; <a href="https://{{website}}" style="color:#888">{{website}}</a></p>
+    </div>
+  </div>
+</body>
+</html>`
+
+export function saltoBlockHtml(unit, saltoLink) {
+  if (!saltoLink) return ''
+  return `<div style="background:#f9f9f9;border:1px solid #e5e5e5;border-radius:4px;padding:16px;margin:0 0 24px">
+         <p style="margin:0 0 8px;font-weight:bold;font-size:14px">Door access</p>
+         <p style="margin:0 0 12px;color:#555;font-size:13px">Set up your mobile key for ${unit} with Salto. Access is valid from your commencement date.</p>
+         <a href="${saltoLink}" style="background:#000;color:#fff;padding:10px 24px;border-radius:4px;text-decoration:none;font-weight:bold;font-size:13px;display:inline-block">Activate door access</a>
+       </div>`
+}
+
+// Fill an editable email template (subject + full-HTML body) with live values.
+export function renderOnboardingTemplate({ template, lease, tenant, space, settings, saltoLink }) {
+  const vars = onboardingVars({ lease, tenant, space, settings })
+  vars.portalUrl = PORTAL_URL
+  vars.portalLink = PORTAL_URL
+  vars.website = settings?.company?.website || 'hexaspace.com.au'
+  vars.address = space?.address ?? settings?.billing?.address ?? ''
+  vars.saltoBlock = saltoBlockHtml(space?.unitNumber ?? 'your space', saltoLink)
+  return {
+    subject: fillVars(template?.subject || DEFAULT_ONBOARDING_EMAIL_SUBJECT, vars),
+    html: fillVars(template?.content || DEFAULT_ONBOARDING_EMAIL_HTML, vars),
+  }
+}
+
 // ── Bond refund (offboarding) email ─────────────────────────────────────────────
 
 export function resolveBondRefundCopy({ invoice, tenant, space, settings, amount }) {
