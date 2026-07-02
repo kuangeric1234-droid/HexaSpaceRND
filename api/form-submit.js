@@ -9,6 +9,7 @@
 //   `website` is a honeypot — if filled, we treat it as a bot and no-op.
 
 import { createClient } from '@supabase/supabase-js'
+import { leadTypeFor, findEmailTemplate, renderLead, sendResend } from './_leads.js'
 
 const SUPABASE_URL = process.env.SUPABASE_URL
 
@@ -35,11 +36,15 @@ export default async function handler(req, res) {
   const supabase = createClient(SUPABASE_URL, serviceKey, { auth: { persistSession: false } })
 
   try {
-    const [{ data: spaceRows }, { data: stageRows }, { data: refRows }] = await Promise.all([
+    const [{ data: spaceRows }, { data: stageRows }, { data: refRows }, { data: tmplRows }, { data: settRows }] = await Promise.all([
       supabase.from('spaces').select('id, data'),
       supabase.from('lead_pipeline_stages').select('data'),
       supabase.from('referrers').select('data'),
+      supabase.from('templates').select('data'),
+      supabase.from('settings').select('data').eq('id', 'global'),
     ])
+    const templates = (tmplRows ?? []).map((r) => r.data)
+    const settings = settRows?.[0]?.data ?? {}
 
     // Resolve the unit (by unitNumber) the enquiry is about.
     const spaces = (spaceRows ?? []).map((r) => ({ id: r.id, ...r.data }))
@@ -59,6 +64,7 @@ export default async function handler(req, res) {
 
     const today = new Date().toISOString().split('T')[0]
     const id = `lead${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+    const leadType = leadTypeFor({ enquiryType: req.body?.enquiryType, interest: req.body?.interest }, space)
     const lead = {
       id,
       name: name ?? '',
@@ -76,8 +82,11 @@ export default async function handler(req, res) {
       referrerId: referrer?.id ?? null,
       referralCode: referrer ? referrer.code : (ref || null),
       referralIntent: ref ? (intent || 'lease') : null,
+      enquiryType: req.body?.enquiryType ?? req.body?.interest ?? null,
       createdAt: today,
       stageEnteredAt: today,
+      // Nurture sequence state — advanced by the lead-nurture cron.
+      nurture: { step: 0, type: leadType, lastAt: today },
     }
 
     const { error } = await supabase.from('leads').upsert({ id, data: lead, updated_at: new Date().toISOString() })
@@ -88,6 +97,8 @@ export default async function handler(req, res) {
 
     // Best-effort admin notification — never blocks the response.
     notifyAdmin(supabase, lead, space).catch(() => {})
+    // Best-effort brochure email to the enquirer (Day 0 of the nurture flow).
+    sendBrochure(lead, space, leadType, templates, settings).catch(() => {})
 
     return res.status(200).json({ success: true })
   } catch (err) {
@@ -129,4 +140,18 @@ async function notifyAdmin(supabase, lead, space) {
     headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ from: `${fromName} <${fromEmail}>`, to, subject: `New enquiry — ${unit}`, html }),
   })
+}
+
+// Sends the membership-specific brochure email to the enquirer on Day 0.
+async function sendBrochure(lead, space, leadType, templates, settings) {
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey || !lead.email) return
+  const template = findEmailTemplate(templates, leadType)
+  if (!template) return
+  const fromName = settings?.emails?.fromName || settings?.company?.name || 'Hexa Space'
+  const fromEmail = settings?.emails?.fromEmail || 'noreply@hexahub.com.au'
+  const replyTo = settings?.emails?.replyTo || settings?.emails?.notificationEmail
+  const membershipType = lead.enquiryType || (space?.type === 'office' ? 'Private Office' : 'membership')
+  const { subject, html } = renderLead(template, { lead, membershipType, settings })
+  await sendResend(resendKey, { fromName, fromEmail, to: lead.email, subject, html, replyTo })
 }
