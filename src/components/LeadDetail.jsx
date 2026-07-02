@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { formatDistanceToNow, parseISO, format } from 'date-fns'
 import {
   X, Mail, StickyNote, Activity as ActivityIcon, User, Phone, Building2, Tag, DollarSign,
-  UserPlus, CheckCircle2, Send, Loader2, ArrowRight, Sparkles, Trash2,
+  UserPlus, CheckCircle2, Send, Loader2, ArrowRight, Sparkles, Trash2, FileText, FileDown,
 } from 'lucide-react'
-import { sendEmail } from '../lib/sendEmail.js'
+import { jsPDF } from 'jspdf'
+import { sendEmail, renderProposalTemplate } from '../lib/sendEmail.js'
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: User },
+  { key: 'proposal', label: 'Proposal', icon: FileText },
   { key: 'email', label: 'Email', icon: Mail },
   { key: 'notes', label: 'Notes', icon: StickyNote },
   { key: 'activity', label: 'Activity', icon: ActivityIcon },
@@ -16,7 +18,7 @@ const TABS = [
 function rel(iso) { try { return formatDistanceToNow(parseISO(iso), { addSuffix: true }) } catch { return '' } }
 
 export default function LeadDetail({ lead, store, onClose }) {
-  const { appendLeadActivity, updateLead, convertLeadToTenant, deleteLead, recordDealClose, commissions = [], pipelineStages = [], spaces = [], tenants = [], referrers = [], settings = {} } = store
+  const { appendLeadActivity, updateLead, convertLeadToTenant, deleteLead, recordDealClose, commissions = [], pipelineStages = [], spaces = [], leases = [], tenants = [], templates = [], referrers = [], settings = {} } = store
   const referrer = lead.referrerId ? referrers.find((r) => r.id === lead.referrerId) : null
   const commission = commissions.find((c) => c.leadId === lead.id)
   const [tab, setTab] = useState('overview')
@@ -61,6 +63,106 @@ export default function LeadDetail({ lead, store, onClose }) {
 
   // Notes
   const [note, setNote] = useState('')
+
+  // ── Proposal ──────────────────────────────────────────────────────────────
+  const officeHasOccupant = (s) => !!(s.occupantTenantId || s.occupantName || leases.some((l) => l.spaceId === s.id && (l.status === 'active' || l.status === 'pending')))
+  const daysTo = (d) => { try { return Math.ceil((parseISO(d) - new Date()) / 86400000) } catch { return null } }
+  const floorLabel = { l2: 'Level 2', l4: 'Level 4', l5: 'Level 5' }
+  // Offices to offer: vacant now, plus occupied ones whose lease ends within 90 days.
+  const officeOptions = spaces
+    .filter((s) => s.type === 'office')
+    .map((s) => {
+      const occupied = officeHasOccupant(s)
+      const l = leases.find((x) => x.spaceId === s.id && x.status === 'active')
+      const endDays = l?.endDate ? daysTo(l.endDate) : null
+      const becoming = occupied && endDays != null && endDays >= 0 && endDays <= 90
+      return { space: s, occupied, becoming, availableFrom: becoming ? l.endDate : null }
+    })
+    .filter((o) => !o.occupied || o.becoming)
+    .sort((a, b) => (a.occupied === b.occupied ? 0 : a.occupied ? 1 : -1) || String(a.space.unitNumber).localeCompare(String(b.space.unitNumber), undefined, { numeric: true }))
+
+  const [picked, setPicked] = useState({}) // spaceId -> { on, price, note }
+  const [proposalMsg, setProposalMsg] = useState('')
+  const [validityDays, setValidityDays] = useState(14)
+  const [sendingProposal, setSendingProposal] = useState(false)
+  const [proposalResult, setProposalResult] = useState('')
+  const togglePick = (o) => setPicked((p) => ({
+    ...p,
+    [o.space.id]: p[o.space.id]?.on
+      ? { ...p[o.space.id], on: false }
+      : { on: true, price: p[o.space.id]?.price ?? (o.space.monthlyRate ?? ''), note: p[o.space.id]?.note ?? (o.availableFrom ? `Available from ${format(parseISO(o.availableFrom), 'd MMM yyyy')}` : '') },
+  }))
+  const setPick = (id, k, v) => setPicked((p) => ({ ...p, [id]: { ...p[id], [k]: v } }))
+  const selectedList = () => officeOptions.filter((o) => picked[o.space.id]?.on).map((o) => ({ ...o, price: Number(picked[o.space.id]?.price || 0), note: picked[o.space.id]?.note || '' }))
+
+  function buildProposalPDF() {
+    const sel = selectedList()
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+    const W = doc.internal.pageSize.getWidth()
+    const ml = 16, mr = W - 16
+    let y = 20
+    const companyName = settings?.company?.name ?? 'Hexa Space'
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold'); doc.setTextColor(0)
+    doc.text('PROPOSAL', ml, y)
+    doc.setFontSize(11); doc.text(companyName.toUpperCase(), mr, y, { align: 'right' }); y += 8
+    doc.setDrawColor(0); doc.setLineWidth(0.4); doc.line(ml, y, mr, y); y += 8
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(80)
+    doc.text(`Prepared for: ${lead.name || lead.businessName || ''}`, ml, y)
+    doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, mr, y, { align: 'right' }); y += 5
+    if (lead.businessName && lead.name) { doc.text(lead.businessName, ml, y); y += 5 }
+    doc.text(`Valid for ${validityDays} days`, ml, y); y += 8
+    if (proposalMsg.trim()) {
+      doc.setTextColor(40); doc.setFontSize(10)
+      doc.splitTextToSize(proposalMsg.trim(), mr - ml).forEach((ln) => { doc.text(ln, ml, y); y += 5 })
+      y += 3
+    }
+    doc.setFillColor(20, 20, 20); doc.rect(ml, y - 4, mr - ml, 7, 'F')
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(255)
+    doc.text('OFFICE', ml + 2, y); doc.text('LEVEL', ml + 45, y); doc.text('PAX', ml + 72, y); doc.text('NOTES', ml + 88, y); doc.text('MONTHLY', mr - 2, y, { align: 'right' })
+    doc.setTextColor(0); y += 6
+    let total = 0
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5)
+    sel.forEach((o, i) => {
+      if (i % 2 === 0) { doc.setFillColor(248, 248, 248); doc.rect(ml, y - 4, mr - ml, 7, 'F') }
+      doc.setTextColor(0)
+      doc.text(String(o.space.unitNumber ?? '—'), ml + 2, y)
+      doc.text(floorLabel[o.space.floor] || '—', ml + 45, y)
+      doc.text(String(o.space.pax ?? '—'), ml + 72, y)
+      const note = doc.splitTextToSize(o.note || '', 55)
+      doc.text(note[0] || '', ml + 88, y)
+      doc.setFont('helvetica', 'bold'); doc.text(`$${o.price.toLocaleString('en-AU')}`, mr - 2, y, { align: 'right' }); doc.setFont('helvetica', 'normal')
+      total += o.price; y += 7
+    })
+    doc.setDrawColor(0); doc.line(ml, y, mr, y); y += 6
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10)
+    doc.text('Total monthly (ex GST)', ml, y); doc.text(`$${total.toLocaleString('en-AU')} AUD`, mr, y, { align: 'right' }); y += 10
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(120)
+    doc.text('All amounts exclude GST. Pricing is indicative and subject to a signed licence agreement. Offices are offered subject to availability at the time of acceptance.', ml, y, { maxWidth: mr - ml })
+    return doc
+  }
+
+  function downloadProposal() {
+    if (selectedList().length === 0) { setProposalResult('Tick at least one office first.'); return }
+    buildProposalPDF().save(`Proposal_${(lead.name || lead.businessName || 'lead').replace(/\s+/g, '_')}.pdf`)
+  }
+
+  async function sendProposal() {
+    const sel = selectedList()
+    if (sel.length === 0) { setProposalResult('Tick at least one office first.'); return }
+    if (!lead.email) { setProposalResult('No email address on this lead.'); return }
+    setSendingProposal(true); setProposalResult('')
+    try {
+      const pdfBase64 = buildProposalPDF().output('base64')
+      const tpl = (templates ?? []).find((t) => t.category === 'email' && t.emailType === 'proposal' && t.content)
+      const { subject: subj, html } = renderProposalTemplate({ template: tpl, lead, settings })
+      await sendEmail({ to: lead.email, subject: subj, html, settings, emailType: 'proposal', attachments: [{ filename: `Proposal_${(lead.businessName || lead.name || 'lead').replace(/\s+/g, '_')}.pdf`, content: pdfBase64 }] })
+      const quoted = pipelineStages.find((s) => /quote/i.test(s.name || '') || s.category === 'quoted')
+      const offices = sel.map((o) => ({ spaceId: o.space.id, unit: o.space.unitNumber, price: o.price, note: o.note }))
+      updateLead(lead.id, { proposal: { sentAt: new Date().toISOString(), offices, validityDays, message: proposalMsg }, ...(quoted ? { stageId: quoted.id, stageEnteredAt: new Date().toISOString().split('T')[0] } : {}) })
+      appendLeadActivity(lead.id, { type: 'email', text: `Proposal sent — ${offices.length} office${offices.length !== 1 ? 's' : ''} ($${sel.reduce((s, o) => s + o.price, 0).toLocaleString('en-AU')}/mo)` })
+      setProposalResult('Sent ✓'); setTab('activity')
+    } catch (e) { setProposalResult(e.message) } finally { setSendingProposal(false) }
+  }
 
   async function send() {
     if (!lead.email) { setMsg('No email address on this lead.'); return }
@@ -181,6 +283,58 @@ export default function LeadDetail({ lead, store, onClose }) {
                 <div className="bg-card border border-border rounded-xl shadow-sm p-4">
                   <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2">Original message</h3>
                   <p className="text-sm text-foreground whitespace-pre-wrap">{lead.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'proposal' && (
+            <div className="space-y-4">
+              <div className="bg-card border border-border rounded-xl shadow-sm p-4">
+                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-1">Offices to propose</h3>
+                <p className="text-xs text-muted-foreground mb-3">Tick the offices to include. Available now and those becoming available (lease ending within 90 days) are listed — edit the price for a negotiated rate.</p>
+                {officeOptions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No available or soon-to-be-available offices.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {officeOptions.map((o) => {
+                      const p = picked[o.space.id] || {}
+                      return (
+                        <div key={o.space.id} className={`border rounded-lg p-3 ${p.on ? 'border-foreground bg-muted/40' : 'border-border'}`}>
+                          <div className="flex items-center gap-3">
+                            <input type="checkbox" checked={!!p.on} onChange={() => togglePick(o)} className="h-4 w-4 rounded border-gray-300" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-foreground">{o.space.unitNumber} <span className="text-muted-foreground font-normal">· {floorLabel[o.space.floor] || ''}{o.space.pax ? ` · ${o.space.pax} pax` : ''}</span></div>
+                              <div className="text-xs">{o.becoming ? <span className="text-amber-600">Available from {format(parseISO(o.availableFrom), 'd MMM yyyy')}</span> : <span className="text-green-600">Available now</span>}</div>
+                            </div>
+                            <div className="text-xs text-muted-foreground">list ${Number(o.space.monthlyRate ?? 0).toLocaleString('en-AU')}</div>
+                          </div>
+                          {p.on && (
+                            <div className="grid grid-cols-3 gap-2 mt-3 pl-7">
+                              <label className="col-span-1"><span className="block text-[11px] text-muted-foreground mb-0.5">Monthly price</span><input type="number" value={p.price ?? ''} onChange={(e) => setPick(o.space.id, 'price', e.target.value)} className={input} /></label>
+                              <label className="col-span-2"><span className="block text-[11px] text-muted-foreground mb-0.5">Note</span><input value={p.note ?? ''} onChange={(e) => setPick(o.space.id, 'note', e.target.value)} className={input} /></label>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="bg-card border border-border rounded-xl shadow-sm p-4 space-y-3">
+                <label className="block"><span className="block text-xs text-muted-foreground mb-1">Cover message (optional — appears on the PDF)</span><textarea rows={3} value={proposalMsg} onChange={(e) => setProposalMsg(e.target.value)} className={`${input} resize-none`} /></label>
+                <label className="block w-32"><span className="block text-xs text-muted-foreground mb-1">Valid for (days)</span><input type="number" value={validityDays} onChange={(e) => setValidityDays(Number(e.target.value) || 14)} className={input} /></label>
+                <div className="flex items-center gap-3 pt-1">
+                  <button onClick={downloadProposal} className="flex items-center gap-1.5 border border-input text-foreground px-3 py-2 rounded-md text-sm hover:bg-muted/50"><FileDown size={14} /> Preview PDF</button>
+                  <button onClick={sendProposal} disabled={sendingProposal || !lead.email} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-40">{sendingProposal ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send proposal</button>
+                  {proposalResult && <span className={`text-xs ${proposalResult.includes('✓') ? 'text-green-600' : 'text-red-600'}`}>{proposalResult}</span>}
+                </div>
+              </div>
+              {lead.proposal && (
+                <div className="bg-card border border-border rounded-xl shadow-sm p-4 text-sm">
+                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2">Last proposal</h3>
+                  <p className="text-muted-foreground text-xs mb-2">Sent {lead.proposal.sentAt ? format(parseISO(lead.proposal.sentAt), 'd MMM yyyy, h:mm a') : ''}</p>
+                  {(lead.proposal.offices || []).map((o) => <div key={o.spaceId} className="flex justify-between text-foreground"><span>{o.unit}</span><span>${Number(o.price).toLocaleString('en-AU')}/mo</span></div>)}
                 </div>
               )}
             </div>

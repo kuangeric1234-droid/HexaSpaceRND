@@ -7,6 +7,7 @@ import {
   sendEmail, DEFAULT_ESIGN_EMAIL_SUBJECT, DEFAULT_ESIGN_EMAIL_HTML, DEFAULT_SIGNED_EMAIL_SUBJECT, DEFAULT_SIGNED_EMAIL_HTML,
   DEFAULT_LEAD_DESK_SUBJECT, DEFAULT_LEAD_DESK_HTML, DEFAULT_LEAD_OFFICE_SUBJECT, DEFAULT_LEAD_OFFICE_HTML,
   DEFAULT_LEAD_FOLLOWUP_SUBJECT, DEFAULT_LEAD_FOLLOWUP_HTML, DEFAULT_LEAD_FINAL_SUBJECT, DEFAULT_LEAD_FINAL_HTML,
+  DEFAULT_PROPOSAL_EMAIL_SUBJECT, DEFAULT_PROPOSAL_EMAIL_HTML,
 } from '../lib/sendEmail.js'
 import {
   accessGateMet, desiredSpaceStatus, shouldOnboard, requiresAccessGate, depositAmount,
@@ -388,6 +389,7 @@ const SAMPLE_TEMPLATES = [
   { id: 'tmpl_email_lead_office', category: 'email', emailType: 'lead_office', name: 'Lead — Private Office enquiry', version: 'v1.0', subject: DEFAULT_LEAD_OFFICE_SUBJECT, content: DEFAULT_LEAD_OFFICE_HTML, updatedAt: '2026-07-02', createdAt: '2026-07-02' },
   { id: 'tmpl_email_lead_followup', category: 'email', emailType: 'lead_followup', name: 'Lead — Follow-up (no reply)', version: 'v1.0', subject: DEFAULT_LEAD_FOLLOWUP_SUBJECT, content: DEFAULT_LEAD_FOLLOWUP_HTML, updatedAt: '2026-07-02', createdAt: '2026-07-02' },
   { id: 'tmpl_email_lead_final', category: 'email', emailType: 'lead_final', name: 'Lead — Final follow-up', version: 'v1.0', subject: DEFAULT_LEAD_FINAL_SUBJECT, content: DEFAULT_LEAD_FINAL_HTML, updatedAt: '2026-07-02', createdAt: '2026-07-02' },
+  { id: 'tmpl_email_proposal', category: 'email', emailType: 'proposal', name: 'Proposal (cover email)', version: 'v1.0', subject: DEFAULT_PROPOSAL_EMAIL_SUBJECT, content: DEFAULT_PROPOSAL_EMAIL_HTML, updatedAt: '2026-07-02', createdAt: '2026-07-02' },
 ]
 
 // ── Real Found Huntingdale data (PDF: 17 April 2026) ──────────────────────────
