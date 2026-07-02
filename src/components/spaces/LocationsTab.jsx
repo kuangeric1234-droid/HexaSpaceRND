@@ -10,6 +10,11 @@ export default function LocationsTab({ ctx }) {
   const [view, setView] = useState('floors') // 'floors' | 'plan'
 
   const typeLabel = (t) => SPACE_TABS.find((x) => x.type === t)?.label ?? t
+  // An office is occupied if it has an occupant or an active/pending lease —
+  // same rule as the Spaces, Memberships and Dashboard views.
+  const officeOccupied = (s) =>
+    !!(s.occupantTenantId || s.occupantName ||
+      leases.some((l) => l.spaceId === s.id && (l.status === 'active' || l.status === 'pending')))
 
   return (
     <div>
@@ -36,8 +41,9 @@ export default function LocationsTab({ ctx }) {
       {view === 'floors' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {FLOORS.map((f) => {
-            const onFloor = spaces.filter((s) => s.floor === f.id)
-            const occupied = onFloor.filter((s) => s.status === 'occupied').length
+            // Private offices only — parking, desks, virtual offices etc. are excluded.
+            const onFloor = spaces.filter((s) => s.floor === f.id && s.type === 'office')
+            const occupied = onFloor.filter(officeOccupied).length
             const byType = onFloor.reduce((acc, s) => {
               acc[s.type] = (acc[s.type] || 0) + 1
               return acc
@@ -63,7 +69,7 @@ export default function LocationsTab({ ctx }) {
                   </div>
                 </div>
                 {Object.keys(byType).length === 0 ? (
-                  <p className="text-xs text-gray-400">No spaces pinned to this floor yet.</p>
+                  <p className="text-xs text-gray-400">No private offices on this floor.</p>
                 ) : (
                   <div className="space-y-1 border-t border-gray-100 pt-3">
                     {Object.entries(byType).map(([t, n]) => (
@@ -77,13 +83,13 @@ export default function LocationsTab({ ctx }) {
               </div>
             )
           })}
-          {/* Unassigned bucket */}
-          {spaces.some((s) => !s.floor) && (
+          {/* Unassigned bucket — private offices only */}
+          {spaces.some((s) => !s.floor && s.type === 'office') && (
             <div className="bg-gray-50 border border-dashed border-gray-200 rounded-md p-5">
               <div className="text-sm font-semibold text-gray-600 mb-1">Unassigned</div>
-              <div className="text-2xl font-bold text-gray-900">{spaces.filter((s) => !s.floor).length}</div>
+              <div className="text-2xl font-bold text-gray-900">{spaces.filter((s) => !s.floor && s.type === 'office').length}</div>
               <p className="text-xs text-gray-400 mt-1">
-                Spaces not yet pinned to a floor. Drop them onto a floor in the Floorplan view.
+                Offices not yet pinned to a floor. Drop them onto a floor in the Floorplan view.
               </p>
             </div>
           )}

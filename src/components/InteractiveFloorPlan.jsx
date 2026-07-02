@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, isValid, differenceInDays } from 'date-fns'
 import { X, MapPin, Crosshair, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
 
 // Image-based interactive floorplan: your real plan as the backdrop, with each
@@ -14,9 +14,10 @@ const FLOORPLANS = [
 
 const ZOOM_STEPS = [0.75, 1, 1.25, 1.5, 2]
 
-function statusDot(status) {
-  if (status === 'occupied') return 'bg-gray-900 text-white border-gray-900'
-  if (status === 'reserved') return 'bg-amber-400 text-amber-950 border-amber-500'
+// Marker colour by derived state: occupied (dark), ending ≤3 months (yellow), vacant (green).
+function statusDot(state) {
+  if (state === 'ending') return 'bg-amber-400 text-amber-950 border-amber-500'
+  if (state === 'occupied') return 'bg-gray-900 text-white border-gray-900'
   return 'bg-green-500 text-white border-green-600'
 }
 
@@ -41,10 +42,25 @@ export default function InteractiveFloorPlan({ spaces, leases, tenants, updateSp
     const lease = getActiveLease(spaceId)
     return lease ? tenants.find((t) => t.id === lease.tenantId) : null
   }
+  // Derived marker state: vacant (no occupant) → green; occupied with a lease
+  // ending within 3 months → yellow; otherwise occupied → dark.
+  const spaceState = (s) => {
+    const lease = leases.find((l) => l.spaceId === s.id && (l.status === 'active' || l.status === 'pending'))
+    const occupied = !!(s.occupantTenantId || s.occupantName || lease)
+    if (!occupied) return 'vacant'
+    const end = lease?.endDate ? parseISO(lease.endDate) : null
+    if (end && isValid(end)) {
+      const days = differenceInDays(end, new Date())
+      if (days >= 0 && days <= 90) return 'ending'
+    }
+    return 'occupied'
+  }
 
   const selected = selectedId ? planSpaces.find((s) => s.id === selectedId) : null
   const selectedTenant = selected ? getTenant(selected.id) : null
   const selectedLease = selected ? getActiveLease(selected.id) : null
+  const selState = selected ? spaceState(selected) : null
+  const selStateLabel = selState === 'ending' ? 'Lease ending soon' : selState === 'occupied' ? 'Occupied' : 'Vacant'
 
   function handleImageClick(e) {
     if (!placingId || imgError) return
@@ -114,7 +130,7 @@ export default function InteractiveFloorPlan({ spaces, leases, tenants, updateSp
                       key={s.id}
                       onClick={(e) => { e.stopPropagation(); setSelectedId((p) => (p === s.id ? null : s.id)) }}
                       title={`${s.unitNumber}${tenant ? ' — ' + tenant.businessName : ''}`}
-                      className={`absolute -translate-x-1/2 -translate-y-1/2 border shadow-sm rounded-full text-[10px] font-bold px-2 py-1 leading-none whitespace-nowrap transition-transform hover:scale-110 ${statusDot(s.status)} ${selectedId === s.id ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
+                      className={`absolute -translate-x-1/2 -translate-y-1/2 border shadow-sm rounded-full text-[10px] font-bold px-2 py-1 leading-none whitespace-nowrap transition-transform hover:scale-110 ${statusDot(spaceState(s))} ${selectedId === s.id ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
                       style={{ left: `${s.pos.x}%`, top: `${s.pos.y}%` }}
                     >
                       {s.unitNumber}
@@ -129,7 +145,7 @@ export default function InteractiveFloorPlan({ spaces, leases, tenants, updateSp
         {/* Legend + unplaced */}
         <div className="flex gap-5 mt-3 text-xs text-gray-500">
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-gray-900 inline-block" /> Occupied</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block" /> Reserved</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block" /> Lease ending ≤3 months</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-green-500 inline-block" /> Vacant</span>
         </div>
 
@@ -165,10 +181,10 @@ export default function InteractiveFloorPlan({ spaces, leases, tenants, updateSp
           <div className="space-y-2 mb-3">
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-400">Status</span>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded capitalize ${
-                selected.status === 'occupied' ? 'bg-gray-900 text-white'
-                : selected.status === 'reserved' ? 'bg-amber-50 text-amber-800 border border-amber-300'
-                : 'bg-green-50 text-green-800 border border-green-200'}`}>{selected.status}</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                selState === 'occupied' ? 'bg-gray-900 text-white'
+                : selState === 'ending' ? 'bg-amber-50 text-amber-800 border border-amber-300'
+                : 'bg-green-50 text-green-800 border border-green-200'}`}>{selStateLabel}</span>
             </div>
             {selected.size && <div className="flex items-center justify-between"><span className="text-xs text-gray-400">Size</span><span className="text-sm text-gray-900">{selected.size}</span></div>}
             {selected.monthlyRate != null && <div className="flex items-center justify-between"><span className="text-xs text-gray-400">Monthly</span><span className="text-sm font-semibold text-gray-900">${Number(selected.monthlyRate).toLocaleString('en-AU')}</span></div>}
@@ -177,10 +193,10 @@ export default function InteractiveFloorPlan({ spaces, leases, tenants, updateSp
             <div className="pt-3 border-t border-gray-100">
               <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Current tenant</div>
               <div className="font-semibold text-gray-900 text-sm">{selectedTenant.businessName}</div>
-              {selectedLease && <div className="text-xs text-gray-400 mt-1">Lease to {format(parseISO(selectedLease.endDate), 'dd/MM/yyyy')}</div>}
+              {selectedLease?.endDate && isValid(parseISO(selectedLease.endDate)) && <div className="text-xs text-gray-400 mt-1">Lease to {format(parseISO(selectedLease.endDate), 'dd/MM/yyyy')}</div>}
             </div>
           )}
-          {selected.status === 'vacant' && onNewContract && (
+          {selState === 'vacant' && onNewContract && (
             <div className="pt-3 border-t border-gray-100">
               <p className="text-xs text-green-700 font-semibold mb-2">Available now</p>
               <button onClick={() => onNewContract(selected)} className="w-full bg-black text-white text-xs font-semibold py-2 rounded hover:bg-gray-800">+ New Contract</button>
