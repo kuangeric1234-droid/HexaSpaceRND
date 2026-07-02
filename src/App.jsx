@@ -28,6 +28,7 @@ import SignPage from './components/SignPage.jsx'
 import EventBookingSignPage from './components/EventBookingSignPage.jsx'
 import ReferrerDashboard from './components/ReferrerDashboard.jsx'
 import BookTour from './components/BookTour.jsx'
+import ProposalAccept from './components/ProposalAccept.jsx'
 import PortalApp from './portal/PortalApp.jsx'
 import { useStore } from './store/useStore.js'
 import { supabase } from './lib/supabase.js'
@@ -52,6 +53,10 @@ export default function App() {
 
   // Public "book a private tour" page — no auth needed
   if (window.location.pathname.startsWith('/book-a-tour')) return <BookTour />
+
+  // Public proposal accept page — no auth needed
+  const proposalMatch = window.location.pathname.match(/^\/proposal\/([^/]+)/)
+  if (proposalMatch) return <ProposalAccept token={proposalMatch[1]} />
 
   const store = useStore()
   const [authed, setAuthed] = useState(false)

@@ -153,12 +153,14 @@ export default function LeadDetail({ lead, store, onClose }) {
     setSendingProposal(true); setProposalResult('')
     try {
       const pdfBase64 = buildProposalPDF().output('base64')
+      const token = (crypto?.randomUUID?.() || `${lead.id}-${Date.now()}`)
+      const acceptLink = `${window.location.origin}/proposal/${token}`
       const tpl = (templates ?? []).find((t) => t.category === 'email' && t.emailType === 'proposal' && t.content)
-      const { subject: subj, html } = renderProposalTemplate({ template: tpl, lead, settings })
+      const { subject: subj, html } = renderProposalTemplate({ template: tpl, lead, settings, acceptLink })
       await sendEmail({ to: lead.email, subject: subj, html, settings, emailType: 'proposal', attachments: [{ filename: `Proposal_${(lead.businessName || lead.name || 'lead').replace(/\s+/g, '_')}.pdf`, content: pdfBase64 }] })
       const quoted = pipelineStages.find((s) => /quote/i.test(s.name || '') || s.category === 'quoted')
       const offices = sel.map((o) => ({ spaceId: o.space.id, unit: o.space.unitNumber, price: o.price, note: o.note }))
-      updateLead(lead.id, { proposal: { sentAt: new Date().toISOString(), offices, validityDays, message: proposalMsg }, ...(quoted ? { stageId: quoted.id, stageEnteredAt: new Date().toISOString().split('T')[0] } : {}) })
+      updateLead(lead.id, { proposal: { token, status: 'sent', sentAt: new Date().toISOString(), offices, validityDays, message: proposalMsg }, ...(quoted ? { stageId: quoted.id, stageEnteredAt: new Date().toISOString().split('T')[0] } : {}) })
       appendLeadActivity(lead.id, { type: 'email', text: `Proposal sent — ${offices.length} office${offices.length !== 1 ? 's' : ''} ($${sel.reduce((s, o) => s + o.price, 0).toLocaleString('en-AU')}/mo)` })
       setProposalResult('Sent ✓'); setTab('activity')
     } catch (e) { setProposalResult(e.message) } finally { setSendingProposal(false) }

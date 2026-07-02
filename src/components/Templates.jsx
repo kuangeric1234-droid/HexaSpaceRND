@@ -50,7 +50,7 @@ const VARS_BY_TYPE = {
   onboarding: ['{{company}}', '{{tenantName}}', '{{unit}}', '{{startDate}}', '{{contract}}', '{{portalUrl}}', '{{website}}', '{{address}}', '{{saltoBlock}}'],
   esign: ['{{company}}', '{{tenantName}}', '{{contract}}', '{{signLink}}', '{{signerName}}', '{{website}}'],
   signedContract: ['{{company}}', '{{tenantName}}', '{{contract}}', '{{signedDate}}', '{{website}}'],
-  proposal: ['{{company}}', '{{name}}', '{{website}}'],
+  proposal: ['{{company}}', '{{name}}', '{{acceptLink}}', '{{website}}'],
   lead_desk: LEAD_VARS,
   lead_office: [...LEAD_VARS, '{{officeOptions}}'],
   lead_followup: LEAD_VARS,
@@ -64,6 +64,7 @@ const PREVIEW_VARS = {
   signLink: 'https://app.hexaspace.com.au/sign/sample-token', signerName: 'Hexa Space',
   signedDate: '2 July 2026',
   name: 'Jane Smith', membershipType: 'Dedicated Desk', tourLink: 'https://hexaspace.com.au/book-a-tour', officeOptions: '',
+  acceptLink: 'https://app.hexaspace.com.au/proposal/sample-token',
 }
 const fillPreview = (html) => String(html || '').replace(/\{\{(\w+)\}\}/g, (m, k) => (k in PREVIEW_VARS ? PREVIEW_VARS[k] : m))
 

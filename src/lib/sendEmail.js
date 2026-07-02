@@ -331,17 +331,19 @@ export const DEFAULT_PROPOSAL_EMAIL_HTML = `<!DOCTYPE html>
       <h2 style="font-size:20px;margin:0 0 16px">Your proposal is ready 📄</h2>
       <p style="margin:0 0 16px;font-size:14px">Hi {{name}},</p>
       <p style="margin:0 0 16px;font-size:14px">Thanks for coming in to see us. Please find your proposal attached — it covers the option(s) we discussed along with pricing and terms.</p>
-      <p style="margin:0 0 16px;font-size:14px">Have a look and let us know what you think — just reply to this email and we'll take it from there.</p>
+      <p style="margin:0 0 16px;font-size:14px">Happy with it? Accept online and we'll set everything up for you — you'll get your licence agreement to e-sign straight after.</p>
+      <div style="margin:24px 0;text-align:center"><a href="{{acceptLink}}" style="background:#000;color:#fff;padding:12px 32px;border-radius:4px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block">Review &amp; accept proposal</a></div>
+      <p style="margin:0 0 16px;font-size:13px;color:#555">Prefer to chat first? Just reply to this email.</p>
       <p style="font-size:12px;color:#888;margin:16px 0 0">{{company}} &middot; <a href="https://{{website}}" style="color:#888">{{website}}</a></p>
     </div>
   </div>
 </body>
 </html>`
 
-export function renderProposalTemplate({ template, lead, settings }) {
+export function renderProposalTemplate({ template, lead, settings, acceptLink }) {
   const name = settings?.company?.name || 'Hexa Space'
   const website = settings?.company?.website || 'hexaspace.com.au'
-  const vars = { company: name, name: lead?.name || lead?.contactName || 'there', website }
+  const vars = { company: name, name: lead?.name || lead?.contactName || 'there', website, acceptLink: acceptLink || '#' }
   return {
     subject: fillEmailVars(template?.subject || DEFAULT_PROPOSAL_EMAIL_SUBJECT, vars),
     html: fillEmailVars(template?.content || DEFAULT_PROPOSAL_EMAIL_HTML, vars),
