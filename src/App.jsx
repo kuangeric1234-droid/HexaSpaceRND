@@ -16,6 +16,7 @@ import EventsHub from './components/EventsHub.jsx'
 import Marketing from './components/Marketing.jsx'
 import Crm from './components/Crm.jsx'
 import EventBookings from './components/EventBookings.jsx'
+import FunctionBookings from './components/FunctionBookings.jsx'
 import AdminMessages from './components/AdminMessages.jsx'
 import Members from './components/Members.jsx'
 import Memberships from './components/Memberships.jsx'
@@ -26,6 +27,7 @@ import Calendar from './components/Calendar.jsx'
 import Login from './components/Login.jsx'
 import SignPage from './components/SignPage.jsx'
 import EventBookingSignPage from './components/EventBookingSignPage.jsx'
+import FunctionSignPage from './components/FunctionSignPage.jsx'
 import ReferrerDashboard from './components/ReferrerDashboard.jsx'
 import ProposalAccept from './components/ProposalAccept.jsx'
 import PortalApp from './portal/PortalApp.jsx'
@@ -40,6 +42,9 @@ export default function App() {
   ) return <PortalApp />
 
   // Public sign pages — no auth needed
+  const functionSignMatch = window.location.pathname.match(/^\/book\/function\/([^/]+)/)
+  if (functionSignMatch) return <FunctionSignPage token={functionSignMatch[1]} />
+
   const eventSignMatch = window.location.pathname.match(/^\/sign\/event\/([^/]+)/)
   if (eventSignMatch) return <EventBookingSignPage token={eventSignMatch[1]} />
 
@@ -122,6 +127,7 @@ export default function App() {
           <Route path="messages" element={<AdminMessages />} />
           <Route path="events" element={<EventsHub />} />
           <Route path="event-bookings" element={<EventBookings />} />
+          <Route path="function-bookings" element={<FunctionBookings />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

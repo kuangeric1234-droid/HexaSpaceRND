@@ -5,7 +5,7 @@ import {
   RefreshCw, BookOpen, Receipt, Settings, LogOut,
   Wrench, BarChart2, Menu, X, Calendar, MessageSquare,
   ClipboardList, Megaphone, Building2, User, Tag, DollarSign,
-  CalendarCheck, Activity, CalendarDays,
+  CalendarCheck, Activity, CalendarDays, PartyPopper,
 } from 'lucide-react'
 import { logout } from '../lib/auth.js'
 import { supabase } from '../lib/supabase.js'
@@ -39,7 +39,7 @@ const GROUPS = [
       { to: '/crm', icon: Users, label: 'CRM' },
       { to: '/marketing', icon: Megaphone, label: 'Marketing' },
       { to: '/events', icon: Calendar, label: 'Events' },
-      { to: '/event-bookings', icon: ClipboardList, label: 'Pop-up Bookings' },
+      { to: '/function-bookings', icon: PartyPopper, label: 'Function Space Bookings' },
     ],
   },
   {
