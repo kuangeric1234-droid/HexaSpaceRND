@@ -19,6 +19,8 @@ export default function SignPage({ token }) {
   const [agreed, setAgreed] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [view, setView] = useState('contract')
+  const [docPages, setDocPages] = useState([]) // sequential read-through pages (T&Cs, House Rules)
+  const [reached, setReached] = useState(0)     // highest step index unlocked via Next
   const sigRef = useRef(null)
 
   useEffect(() => {
@@ -59,6 +61,15 @@ export default function SignPage({ token }) {
           .filter(Boolean)
           .filter((t) => (t.category || 'document') !== 'email')
         setAttachedTemplates(attached)
+
+        // Sequential read-through pages after the agreement: Terms & Conditions,
+        // then House Rules. Prefer the versions attached to this lease; fall back
+        // to the global documents so they always appear.
+        const isDoc = (t) => (t.category || 'document') !== 'email'
+        const pick = (re) => attached.find((t) => re.test(t.name || '')) || allTemplates.find((t) => isDoc(t) && re.test(t.name || ''))
+        const pages = [pick(/terms/i), pick(/house\s*rules|house/i)].filter(Boolean)
+        // de-dupe in case one template matches both patterns
+        setDocPages(pages.filter((p, i) => pages.findIndex((x) => x.id === p.id) === i))
 
         setState('ready')
       } catch (err) {
@@ -160,6 +171,21 @@ export default function SignPage({ token }) {
 
   const contractNum = lease?.contractNumber ?? `CON-${lease?.id?.slice(-3).toUpperCase()}`
 
+  // Ordered steps: Agreement → (Terms & Conditions) → (House Rules) → Sign.
+  const steps = [
+    { key: 'contract', label: 'Agreement' },
+    ...docPages.map((d, i) => ({ key: `doc${i}`, label: d.name || `Document ${i + 1}` })),
+    { key: 'sign', label: 'Sign' },
+  ]
+  const curIdx = Math.max(0, steps.findIndex((s) => s.key === view))
+  const lastContentIdx = steps.length - 2 // step just before Sign
+  const goTo = (idx) => {
+    if (idx < 0 || idx >= steps.length) return
+    setReached((r) => Math.max(r, idx))
+    setView(steps[idx].key)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <div className="min-h-screen bg-bone font-body text-ink">
       {/* Header */}
@@ -171,30 +197,46 @@ export default function SignPage({ token }) {
         <div className="font-heading uppercase tracking-nav text-[11px] text-paper/70">{contractNum}</div>
       </div>
 
-      {/* Tab bar */}
-      <div className="bg-paper border-b border-ink/10 px-6 flex">
-        {[['contract', 'Review Contract'], ['sign', 'Sign']].map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setView(key)}
-            className={`px-5 py-3 font-heading uppercase tracking-nav text-[11px] border-b-2 -mb-px transition-colors ${
-              view === key ? 'border-hexa-green text-ink' : 'border-transparent text-portal-muted hover:text-ink'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Step bar — future steps stay locked until you've read the earlier pages */}
+      <div className="bg-paper border-b border-ink/10 px-6 flex overflow-x-auto">
+        {steps.map((s, idx) => {
+          const locked = idx > reached
+          return (
+            <button
+              key={s.key}
+              onClick={() => !locked && setView(s.key)}
+              disabled={locked}
+              className={`shrink-0 px-5 py-3 font-heading uppercase tracking-nav text-[11px] border-b-2 -mb-px transition-colors ${
+                view === s.key ? 'border-hexa-green text-ink' : locked ? 'border-transparent text-portal-muted/40 cursor-not-allowed' : 'border-transparent text-portal-muted hover:text-ink'
+              }`}
+            >
+              <span className="text-portal-muted/60 mr-1.5">{idx + 1}</span>{s.label}
+            </button>
+          )
+        })}
       </div>
 
-      {/* Contract view — legal document rendered as-is */}
+      {/* Step 1 — the licence agreement */}
       {view === 'contract' && (
         <div className="max-w-4xl mx-auto my-6 px-4">
           <div className="bg-paper border border-ink/10 shadow-sm overflow-hidden">
             <ContractTemplate lease={lease} tenant={tenant} space={space} settings={settings} />
           </div>
-          {attachedTemplates.map((tmpl) => (
-            <div key={tmpl.id} className="bg-paper border border-ink/10 shadow-sm overflow-hidden mt-4 px-12 py-10">
-              <h2 className="font-heading uppercase tracking-label text-[13px] text-ink mb-3">{tmpl.name}</h2>
+          <div className="mt-6 flex justify-end">
+            <button onClick={() => goTo(curIdx + 1)} className="hx-btn">
+              {steps[curIdx + 1]?.key === 'sign' ? 'Proceed to sign →' : `Next: ${steps[curIdx + 1]?.label} →`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Read-through document steps — Terms & Conditions, then House Rules */}
+      {docPages.map((tmpl, i) => (
+        view === `doc${i}` && (
+          <div key={tmpl.id} className="max-w-4xl mx-auto my-6 px-4">
+            <div className="bg-paper border border-ink/10 shadow-sm overflow-hidden px-8 md:px-12 py-10">
+              <div className="hx-eyebrow text-hexa-green mb-2">Please read carefully</div>
+              <h2 className="font-display font-extralight text-2xl text-ink mb-3">{tmpl.name}</h2>
               <hr className="border-ink/15 mb-6" />
               <div
                 className="template-html-body"
@@ -202,16 +244,22 @@ export default function SignPage({ token }) {
                 dangerouslySetInnerHTML={{ __html: tmpl.content ?? '' }}
               />
             </div>
-          ))}
-          <div className="mt-6 flex justify-end">
-            <button onClick={() => setView('sign')} className="hx-btn">Proceed to sign →</button>
+            <div className="mt-6 flex justify-between">
+              <button onClick={() => goTo(curIdx - 1)} className="hx-btn-ghost">← Back</button>
+              <button onClick={() => goTo(curIdx + 1)} className="hx-btn">
+                {steps[curIdx + 1]?.key === 'sign' ? 'I have read this — proceed to sign →' : `Next: ${steps[curIdx + 1]?.label} →`}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      ))}
 
-      {/* Sign view */}
+      {/* Final step — Sign */}
       {view === 'sign' && (
         <div className="max-w-xl mx-auto my-8 px-4">
+          {curIdx > 0 && (
+            <div className="mb-3"><button onClick={() => goTo(curIdx - 1)} className="hx-btn-ghost">← Back</button></div>
+          )}
           <div className="bg-paper border border-ink/10 p-8 shadow-sm">
             <div className="hx-eyebrow text-hexa-green mb-2">Licence Agreement</div>
             <h2 className="font-display font-extralight text-2xl text-ink mb-1">Sign as Licensee</h2>
