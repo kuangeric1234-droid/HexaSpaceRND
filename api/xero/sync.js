@@ -201,7 +201,10 @@ export default async function handler(req, res) {
         continue
       }
 
-      const taxType = taxRate && inv.vatEnabled !== false ? 'OUTPUT' : 'EXEMPTOUTPUT'
+      // Security deposits are never a taxable supply while held — force
+      // GST-exempt regardless of the invoice's vatEnabled flag.
+      const taxType = inv.invoiceType === 'deposit' ? 'EXEMPTOUTPUT'
+        : (taxRate && inv.vatEnabled !== false ? 'OUTPUT' : 'EXEMPTOUTPUT')
       payloads.push({
         inv,
         xero: {

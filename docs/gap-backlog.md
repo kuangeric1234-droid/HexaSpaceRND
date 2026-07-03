@@ -85,7 +85,7 @@ loop is done — say so and stop scheduling.
   describing the residual race and the proper fix (a Supabase sequence/RPC) for
   later. Acceptance: build passes; reasoning documented.
 
-- [ ] **4. GST off security deposits.**
+- [x] **4. GST off security deposits.** _Done: deposit invoice raised with vatEnabled:false (a held bond isn't a taxable supply); Xero push forces EXEMPTOUTPUT for invoiceType 'deposit'; audited all 10 vatEnabled call sites (Billing, InvoiceDetail incl. PDF "GST Exempt" label, portal, stripe checkout, emails, reports) — all zero GST when false._
   In `raiseSigningInvoices` (src/store/useStore.js ~1424) set
   `vatEnabled: false` on the deposit invoice. In `api/xero/sync.js` force
   `TaxType: 'EXEMPTOUTPUT'` for lines on invoices with
@@ -216,4 +216,5 @@ loop is done — say so and stop scheduling.
 (append one line per completed item: date, item, commit hash)
 - 2026-07-03 · Item 1 proposal-accept hardening · b00a3bf
 - 2026-07-03 · Item 2 shared billing engine · 6aec311 (commit also swept in a pre-existing uncommitted Stripe integration — see item 7 note)
-- 2026-07-03 · Item 3 safer invoice numbering · (commit follows)
+- 2026-07-03 · Item 3 safer invoice numbering · c2e8396
+- 2026-07-03 · Item 4 GST off deposits · (commit follows)

@@ -1427,7 +1427,9 @@ export function useStore() {
     if (deposit > 0 && !hasDeposit) {
       addInvoice({
         tenantId: lease.tenantId, leaseId, status: 'pending', sentStatus: 'not_sent', source: 'signing',
-        invoiceType: 'deposit', issueDate: fmt(today), dueDate: dueFrom(today), periodStart: null, periodEnd: null, vatEnabled: true,
+        // A bond held as security is not a taxable supply — no GST (it only
+        // becomes taxable if later forfeited).
+        invoiceType: 'deposit', issueDate: fmt(today), dueDate: dueFrom(today), periodStart: null, periodEnd: null, vatEnabled: false,
         lineItems: [{ description: `Security Deposit — ${space?.unitNumber ?? lease.spaceId}`, revenueAccount: 'Security Deposit', unitPrice: deposit, qty: 1, discountPct: 0 }],
       })
     }
