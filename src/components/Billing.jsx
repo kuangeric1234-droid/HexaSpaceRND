@@ -41,6 +41,30 @@ export default function Billing() {
 
   // Bond-refund credit notes awaiting an admin's approval before the tenant is notified.
   const pendingBondRefunds = invoices.filter((i) => i.invoiceType === 'bond_refund' && i.approvalStatus === 'pending')
+  // Approved refunds whose bank transfer hasn't been recorded yet. The T&C
+  // promises the deposit back within 60 days — chip them red at 45.
+  const refundsAwaitingPayout = invoices.filter((i) => i.invoiceType === 'bond_refund' && i.approvalStatus === 'approved' && i.status !== 'paid' && !i.refundedAt)
+  const refundOverdue = (inv) => inv.approvedAt && differenceInDays(new Date(), parseISO(inv.approvedAt)) > 45
+
+  function markBondRefunded(inv) {
+    const reference = window.prompt('Bank transfer reference for this refund (optional):')
+    if (reference === null) return
+    const amount = Math.abs((inv.lineItems ?? []).reduce((s, l) => s + l.unitPrice * l.qty, 0))
+    const nowISO = new Date().toISOString()
+    updateInvoice(inv.id, {
+      status: 'paid',
+      refundedAt: nowISO,
+      refundMethod: 'Bank Transfer',
+      refundReference: reference || '',
+      payments: [...(inv.payments ?? []), {
+        id: `pay_refund_${Date.now()}`,
+        amount: -amount,
+        date: nowISO.split('T')[0],
+        method: 'Bank Transfer',
+        reference: reference || 'Bond refund paid out',
+      }],
+    })
+  }
 
   const [subTab, setSubTab] = useState('invoices')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -322,6 +346,39 @@ export default function Billing() {
                         className="flex items-center gap-1.5 text-xs bg-primary text-primary-foreground rounded px-3 py-1.5 font-medium hover:bg-primary/90"
                       >
                         <Check size={13} /> Approve &amp; notify
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Bond refunds approved but not yet paid out */}
+          {refundsAwaitingPayout.length > 0 && (
+            <div className="mb-4 border border-blue-200 bg-blue-50 rounded-md p-4">
+              <h3 className="text-sm font-semibold text-blue-900 mb-2">
+                Bond refunds awaiting payout ({refundsAwaitingPayout.length})
+              </h3>
+              <div className="space-y-2">
+                {refundsAwaitingPayout.map((inv) => {
+                  const tenant = tenants.find((t) => t.id === inv.tenantId)
+                  const amount = Math.abs((inv.lineItems ?? []).reduce((s, l) => s + l.unitPrice * l.qty, 0))
+                  return (
+                    <div key={inv.id} className="flex items-center justify-between bg-card border border-blue-200 rounded px-3 py-2">
+                      <div className="text-sm text-foreground">
+                        <span className="font-medium">{inv.number}</span> · {tenant?.businessName ?? '—'} ·{' '}
+                        <span className="font-semibold">${amount.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD</span>
+                        {inv.approvedAt && <span className="text-muted-foreground"> · approved {format(parseISO(inv.approvedAt), 'dd/MM/yyyy')}</span>}
+                        {refundOverdue(inv) && (
+                          <span className="ml-2 text-[11px] font-semibold uppercase bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Refund overdue</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => markBondRefunded(inv)}
+                        className="flex items-center gap-1.5 text-xs bg-primary text-primary-foreground rounded px-3 py-1.5 font-medium hover:bg-primary/90"
+                      >
+                        <Check size={13} /> Mark refunded
                       </button>
                     </div>
                   )

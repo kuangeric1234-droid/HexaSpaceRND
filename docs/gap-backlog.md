@@ -123,7 +123,7 @@ loop is done — say so and stop scheduling.
 
 ## P2 — member money & lifecycle
 
-- [ ] **6. Bond refund payout tracking.**
+- [x] **6. Bond refund payout tracking.** _Done: Billing shows "awaiting payout" section for approved-unpaid refunds with red "Refund overdue" chip past 45 days; "Mark refunded" records refundedAt/refundMethod/refundReference, appends the balancing payment and sets the credit note paid — which also clears it from the reconcile cron's SLA digest._
   Add a "Mark refunded" action on approved bond_refund invoices in Billing.jsx
   (records `refundedAt`, `refundMethod`, `refundReference`, sets invoice status
   `paid`). Overdue SLA badge: approved > 45 days with no refundedAt shows a red
@@ -218,4 +218,5 @@ loop is done — say so and stop scheduling.
 - 2026-07-03 · Item 2 shared billing engine · 6aec311 (commit also swept in a pre-existing uncommitted Stripe integration — see item 7 note)
 - 2026-07-03 · Item 3 safer invoice numbering · c2e8396
 - 2026-07-03 · Item 4 GST off deposits · b1026b6
-- 2026-07-03 · Item 5 daily reconcile cron · (commit follows)
+- 2026-07-03 · Item 5 daily reconcile cron · 2aeda55
+- 2026-07-03 · Item 6 bond payout tracking · (commit follows)
