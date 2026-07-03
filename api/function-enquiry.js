@@ -58,8 +58,8 @@ async function notifyAdmin(supabase, b) {
   if (!resendKey) return
   const { data: settRows } = await supabase.from('settings').select('data').eq('id', 'global')
   const settings = settRows?.[0]?.data ?? {}
-  const to = settings?.emails?.notificationEmail
-  if (!to) return
+  const to = [...new Set(['eric@hexaspace.com.au', 'info@hexaspace.com.au', settings?.emails?.notificationEmail].filter(Boolean).map((e) => e.toLowerCase()))]
+  if (!to.length) return
   const fromName = settings?.emails?.fromName || settings?.company?.name || 'Hexa Space'
   const fromEmail = settings?.emails?.fromEmail || 'noreply@hexahub.com.au'
   const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:0">

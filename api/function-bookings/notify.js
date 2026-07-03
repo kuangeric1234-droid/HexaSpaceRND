@@ -64,7 +64,7 @@ export default async function handler(req, res) {
     const fromEmail = settings?.emails?.fromEmail || 'noreply@hexahub.com.au'
     const from = `${fromName} <${fromEmail}>`
     const replyTo = settings?.emails?.replyTo || settings?.emails?.notificationEmail
-    const adminTo = settings?.emails?.notificationEmail
+    const adminTo = [...new Set(['eric@hexaspace.com.au', 'info@hexaspace.com.au', settings?.emails?.notificationEmail].filter(Boolean).map((e) => e.toLowerCase()))]
 
     // Load editable templates + build placeholder values. Client-facing emails
     // (agreement / confirmed / brochure) use the saved Templates → Emails copy
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
     }
 
     if (mode === 'signed') {
-      if (!adminTo) return res.status(200).json({ sent: false })
+      if (!adminTo.length) return res.status(200).json({ sent: false })
       const inner = `
         <h2 style="font-size:18px;color:#111;margin:0 0 16px">Function agreement signed ✅</h2>
         <p style="font-size:14px;color:#555;margin:0 0 18px"><strong>${b.name || b.email}</strong>${b.organisation ? ` (${b.organisation})` : ''} has signed the function hire agreement.</p>

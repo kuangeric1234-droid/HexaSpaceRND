@@ -166,8 +166,8 @@ async function notifyAdmin(supabase, referrer, { alreadyEnrolled, directLeadCrea
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) return
   const settings = await settingsOf(supabase)
-  const to = settings?.emails?.notificationEmail
-  if (!to) return
+  const to = [...new Set(['eric@hexaspace.com.au', 'info@hexaspace.com.au', settings?.emails?.notificationEmail].filter(Boolean).map((e) => e.toLowerCase()))]
+  if (!to.length) return
   const fromName = settings?.emails?.fromName || settings?.company?.name || 'HexaHub'
   const fromEmail = settings?.emails?.fromEmail || 'noreply@hexahub.com.au'
 

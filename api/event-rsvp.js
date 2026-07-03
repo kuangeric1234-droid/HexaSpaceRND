@@ -72,8 +72,8 @@ async function notifyAdmin(supabase, reg) {
   if (!resendKey) return
   const { data: settRows } = await supabase.from('settings').select('data').eq('id', 'global')
   const settings = settRows?.[0]?.data ?? {}
-  const to = settings?.emails?.notificationEmail
-  if (!to) return
+  const to = [...new Set(['eric@hexaspace.com.au', 'info@hexaspace.com.au', settings?.emails?.notificationEmail].filter(Boolean).map((e) => e.toLowerCase()))]
+  if (!to.length) return
   const fromName = settings?.emails?.fromName || settings?.company?.name || 'HexaHub'
   const fromEmail = settings?.emails?.fromEmail || 'noreply@hexahub.com.au'
 
