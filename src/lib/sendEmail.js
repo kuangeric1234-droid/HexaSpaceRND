@@ -338,13 +338,14 @@ export const DEFAULT_PROPOSAL_EMAIL_HTML = brandShell(
   bP('Hope you\'re well 😊') +
   bP("Thanks so much for coming in to tour with us at {{company}} — we hope you enjoyed seeing the space and getting a feel for what we're all about.") +
   bP('As discussed, please find attached our available office suites along with pricing details.') +
+  '{{offer}}' +
   bP("If you're happy to go ahead, you can review and accept online using the button below — your licence agreement follows straight after to e-sign. Any questions at all, feel free to give me a call.") +
   bBtn('Review &amp; accept proposal', '{{acceptLink}}') +
   bP('Look forward to hearing from you.') +
   bP('Thanks so much,') +
   '      {{signature}}')
 
-export function renderProposalTemplate({ template, lead, settings, acceptLink }) {
+export function renderProposalTemplate({ template, lead, settings, acceptLink, offer }) {
   const name = settings?.company?.name || 'Hexa Space'
   const website = settings?.company?.website || 'hexaspace.com.au'
   const vars = {
@@ -352,6 +353,7 @@ export function renderProposalTemplate({ template, lead, settings, acceptLink })
     name: lead?.name || lead?.contactName || 'there',
     website,
     acceptLink: acceptLink || '#',
+    offer: offer || '',
     signature: buildSignature(settings),
   }
   return {

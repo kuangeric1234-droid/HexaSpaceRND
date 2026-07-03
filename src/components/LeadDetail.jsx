@@ -24,14 +24,24 @@ const MEMBERSHIP_TYPES = [
   { key: 'dedicated', label: 'Dedicated Desk' },
 ]
 
+// Virtual Office packages.
+const VIRTUAL_PACKAGES = {
+  address: { key: 'address', label: 'Virtual Office — Business Address', price: 75, includes: ['Registered business address', 'Mail handling'] },
+  plus: { key: 'plus', label: 'Virtual Office Plus', price: 150, includes: ['Registered business address & mail handling', '9am–5pm lounge access with tea & coffee', '2 hours free daily in our 4-pax office'] },
+}
+
 // Term + incentive rules. Free months are the client's LAST months and only apply
 // to new members.
-function computeMembershipOffer(type, price, term, newClient) {
-  if (type === 'virtual') return { type, typeLabel: 'Virtual Office', price, termLabel: '12-month minimum term', notice: null, minTerm: '12 months', freeMonths: 0 }
+function computeMembershipOffer(type, price, term, newClient, pkg) {
+  if (type === 'virtual') {
+    const p = VIRTUAL_PACKAGES[pkg] || VIRTUAL_PACKAGES.plus
+    return { type, typeLabel: p.label, price, termLabel: '12-month minimum term', notice: null, minTerm: '12 months', freeMonths: 0, includes: p.includes, gst: true }
+  }
   if (type === 'flexi' || type === 'dedicated') {
     const typeLabel = type === 'flexi' ? 'Flexible Desk' : 'Dedicated Desk'
-    if (term === '6mo') return { type, typeLabel, price, termLabel: '6-month term', notice: '1 month', freeMonths: newClient ? 1 : 0 }
-    return { type, typeLabel, price, termLabel: 'Month-to-month', notice: '1 month', freeMonths: 0 }
+    if (term === '12mo') return { type, typeLabel, price, termLabel: '12-month term', notice: null, freeMonths: newClient ? 2 : 0, gst: true }
+    if (term === '6mo') return { type, typeLabel, price, termLabel: '6-month term', notice: null, freeMonths: newClient ? 1 : 0, gst: true }
+    return { type, typeLabel, price, termLabel: 'Month-to-month', notice: '1 month', freeMonths: 0, gst: true }
   }
   // private office
   if (term === '12mo') return { type, typeLabel: 'Private Office', price, termLabel: '12-month term', notice: null, freeMonths: newClient ? 3 : 0 }
@@ -112,18 +122,20 @@ export default function LeadDetail({ lead, store, onClose }) {
   const [proposalResult, setProposalResult] = useState('')
 
   // ── Membership proposals (Virtual Office / Flexible Desk / Dedicated Desk) ──
-  const virtualRate = spaces.find((s) => s.type === 'virtual')?.rate ?? 150
-  const deskRate = spaces.find((s) => s.type === 'desk')?.rate ?? 650
   const [propType, setPropType] = useState('office') // office | virtual | flexi | dedicated
-  const [m, setM] = useState({ price: '', term: 'mtm', newClient: true })
+  const [m, setM] = useState({ price: '', term: 'mtm', newClient: true, pkg: 'plus' })
   function selectType(t) {
     setPropType(t)
     setProposalResult('')
-    if (t === 'virtual') setM({ price: virtualRate, term: '12mo', newClient: true })
-    else if (t === 'dedicated') setM({ price: deskRate, term: 'mtm', newClient: true })
-    else if (t === 'flexi') setM({ price: '', term: 'mtm', newClient: true })
+    if (t === 'virtual') setM({ price: VIRTUAL_PACKAGES.plus.price, term: '12mo', newClient: true, pkg: 'plus' })
+    else if (t === 'dedicated') setM({ price: 500, term: 'mtm', newClient: true })
+    else if (t === 'flexi') setM({ price: 350, term: 'mtm', newClient: true })
   }
-  const mOffer = () => computeMembershipOffer(propType, Number(m.price) || 0, m.term, m.newClient)
+  const mOffer = () => computeMembershipOffer(propType, Number(m.price) || 0, m.term, m.newClient, m.pkg)
+
+  // Private-office term + incentive (6mo → 1 free, 12mo → 3 free; new members).
+  const [officeTerm, setOfficeTerm] = useState('12mo')
+  const [officeNewClient, setOfficeNewClient] = useState(true)
 
   async function sendMembershipProposal() {
     if (!lead.email) { setProposalResult('No email address on this lead.'); return }
@@ -138,7 +150,7 @@ export default function LeadDetail({ lead, store, onClose }) {
       await sendEmail({ to: lead.email, subject, html, settings, emailType: 'proposal' })
       const quoted = pipelineStages.find((s) => /quote/i.test(s.name || '') || s.category === 'quoted')
       updateLead(lead.id, {
-        proposal: { token, status: 'sent', sentAt: new Date().toISOString(), membershipType: propType, typeLabel: offer.typeLabel, price: Number(m.price), term: m.term, freeMonths: offer.freeMonths, newClient: m.newClient, validityDays, message: proposalMsg },
+        proposal: { token, status: 'sent', sentAt: new Date().toISOString(), membershipType: propType, typeLabel: offer.typeLabel, price: Number(m.price), term: m.term, vpkg: m.pkg, freeMonths: offer.freeMonths, newClient: m.newClient, validityDays, message: proposalMsg },
         ...(quoted ? { stageId: quoted.id, stageEnteredAt: new Date().toISOString().split('T')[0] } : {}),
       })
       appendLeadActivity(lead.id, { type: 'email', text: `Proposal sent — ${offer.typeLabel}, ${offer.termLabel} ($${Number(m.price).toLocaleString('en-AU')}/mo${offer.freeMonths ? `, ${offer.freeMonths} mo free` : ''})` })
@@ -179,11 +191,12 @@ export default function LeadDetail({ lead, store, onClose }) {
       const token = (crypto?.randomUUID?.() || `${lead.id}-${Date.now()}`)
       const acceptLink = `${window.location.origin}/proposal/${token}`
       const tpl = (templates ?? []).find((t) => t.category === 'email' && t.emailType === 'proposal' && t.content)
-      const { subject: subj, html } = renderProposalTemplate({ template: tpl, lead, settings, acceptLink })
+      const oOffer = computeMembershipOffer('office', sel.reduce((s, o) => s + o.price, 0), officeTerm, officeNewClient)
+      const { subject: subj, html } = renderProposalTemplate({ template: tpl, lead, settings, acceptLink, offer: buildOfficeOfferHtml(oOffer) })
       await sendEmail({ to: lead.email, subject: subj, html, settings, emailType: 'proposal', attachments: [{ filename: `Proposal_${(lead.businessName || lead.name || 'lead').replace(/\s+/g, '_')}.pdf`, content: pdfBase64 }] })
       const quoted = pipelineStages.find((s) => /quote/i.test(s.name || '') || s.category === 'quoted')
       const offices = sel.map((o) => ({ spaceId: o.space.id, unit: o.space.unitNumber, price: o.price, note: o.note }))
-      updateLead(lead.id, { proposal: { token, status: 'sent', sentAt: new Date().toISOString(), offices, validityDays, message: proposalMsg }, ...(quoted ? { stageId: quoted.id, stageEnteredAt: new Date().toISOString().split('T')[0] } : {}) })
+      updateLead(lead.id, { proposal: { token, status: 'sent', sentAt: new Date().toISOString(), offices, term: officeTerm, freeMonths: oOffer.freeMonths, newClient: officeNewClient, validityDays, message: proposalMsg }, ...(quoted ? { stageId: quoted.id, stageEnteredAt: new Date().toISOString().split('T')[0] } : {}) })
       appendLeadActivity(lead.id, { type: 'email', text: `Proposal sent — ${offices.length} office${offices.length !== 1 ? 's' : ''} ($${sel.reduce((s, o) => s + o.price, 0).toLocaleString('en-AU')}/mo)` })
       setProposalResult('Sent ✓'); setTab('activity')
     } catch (e) { setProposalResult(e.message) } finally { setSendingProposal(false) }
@@ -353,6 +366,21 @@ export default function LeadDetail({ lead, store, onClose }) {
                 )}
               </div>
               <div className="bg-card border border-border rounded-xl shadow-sm p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block"><span className="block text-xs text-muted-foreground mb-1">Term</span>
+                    <select value={officeTerm} onChange={(e) => setOfficeTerm(e.target.value)} className={input}>
+                      <option value="mtm">Month-to-month</option>
+                      <option value="6mo">6 months</option>
+                      <option value="12mo">12 months</option>
+                    </select>
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-foreground self-end pb-2 cursor-pointer select-none">
+                    <input type="checkbox" checked={officeNewClient} onChange={(e) => setOfficeNewClient(e.target.checked)} className="h-3.5 w-3.5 rounded border-gray-300" /> New member (rent-free incentive)
+                  </label>
+                </div>
+                {officeNewClient && officeTerm !== 'mtm' && (
+                  <div className="text-xs text-green-600">Includes {officeTerm === '12mo' ? '3 months' : '1 month'} rent-free — applied to the last month(s) of the term.</div>
+                )}
                 <label className="block"><span className="block text-xs text-muted-foreground mb-1">Cover message (optional — appears on the PDF)</span><textarea rows={3} value={proposalMsg} onChange={(e) => setProposalMsg(e.target.value)} className={`${input} resize-none`} /></label>
                 <label className="block w-32"><span className="block text-xs text-muted-foreground mb-1">Valid for (days)</span><input type="number" value={validityDays} onChange={(e) => setValidityDays(Number(e.target.value) || 14)} className={input} /></label>
                 <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
@@ -378,7 +406,7 @@ export default function LeadDetail({ lead, store, onClose }) {
                   {lead.proposal.membershipType ? (
                     <div className="text-foreground">
                       <div className="flex justify-between"><span>{lead.proposal.typeLabel || lead.proposal.membershipType}</span><span>${Number(lead.proposal.price || 0).toLocaleString('en-AU')}/mo</span></div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{computeMembershipOffer(lead.proposal.membershipType, lead.proposal.price, lead.proposal.term, lead.proposal.newClient).termLabel}{lead.proposal.freeMonths ? ` · ${lead.proposal.freeMonths} month${lead.proposal.freeMonths > 1 ? 's' : ''} rent-free` : ''}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{computeMembershipOffer(lead.proposal.membershipType, lead.proposal.price, lead.proposal.term, lead.proposal.newClient, lead.proposal.vpkg).termLabel}{lead.proposal.freeMonths ? ` · ${lead.proposal.freeMonths} month${lead.proposal.freeMonths > 1 ? 's' : ''} rent-free` : ''}</div>
                     </div>
                   ) : (
                     (lead.proposal.offices || []).map((o) => <div key={o.spaceId} className="flex justify-between text-foreground"><span>{o.unit}</span><span>${Number(o.price).toLocaleString('en-AU')}/mo</span></div>)
@@ -521,13 +549,28 @@ function MembershipProposal({ type, m, setM, offer, proposalMsg, setProposalMsg,
   return (
     <div className="bg-card border border-border rounded-xl shadow-sm p-4 space-y-3">
       <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">{offer.typeLabel} proposal</h3>
+      {isVirtual && (
+        <div>
+          <span className="block text-[11px] text-muted-foreground mb-1">Package</span>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.values(VIRTUAL_PACKAGES).map((p) => (
+              <button type="button" key={p.key} onClick={() => setM({ ...m, pkg: p.key, price: p.price })}
+                className={`text-left border rounded-md p-2.5 ${m.pkg === p.key ? 'border-foreground bg-muted/40' : 'border-input hover:border-muted-foreground'}`}>
+                <div className="text-sm font-medium text-foreground">{p.label}</div>
+                <div className="text-xs text-muted-foreground">${p.price} + GST / mo</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
-        <label><span className="block text-[11px] text-muted-foreground mb-0.5">Monthly price ($)</span><input type="number" value={m.price} onChange={(e) => setM({ ...m, price: e.target.value })} className={input} placeholder="e.g. 650" /></label>
+        <label><span className="block text-[11px] text-muted-foreground mb-0.5">Monthly price ($)</span><input type="number" value={m.price} onChange={(e) => setM({ ...m, price: e.target.value })} className={input} placeholder="e.g. 500" /></label>
         {isDesk && (
           <label><span className="block text-[11px] text-muted-foreground mb-0.5">Term</span>
             <select value={m.term} onChange={(e) => setM({ ...m, term: e.target.value })} className={input}>
               <option value="mtm">Month-to-month (1 month notice)</option>
               <option value="6mo">6 months</option>
+              <option value="12mo">12 months</option>
             </select>
           </label>
         )}
@@ -535,7 +578,7 @@ function MembershipProposal({ type, m, setM, offer, proposalMsg, setProposalMsg,
           <div><span className="block text-[11px] text-muted-foreground mb-0.5">Term</span><div className="border border-input rounded px-3 py-2 text-sm text-muted-foreground bg-muted/40">12-month minimum</div></div>
         )}
       </div>
-      {(isDesk || type === 'office') && (
+      {isDesk && (
         <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer select-none">
           <input type="checkbox" checked={m.newClient} onChange={(e) => setM({ ...m, newClient: e.target.checked })} className="h-3.5 w-3.5 rounded border-gray-300" />
           New member — eligible for the rent-free incentive
@@ -543,10 +586,16 @@ function MembershipProposal({ type, m, setM, offer, proposalMsg, setProposalMsg,
       )}
       <div className="bg-muted/40 border border-border rounded-md p-3 text-sm">
         <OfferRow label="Membership" value={offer.typeLabel} />
-        <OfferRow label="Monthly" value={`$${priceNum.toLocaleString('en-AU')}`} />
+        <OfferRow label="Monthly" value={`$${priceNum.toLocaleString('en-AU')}${offer.gst ? ' + GST' : ''}`} />
         <OfferRow label="Term" value={offer.termLabel} />
         {offer.notice && <OfferRow label="Notice period" value={offer.notice} />}
         {offer.freeMonths > 0 && <OfferRow label="New-member offer" value={`Final ${offer.freeMonths} month${offer.freeMonths > 1 ? 's' : ''} rent-free`} strong />}
+        {offer.includes?.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-border">
+            <div className="text-[11px] text-muted-foreground mb-1">Includes</div>
+            <ul className="list-disc list-inside space-y-0.5 text-foreground">{offer.includes.map((i) => <li key={i}>{i}</li>)}</ul>
+          </div>
+        )}
       </div>
       <label className="block"><span className="block text-xs text-muted-foreground mb-1">Cover message (optional)</span><textarea rows={2} value={proposalMsg} onChange={(e) => setProposalMsg(e.target.value)} className={`${input} resize-none`} /></label>
       <label className="block w-32"><span className="block text-xs text-muted-foreground mb-1">Valid for (days)</span><input type="number" value={validityDays} onChange={(e) => setValidityDays(Number(e.target.value) || 14)} className={input} /></label>
@@ -559,6 +608,20 @@ function MembershipProposal({ type, m, setM, offer, proposalMsg, setProposalMsg,
   )
 }
 
+// Small term + rent-free block injected into the office proposal email ({{offer}}).
+function buildOfficeOfferHtml(offer) {
+  if (!offer) return ''
+  const SANS = "'HexaGT','Helvetica Neue',Arial,sans-serif"
+  const cell = `padding:10px 15px;font-family:${SANS};font-size:14px`
+  const r = (l, v, alt, strong) => `<tr${alt ? ' style="background:#EFEDF2"' : ''}><td style="${cell};font-weight:600;color:#1a1a1a">${l}</td><td style="${cell}${strong ? ';color:#7F8B2F;font-weight:600' : ''}">${v}</td></tr>`
+  const rows = [
+    r('Term', offer.termLabel, true),
+    offer.freeMonths > 0 ? r('New-member offer', `Your final ${offer.freeMonths} month${offer.freeMonths > 1 ? 's' : ''} rent-free`, false, true) : '',
+  ].join('')
+  const note = offer.freeMonths > 0 ? `<p style="font-family:${SANS};font-size:13px;color:#6b6b6b;margin:0 0 16px">The rent-free months are applied to the end of your term.</p>` : ''
+  return `<table style="width:100%;border-collapse:collapse;margin:4px 0 12px">${rows}</table>${note}`
+}
+
 function buildMembershipProposalHtml({ lead, settings, offer, coverMsg, acceptLink, validityDays }) {
   const company = settings?.company?.name || 'Hexa Space'
   const website = settings?.company?.website || 'hexaspace.com.au'
@@ -568,11 +631,13 @@ function buildMembershipProposalHtml({ lead, settings, offer, coverMsg, acceptLi
   const row = (l, v, alt, strong) => `<tr${alt ? ' style="background:#EFEDF2"' : ''}><td style="${cell};font-weight:600;color:#1a1a1a">${l}</td><td style="${cell}${strong ? ';color:#7F8B2F;font-weight:600' : ''}">${v}</td></tr>`
   const rows = [
     row('Membership', offer.typeLabel, true),
-    row('Monthly fee', `$${Number(offer.price).toLocaleString('en-AU')} / month`, false),
+    row('Monthly fee', `$${Number(offer.price).toLocaleString('en-AU')}${offer.gst ? ' + GST' : ''} / month`, false),
     row('Term', offer.termLabel, true),
     offer.notice ? row('Notice period', offer.notice, false) : '',
     offer.freeMonths > 0 ? row('New-member offer', `Your final ${offer.freeMonths} month${offer.freeMonths > 1 ? 's' : ''} rent-free`, true, true) : '',
   ].join('')
+  const incLine = offer.includes?.length
+    ? `<p style="font-family:${SANS};font-size:13px;color:#6b6b6b;margin:0 0 6px;font-weight:600">Includes</p><ul style="font-family:${SANS};font-size:14px;color:#3a3a3a;line-height:1.7;margin:0 0 16px;padding-left:18px">${offer.includes.map((i) => `<li>${i}</li>`).join('')}</ul>` : ''
   const freeLine = offer.freeMonths > 0
     ? `<p style="font-family:${SANS};font-size:13px;line-height:1.6;color:#6b6b6b;margin:0 0 16px">The rent-free ${offer.freeMonths > 1 ? 'months are' : 'month is'} applied to the end of your term.</p>` : ''
   const cover = coverMsg ? `<p style="font-family:${SANS};font-size:15px;line-height:1.65;color:#3a3a3a;margin:0 0 16px">${String(coverMsg).replace(/</g, '&lt;')}</p>` : ''
@@ -583,6 +648,7 @@ function buildMembershipProposalHtml({ lead, settings, offer, coverMsg, acceptLi
       <p style="font-family:${SANS};font-size:15px;line-height:1.65;color:#3a3a3a;margin:0 0 16px">Thanks so much for your interest in ${company}. Here are the details of your membership:</p>
       ${cover}
       <table style="width:100%;border-collapse:collapse;margin:6px 0 14px">${rows}</table>
+      ${incLine}
       ${freeLine}
       <p style="font-family:${SANS};font-size:15px;line-height:1.65;color:#3a3a3a;margin:0 0 16px">If you're happy to go ahead, review and accept online below — you'll then complete your details and choose your start date.</p>
       <div style="text-align:center;margin:24px 0"><a href="${acceptLink}" style="display:inline-block;background:#7F8B2F;color:#fff;text-decoration:none;padding:13px 34px;font-family:'HexaRework','Helvetica Neue',Arial,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;border-radius:6px">Review &amp; accept proposal</a></div>
