@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { CheckCircle2, Users, Clock, ShieldCheck } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { CheckCircle2, Users, Clock, ShieldCheck, CalendarCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase.js'
 import { Page, PageHeader, Card, Eyebrow, Empty, money0 } from './ui.jsx'
 import { findFunctionSpace } from './functionSpace.js'
@@ -7,6 +8,30 @@ import SignatureCanvas from '../components/SignatureCanvas.jsx'
 import { ADDONS, LAYOUTS, TERMS, TERMS_INTRO, computeQuote, money } from '../lib/functionBooking.js'
 
 const today = () => new Date().toISOString().split('T')[0]
+const fmtDate = (d) => {
+  if (!d) return '—'
+  try { return new Date(`${d}T00:00:00`).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) } catch { return d }
+}
+const fmtTime = (t) => {
+  if (!t) return ''
+  const [h, m] = String(t).split(':').map(Number)
+  const ap = h < 12 ? 'am' : 'pm'
+  const hh = ((h + 11) % 12) || 12
+  return `${hh}:${String(m || 0).padStart(2, '0')}${ap}`
+}
+
+// What the client should SEE for their current function booking — so a completed
+// booking never shows the blank form again:
+//   'confirmed' → date secured (deposit paid)
+//   'deposit'   → details signed + deposit invoice issued, awaiting payment
+//   'review'    → member self-serve request signed, awaiting admin approval
+//   null        → nothing submitted yet → show the form
+function bookingStatus(b) {
+  if (!b) return null
+  if (['confirmed', 'completed'].includes(b.stage)) return 'confirmed'
+  if (b.signedAt) return b.stage === 'requested' ? 'review' : 'deposit'
+  return null
+}
 
 function Row({ label, value, strong, muted }) {
   return (
@@ -28,7 +53,6 @@ export default function PortalFunction({ spaces, member, company }) {
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [done, setDone] = useState(null) // { mode: 'deposit' | 'pending', ref }
   const sigRef = useRef(null)
   const up = (k) => (e) => setF({ ...f, [k]: e.target.value })
   const setAddon = (k, v) => setF((p) => ({ ...p, addons: { ...p.addons, [k]: v } }))
@@ -41,7 +65,11 @@ export default function PortalFunction({ spaces, member, company }) {
       const email = (company?.email || member?.email || '').toLowerCase()
       const mine = (data ?? []).map((r) => r.data).filter((x) =>
         (x.companyId && x.companyId === company?.id) || (email && (x.email || '').toLowerCase() === email))
-      const active = mine.find((x) => ['invited', 'awaiting_deposit', 'requested', 'quoted', 'enquiry'].includes(x.stage))
+      // Pick the most recent live booking (incl. confirmed) so a signed/confirmed
+      // booking shows its status rather than re-opening the blank form.
+      const active = mine
+        .filter((x) => ['invited', 'awaiting_deposit', 'requested', 'quoted', 'enquiry', 'confirmed'].includes(x.stage))
+        .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))[0]
       if (active) {
         setExisting(active)
         setF((p) => ({
@@ -93,12 +121,14 @@ export default function PortalFunction({ spaces, member, company }) {
     if (viaInvite) {
       // Raise the deposit + email it, move to awaiting_deposit.
       await fetch('/api/function-bookings/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }).catch(() => {})
-      setDone({ mode: 'deposit', ref })
     } else {
       fetch('/api/function-bookings/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ booking: record, mode: 'signed' }) }).catch(() => {})
-      setDone({ mode: 'pending', ref })
     }
+    // Show the status screen (persisted): the freshly-signed record drives it, and
+    // a reload will re-derive the same status from the stored booking.
+    setExisting(record)
     setSaving(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   if (!fn) {
@@ -110,18 +140,54 @@ export default function PortalFunction({ spaces, member, company }) {
     )
   }
 
-  if (done) {
+  // Already signed / confirmed → show the booking's status, not the form again.
+  const status = bookingStatus(existing)
+  if (status) {
+    const b = existing
+    const q = b.quote || quote
+    const first = (b.name || '').split(' ')[0]
+    const refTag = <span className="text-ink font-heading tracking-nav text-[12px]">{b.ref}</span>
+    const head = status === 'confirmed' ? "You're confirmed 🎉" : status === 'deposit' ? 'Almost there — deposit due' : 'Request received'
     return (
       <Page>
         <PageHeader kicker="Events · By request" title="Function Space" />
-        <Card className="p-10 text-center max-w-xl mx-auto">
-          <CheckCircle2 size={28} className="mx-auto text-hexa-green" />
-          <h2 className="hx-display text-2xl mt-4">{done.mode === 'deposit' ? 'Almost there — deposit due' : 'Request received'}</h2>
+        <Card className="p-8 md:p-10 max-w-2xl mx-auto">
+          {status === 'confirmed'
+            ? <CalendarCheck size={28} className="text-hexa-green" />
+            : <CheckCircle2 size={28} className="text-hexa-green" />}
+          <h2 className="hx-display text-3xl mt-4">{head}</h2>
           <p className="hx-prose mt-3">
-            {done.mode === 'deposit'
-              ? <>Thanks! Your booking <span className="text-ink font-heading tracking-nav text-[12px]">{done.ref}</span> is ready. We’ve emailed you the <strong>deposit due now</strong> ({money(quote.dueNow)}) with payment details — your date is secured once the deposit is received. You can also view it under Billing.</>
-              : <>Thanks — your function request <span className="text-ink font-heading tracking-nav text-[12px]">{done.ref}</span> has been sent to our team for approval. Once approved we’ll email your deposit to secure the date.</>}
+            {status === 'confirmed' && <>Your date is secured{first ? `, ${first}` : ''} — we can’t wait to host <strong>{b.eventName || 'your event'}</strong>. Booking {refTag}.</>}
+            {status === 'deposit' && <>Thanks{first ? `, ${first}` : ''}! Your booking {refTag} is signed. We’ve emailed your <strong>deposit ({money(q.dueNow)})</strong> with payment details — your date is secured once it’s received.</>}
+            {status === 'review' && <>Thanks{first ? `, ${first}` : ''} — your request {refTag} has been sent to our team for approval. Once it’s approved we’ll email your deposit to secure the date.</>}
           </p>
+
+          <div className="mt-7 border-t border-ink/10 pt-5 grid sm:grid-cols-2 gap-x-10 gap-y-1">
+            <Row label="Event" value={b.eventName || '—'} />
+            <Row label="Type" value={b.eventType || '—'} />
+            <Row label="Date" value={fmtDate(b.eventDate)} strong />
+            <Row label="Time" value={`${fmtTime(b.startTime)} – ${fmtTime(b.endTime)}`} strong />
+            <Row label="Guests" value={b.guests || '—'} />
+            <Row label="Layout" value={b.layout || '—'} />
+          </div>
+
+          {status === 'confirmed' && (
+            <div className="mt-5 border-t border-ink/10 pt-5">
+              <Row label="Total (inc GST)" value={money(q.total)} />
+              <Row label="Balance due — 14 days before" value={money(q.balanceDue)} strong />
+              <Link to="/billing" className="hx-btn inline-block mt-5">View billing</Link>
+            </div>
+          )}
+          {status === 'deposit' && (
+            <div className="mt-5 border-t border-ink/10 pt-5">
+              <Row label="Deposit due now" value={money(q.dueNow)} strong />
+              <Row label="Balance — 14 days before event" value={money(q.balanceDue)} muted />
+              <Link to="/billing" className="hx-btn inline-block mt-5">Pay deposit in Billing</Link>
+            </div>
+          )}
+          {status === 'confirmed' && (
+            <button type="button" onClick={() => setExisting(null)} className="hx-prose text-[12px] underline mt-6 block">Plan another event →</button>
+          )}
         </Card>
       </Page>
     )
