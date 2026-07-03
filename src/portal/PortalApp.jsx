@@ -215,6 +215,20 @@ export default function PortalApp() {
     )
   }
 
+  // Offboarded members keep their auth session until it expires — show the
+  // membership-ended screen instead of the portal (revoke bans new logins).
+  if (data.member && data.member.portalAccess === false) {
+    return (
+      <Splash>
+        <p className="hx-prose mb-1">Your membership has ended</p>
+        <p className="font-heading uppercase tracking-label text-[12px] text-ink mb-8">{session.user.email}</p>
+        <p className="hx-prose text-[13px] text-portal-muted mb-8">Thanks for being part of Hexa Space. If you think this is a mistake, or you'd like to come back, we'd love to hear from you.</p>
+        <a href="mailto:info@hexaspace.com.au" className="hx-btn w-full mb-4">Contact Hexa Space</a>
+        <button onClick={signOut} className="hx-btn-ghost mx-auto">Sign out</button>
+      </Splash>
+    )
+  }
+
   // Portal now lives at the domain root (routing is by login, not by /portal path).
   const basename = '/'
 

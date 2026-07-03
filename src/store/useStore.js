@@ -1599,6 +1599,26 @@ export function useStore() {
         updateMember(m.id, { saltoAccess: false })
       })
 
+    // Portal access: revoke only when the company has NO other live contract —
+    // offboarding one office (renewal, office move) must not lock out a tenant
+    // who is still with us.
+    const hasLiveLease = leasesRef.current.some((l) =>
+      l.id !== lease.id && l.tenantId === lease.tenantId &&
+      ['active', 'pending'].includes(l.status) && !l.offboardedAt)
+    if (!hasLiveLease) {
+      membersRef.current
+        .filter((m) => m.companyId === lease.tenantId && m.portalAccess)
+        .forEach((m) => {
+          updateMember(m.id, { portalAccess: false })
+          if (m.email) {
+            fetch('/api/auth/revoke', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: m.email }),
+            }).catch((e) => console.error('Portal revoke failed:', e))
+          }
+        })
+    }
+
     // Bond refund (pending approval).
     createBondRefund(lease)
   }, [updateLease, updateMember, createBondRefund])

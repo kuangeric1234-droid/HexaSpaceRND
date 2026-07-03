@@ -161,7 +161,7 @@ loop is done — say so and stop scheduling.
   STRIPE_SECRET_KEY is a test key (sk_test_...) — otherwise skip live call and
   note it.
 
-- [ ] **8. Portal access revocation on offboarding.**
+- [x] **8. Portal access revocation on offboarding.** _Done: offboardLease revokes portalAccess + bans the Supabase auth user via new api/auth/revoke.js (ban, not delete, so returnable) — guarded so it only fires when the company has NO other live contract (renewals/office moves safe); PortalApp shows a "membership ended" screen for revoked members with lingering sessions. No production users touched._
   In `offboardLease` (src/store/useStore.js ~1557): set
   `portalAccess: false` on all the tenant's members, and call a new
   `api/auth/revoke.js` (service key: `supabase.auth.admin` — ban/disable the
@@ -220,4 +220,5 @@ loop is done — say so and stop scheduling.
 - 2026-07-03 · Item 4 GST off deposits · b1026b6
 - 2026-07-03 · Item 5 daily reconcile cron · 2aeda55
 - 2026-07-03 · Item 6 bond payout tracking · 9fc3516
-- 2026-07-03 · Item 7 Stripe portal payments · (commit follows)
+- 2026-07-03 · Item 7 Stripe portal payments · 68c36ae
+- 2026-07-03 · Item 8 portal revocation on offboard · (commit follows)
