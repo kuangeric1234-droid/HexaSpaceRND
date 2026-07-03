@@ -232,10 +232,11 @@ export default function ContractTemplate({ lease, tenant, space, settings }) {
             securely stored by Stripe, at the time of signing this Agreement, and will keep a valid card
             registered for the duration of the membership. The Member authorises Hexa Space to charge this
             card for any amount that remains unpaid after its invoice due date, including membership fees
-            and other amounts payable under this Agreement. Hexa Space will issue each invoice in the normal
-            course before any charge is made, and a receipt is provided for every charge. Card numbers are
-            held by Stripe — Hexa Space does not store or have access to full card details. The Member may
-            update the registered card at any time via the member portal.
+            and other amounts payable under this Agreement, in accordance with clause 7(i) (Direct Debit
+            Authority for Overdue Invoices) of the Terms &amp; Conditions. Hexa Space will issue each invoice
+            in the normal course before any charge is made, and a receipt is provided for every charge. Card
+            numbers are held by Stripe — Hexa Space does not store or have access to full card details. The
+            Member may update the registered card at any time via the member portal.
           </p>
         </div>
       )}
