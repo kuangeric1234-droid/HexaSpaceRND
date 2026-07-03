@@ -573,6 +573,8 @@ export default function Leases() {
               terminatedAt: data.date,
               terminationReason: data.reason,
               terminationComments: data.comments,
+              // Clause 13(b) opt-out — offboarding reads this flag.
+              skipVirtualOfficeEnrol: data.enrolVirtualOffice === false,
             })
             setTerminateTarget(null)
           }}
@@ -603,8 +605,11 @@ function TerminateModal({ lease, reasons, exitFee = 350, onConfirm, onClose }) {
   const [comments, setComments] = useState('')
   // House Rules: fixed exit fee for Private Office members, so default the
   // checkbox ON for office contracts and OFF for everything else.
-  const isOffice = /office/i.test(lease.membershipType || '') || lease.documentType === 'License Agreement'
+  const isOffice = (/office/i.test(lease.membershipType || '') && !/virtual/i.test(lease.membershipType || '')) || lease.documentType === 'License Agreement'
   const [chargeExitFee, setChargeExitFee] = useState(isOffice && exitFee > 0)
+  // Clause 13(b): departing Private Office members are auto-enrolled in a
+  // 3-month Virtual Office deducted from the bond. Untick to waive.
+  const [enrolVo, setEnrolVo] = useState(isOffice)
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -671,6 +676,21 @@ function TerminateModal({ lease, reasons, exitFee = 350, onConfirm, onClose }) {
               </span>
             </label>
           )}
+
+          {isOffice && (
+            <label className="flex items-start gap-2 text-sm text-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enrolVo}
+                onChange={(e) => setEnrolVo(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                Enrol in the 3-month Virtual Office (clause 13(b))
+                <span className="block text-xs text-muted-foreground">Creates a 3-month Virtual Office membership at the prevailing list price, deducted from the security deposit before it's refunded. Untick to waive.</span>
+              </span>
+            </label>
+          )}
         </div>
 
         {/* Footer */}
@@ -682,7 +702,7 @@ function TerminateModal({ lease, reasons, exitFee = 350, onConfirm, onClose }) {
             Cancel
           </button>
           <button
-            onClick={() => onConfirm({ date, reason, comments, chargeExitFee, exitFeeAmount: exitFee })}
+            onClick={() => onConfirm({ date, reason, comments, chargeExitFee, exitFeeAmount: exitFee, enrolVirtualOffice: enrolVo })}
             disabled={!date}
             className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded hover:bg-red-600 disabled:opacity-40"
           >

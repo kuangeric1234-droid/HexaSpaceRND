@@ -211,6 +211,10 @@ loop is done — say so and stop scheduling.
   api/proposal.js return a "superseded — ask for the latest link" state for
   old tokens instead of 404. Acceptance: build + node test of token gen.
 
+## P3 addendum (post-loop)
+
+- [x] **14. Clause 13(b) — 3-month Virtual Office on exit.** _Done: offboardLease auto-enrols departing Private Office members (guards: office contracts only via exitVirtualOfficeApplies, skip when the tenant keeps another live non-parking lease, skipVirtualOfficeEnrol opt-out set by a default-ON checkbox in the Terminate modal, price settings.billingRules.exitVirtualOfficePrice ?? 150, 0 disables). Creates hx_vo_* space + active VO lease (3 months from day after office end via exitVirtualOfficeTerm, autoRenew:false, paidInFull so bill runs skip it) + one 3-month invoice (invoiceType 'vo_exit') settled by "Bond deduction" payment when a paid bond exists, else pending. createBondRefund now nets deductions as explicit credit-note lines (skips refund entirely when deductions ≥ bond); enrolled members keep portal access._
+
 ## Done log
 
 (append one line per completed item: date, item, commit hash)
@@ -226,4 +230,5 @@ loop is done — say so and stop scheduling.
 - 2026-07-03 · Item 10 onboarding resilience · 88a22c3
 - 2026-07-03 · Item 11 proposal decline flow · 20b6ded
 - 2026-07-03 · Item 12 exit/late fee quick actions · 6f7c7ee
-- 2026-07-03 · Item 13 number/token hygiene · (commit follows) — ALL ITEMS COMPLETE
+- 2026-07-03 · Item 13 number/token hygiene · 5ed5411 — ALL ORIGINAL ITEMS COMPLETE
+- 2026-07-03 · Item 14 clause 13(b) exit Virtual Office · (commit follows)

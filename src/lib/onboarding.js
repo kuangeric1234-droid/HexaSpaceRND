@@ -90,6 +90,29 @@ export function shouldOnboard(lease, invoices) {
   return accessGateMet(lease, invoices) && !lease?.onboardedAt
 }
 
+// Licence agreement clause 13(b): a departing Private Office member is
+// auto-enrolled in a 3-month Virtual Office starting the day after their
+// office contract ends (or tomorrow, when the end date has already passed).
+export function exitVirtualOfficeTerm(officeEndDate, todayISO) {
+  const anchor = officeEndDate && officeEndDate > todayISO ? officeEndDate : todayISO
+  const start = new Date(`${anchor}T00:00:00`)
+  start.setDate(start.getDate() + 1)
+  const end = new Date(start)
+  end.setMonth(end.getMonth() + 3)
+  end.setDate(end.getDate() - 1)
+  const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return { startDate: fmt(start), endDate: fmt(end) }
+}
+
+// Does clause 13(b) apply to this contract? Private Office agreements only —
+// never virtual/desk/parking memberships, and never when explicitly opted out.
+export function exitVirtualOfficeApplies(lease) {
+  if (!lease || lease.skipVirtualOfficeEnrol) return false
+  const label = `${lease.membershipType ?? ''} ${lease.documentType ?? ''}`
+  if (/virtual/i.test(label)) return false
+  return /office/i.test(label) || lease.documentType === 'License Agreement'
+}
+
 // ── Salto access provisioning (client → serverless) ─────────────────────────────
 
 // Provision a Salto credential for a member on the office door. Returns

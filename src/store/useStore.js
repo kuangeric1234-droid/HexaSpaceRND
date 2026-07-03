@@ -19,6 +19,7 @@ import {
 } from '../lib/functionEmails.js'
 import {
   accessGateMet, desiredSpaceStatus, shouldOnboard, requiresAccessGate, depositAmount,
+  exitVirtualOfficeTerm, exitVirtualOfficeApplies,
   onboardingEmailHtml, resolveOnboardingCopy, renderOnboardingTemplate,
   DEFAULT_ONBOARDING_EMAIL_SUBJECT, DEFAULT_ONBOARDING_EMAIL_HTML,
   resolveBondRefundCopy, bondRefundEmailHtml,
@@ -1545,9 +1546,103 @@ export function useStore() {
   }, [])
 
   // ── Offboarding ─────────────────────────────────────────────────────────────
+  // Licence agreement clause 13(b): a departing Private Office member is
+  // automatically enrolled in a 3-month Virtual Office at the prevailing list
+  // price, paid by deduction from the security deposit before it's refunded.
+  // Returns { enrolled, contractNumber, deduction? } or null when the clause
+  // doesn't apply (opt-out, non-office contract, or the tenant is staying on
+  // another live agreement).
+  const enrolExitVirtualOffice = useCallback((lease) => {
+    if (!exitVirtualOfficeApplies(lease)) return null
+    const price = Number(settingsRef.current?.billingRules?.exitVirtualOfficePrice ?? 150)
+    if (price <= 0) return null
+
+    // Still with us (renewal, office move, other memberships) → no enrolment.
+    // Parking is excluded: the offboard cascade is expiring those bays in this
+    // same tick, so the ref still shows them active.
+    const hasLiveLease = leasesRef.current.some((l) =>
+      l.id !== lease.id && l.tenantId === lease.tenantId &&
+      ['active', 'pending'].includes(l.status) && !l.offboardedAt &&
+      !isParkingLease(l, spacesRef.current))
+    if (hasLiveLease) return null
+
+    const todayISO = new Date().toISOString().split('T')[0]
+    const { startDate, endDate } = exitVirtualOfficeTerm(lease.endDate, todayISO)
+    const tenant = tenantsRef.current.find((t) => t.id === lease.tenantId)
+
+    const nums = leasesRef.current
+      .map((l) => parseInt(String(l.contractNumber || '').replace(/\D/g, ''), 10))
+      .filter((n) => !isNaN(n) && n < 100000)
+    const contractNumber = `CON-${String((nums.length ? Math.max(...nums) : 0) + 1).padStart(3, '0')}`
+
+    // Placeholder virtual space (matches the vo-from-lease import pattern).
+    const voSpace = {
+      id: `hx_vo_${contractNumber}`, type: 'virtual', floor: 'l4', source: 'vo-exit-enrol',
+      status: 'occupied', address: '830 Whitehorse Rd, Box Hill', location: 'whitehorse',
+      unitNumber: `Virtual Office ${contractNumber}`, rate: price, monthlyRate: price,
+      membershipType: 'Virtual Office', assignedCompanyId: lease.tenantId,
+    }
+    setSpaces((prev) => [...prev, voSpace])
+    syncRow('spaces', voSpace.id, voSpace)
+
+    // paidInFull/paidUntil keeps the bill runs off it (the 3 months are settled
+    // below); autoRenew: false stops the load-time auto-renewal rolling it past
+    // the contractual 3 months. No signatureStatus/deposit → no access gate.
+    const voLease = addLease({
+      contractNumber, tenantId: lease.tenantId, memberId: lease.memberId,
+      memberName: lease.memberName, companyName: tenant?.businessName ?? lease.companyName,
+      spaceId: voSpace.id, resource: voSpace.unitNumber,
+      membershipType: 'Virtual Office', documentType: 'Virtual Office Membership Agreement',
+      contractType: 'New', source: 'exit-enrol',
+      startDate, endDate, monthlyRent: price, bondAmount: 0,
+      status: 'active', autoRenew: false, paidInFull: true, paidUntil: endDate,
+      notes: `Automatic 3-month Virtual Office on exit from ${lease.contractNumber ?? lease.id} (licence agreement cl. 13(b)).`,
+    })
+
+    // One invoice for the full 3 months. When a paid bond exists it is settled
+    // immediately by bond deduction; otherwise it stays pending for collection.
+    const gstRate = settingsRef.current?.billingRules?.taxEnabled !== false
+      ? (settingsRef.current?.billingRules?.taxRate ?? 10) : 0
+    const net = Math.round(price * 3 * 100) / 100
+    const totalIncGst = Math.round(net * (1 + gstRate / 100) * 100) / 100
+    const paidDeposit = invoicesRef.current.find(
+      (i) => i.leaseId === lease.id && i.invoiceType === 'deposit' && i.status === 'paid'
+    )
+    const fromBond = !!paidDeposit && depositAmount(lease) > 0
+    const due = new Date(); due.setDate(due.getDate() + (settingsRef.current?.invoicing?.dueDateDays ?? 14))
+    addInvoice({
+      tenantId: lease.tenantId, leaseId: voLease.id,
+      status: fromBond ? 'paid' : 'pending', sentStatus: 'not_sent', source: 'offboarding',
+      invoiceType: 'vo_exit', paidFromBondOf: fromBond ? lease.id : null,
+      issueDate: todayISO, dueDate: due.toISOString().split('T')[0],
+      periodStart: startDate, periodEnd: endDate, vatEnabled: true,
+      lineItems: [{
+        id: `li${Date.now()}`,
+        description: `Virtual Office — 3 months on exit (cl. 13(b)) · ${contractNumber}`,
+        revenueAccount: 'Membership Fees',
+        unitPrice: net, qty: 1, discountPct: 0,
+      }],
+      payments: fromBond ? [{
+        id: `pay_bond_${Date.now()}`, amount: totalIncGst, date: todayISO,
+        method: 'Bond deduction',
+        reference: `Deducted from ${lease.contractNumber ?? lease.id} security deposit`,
+      }] : [],
+    })
+    logAudit('create', 'lease', voLease.id, contractNumber,
+      `3-month exit Virtual Office (cl. 13b) — $${price}/mo${fromBond ? `, $${totalIncGst} deducted from bond` : ''}`)
+
+    return {
+      enrolled: true,
+      contractNumber,
+      deduction: fromBond ? { amount: totalIncGst, label: `3-month Virtual Office ${contractNumber} (cl. 13(b))` } : null,
+    }
+  }, [addInvoice, addLease])
+
   // Raise a security-deposit refund as a pending-approval credit note — but only
-  // if the deposit was actually invoiced and paid. Never duplicates.
-  const createBondRefund = useCallback((lease) => {
+  // if the deposit was actually invoiced and paid. Never duplicates. Deductions
+  // (e.g. the clause-13(b) Virtual Office) appear as their own lines and reduce
+  // the refund; when they consume the whole bond, no refund is raised.
+  const createBondRefund = useCallback((lease, deductions = []) => {
     const bond = depositAmount(lease)
     if (!bond || bond <= 0) return
     const dep = invoicesRef.current.find(
@@ -1555,6 +1650,12 @@ export function useStore() {
     )
     if (!dep) return // nothing paid → nothing to refund
     if (invoicesRef.current.some((i) => i.leaseId === lease.id && i.invoiceType === 'bond_refund')) return
+    const deductionTotal = Math.round(deductions.reduce((s, d) => s + Number(d.amount || 0), 0) * 100) / 100
+    if (deductionTotal >= bond) {
+      logAudit('create', 'invoice', lease.id, 'Bond refund',
+        `No refund — deductions ($${deductionTotal}) meet or exceed the bond ($${bond})`)
+      return
+    }
     const today = new Date().toISOString().split('T')[0]
     const space = spacesRef.current.find((s) => s.id === lease.spaceId)
     addInvoice({
@@ -1565,14 +1666,23 @@ export function useStore() {
       issueDate: today, dueDate: today, periodStart: null, periodEnd: null,
       reference: `Bond refund — ${space?.unitNumber ?? lease.spaceId}`,
       paymentMethod: '', discountPct: 0, vatEnabled: false, xeroSync: false, isProrated: false,
-      lineItems: [{
-        id: `li${Date.now()}`,
-        description: `Security Deposit Refund — ${space?.unitNumber ?? lease.spaceId}`,
-        revenueAccount: 'Security Deposit',
-        unitPrice: -Math.abs(bond), qty: 1, discountPct: 0,
-      }],
+      lineItems: [
+        {
+          id: `li${Date.now()}`,
+          description: `Security Deposit Refund — ${space?.unitNumber ?? lease.spaceId}`,
+          revenueAccount: 'Security Deposit',
+          unitPrice: -Math.abs(bond), qty: 1, discountPct: 0,
+        },
+        ...deductions.map((d, i) => ({
+          id: `li${Date.now()}_d${i}`,
+          description: `Less: ${d.label}`,
+          revenueAccount: 'Security Deposit',
+          unitPrice: Math.abs(Number(d.amount || 0)), qty: 1, discountPct: 0,
+        })),
+      ],
     })
-    logAudit('create', 'invoice', lease.id, `Bond refund`, `Pending approval — $${bond}`)
+    logAudit('create', 'invoice', lease.id, `Bond refund`,
+      `Pending approval — $${Math.round((bond - deductionTotal) * 100) / 100}${deductionTotal ? ` (bond $${bond} less $${deductionTotal} deductions)` : ''}`)
   }, [addInvoice])
 
   // End-of-lease housekeeping: free every space the lease held (office + parking),
@@ -1610,10 +1720,16 @@ export function useStore() {
         updateMember(m.id, { saltoAccess: false })
       })
 
+    // Clause 13(b): auto-enrol a departing Private Office member in a 3-month
+    // Virtual Office, paid by bond deduction. Must run before the portal check —
+    // an enrolled member keeps their portal access (they're still a member).
+    const voEnrolment = enrolExitVirtualOffice(lease)
+
     // Portal access: revoke only when the company has NO other live contract —
     // offboarding one office (renewal, office move) must not lock out a tenant
-    // who is still with us.
-    const hasLiveLease = leasesRef.current.some((l) =>
+    // who is still with us. The just-created VO lease isn't in the ref yet, so
+    // check the enrolment result explicitly.
+    const hasLiveLease = voEnrolment?.enrolled || leasesRef.current.some((l) =>
       l.id !== lease.id && l.tenantId === lease.tenantId &&
       ['active', 'pending'].includes(l.status) && !l.offboardedAt)
     if (!hasLiveLease) {
@@ -1630,9 +1746,9 @@ export function useStore() {
         })
     }
 
-    // Bond refund (pending approval).
-    createBondRefund(lease)
-  }, [updateLease, updateMember, createBondRefund])
+    // Bond refund (pending approval), net of any clause-13(b) deduction.
+    createBondRefund(lease, voEnrolment?.deduction ? [voEnrolment.deduction] : [])
+  }, [updateLease, updateMember, createBondRefund, enrolExitVirtualOffice])
 
   // Approve a pending bond-refund credit note and notify the tenant.
   const approveBondRefund = useCallback((invoiceId) => {
