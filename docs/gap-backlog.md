@@ -188,7 +188,7 @@ loop is done — say so and stop scheduling.
 
 ## P3 — polish
 
-- [ ] **11. Proposal decline + expiry UX.**
+- [x] **11. Proposal decline + expiry UX.** _Done: api/proposal-decline.js (guards accepted/already-declined, records declinedAt + optional reason, appends lead activity, moves lead to Lost, notifies admin); decline link + declined screen on ProposalAccept; declined/accepted chips + decline reason on LeadDetail's Last-proposal card; declined is terminal over expired in api/proposal.js._
   Add a "Decline" link on ProposalAccept.jsx → POST api/proposal-decline.js
   (sets lead.proposal.status 'declined', moves lead to Lost, notifies admin).
   Lead Detail shows declined state. Acceptance: build + trace.
@@ -223,4 +223,5 @@ loop is done — say so and stop scheduling.
 - 2026-07-03 · Item 7 Stripe portal payments · 68c36ae
 - 2026-07-03 · Item 8 portal revocation on offboard · b9dcbb7
 - 2026-07-03 · Item 9 renewal auto e-sign · 3e78857
-- 2026-07-03 · Item 10 onboarding resilience · (commit follows)
+- 2026-07-03 · Item 10 onboarding resilience · 88a22c3
+- 2026-07-03 · Item 11 proposal decline flow · (commit follows)

@@ -42,7 +42,8 @@ export default async function handler(req, res) {
     })
     return res.status(200).json({
       ok: true,
-      status: p.status === 'accepted' ? 'accepted' : (proposalExpired(p) ? 'expired' : p.status || 'sent'),
+      // accepted/declined are terminal; expiry only applies to live proposals.
+      status: ['accepted', 'declined'].includes(p.status) ? p.status : (proposalExpired(p) ? 'expired' : p.status || 'sent'),
       company: settings?.company?.name || 'Hexa Space',
       leadName: row.data.name || row.data.businessName || '',
       businessName: row.data.businessName || '',

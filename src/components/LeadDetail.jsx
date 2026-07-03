@@ -465,8 +465,17 @@ export default function LeadDetail({ lead, store, onClose }) {
 
               {lead.proposal && (
                 <div className="bg-card border border-border rounded-xl shadow-sm p-4 text-sm">
-                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2">Last proposal</h3>
+                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
+                    Last proposal
+                    {lead.proposal.status === 'accepted' && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-100 text-green-700 normal-case">Accepted</span>}
+                    {lead.proposal.status === 'declined' && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-700 normal-case">Declined</span>}
+                  </h3>
                   <p className="text-muted-foreground text-xs mb-2">Sent {lead.proposal.sentAt ? format(parseISO(lead.proposal.sentAt), 'd MMM yyyy, h:mm a') : ''}</p>
+                  {lead.proposal.status === 'declined' && (
+                    <p className="text-xs text-red-600 mb-2">
+                      Declined {lead.proposal.declinedAt ? format(parseISO(lead.proposal.declinedAt), 'd MMM yyyy') : ''}{lead.proposal.declineReason ? ` — "${lead.proposal.declineReason}"` : ''}
+                    </p>
+                  )}
                   {lead.proposal.membershipType ? (
                     <div className="text-foreground">
                       <div className="flex justify-between"><span>{lead.proposal.typeLabel || lead.proposal.membershipType}</span><span>${Number(lead.proposal.price || 0).toLocaleString('en-AU')}/mo</span></div>

@@ -24,6 +24,7 @@ export default function ProposalAccept({ token }) {
       .then((d) => {
         if (!d.ok) { setState('invalid'); return }
         if (d.status === 'expired') { setState('expired'); return }
+        if (d.status === 'declined') { setState('declined'); return }
         setData(d)
         setForm((f) => ({ ...f, businessName: d.businessName || '', contactName: d.leadName || '', email: d.email || '', startDate: d.today || '' }))
         // Preselect the office if only one was offered (common case).
@@ -33,6 +34,25 @@ export default function ProposalAccept({ token }) {
       })
       .catch(() => setState('invalid'))
   }, [token])
+
+  async function decline() {
+    const reason = window.prompt("We're sorry this one isn't right. Any feedback for us? (optional)")
+    if (reason === null) return
+    try {
+      const res = await fetch('/api/proposal-decline', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, reason }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setErr(d.error || 'Something went wrong. Please try again.')
+        return
+      }
+      setState('declined')
+    } catch {
+      setErr('Something went wrong. Please try again.')
+    }
+  }
 
   async function submit(e) {
     e.preventDefault()
@@ -71,6 +91,13 @@ export default function ProposalAccept({ token }) {
             <div className="p-10 text-center space-y-3">
               <div className="hx-eyebrow">Proposal expired</div>
               <p className="hx-prose text-[14px]">This proposal has expired — contact us and we'll refresh it for you with current availability and pricing.</p>
+              <p className="hx-prose text-[13px] text-portal-muted">info@hexaspace.com.au</p>
+            </div>
+          )}
+          {state === 'declined' && (
+            <div className="p-10 text-center space-y-3">
+              <div className="hx-eyebrow">Proposal declined</div>
+              <p className="hx-prose text-[14px]">No problem — thanks for letting us know. If anything changes, or you'd like us to put together a different option, we'd love to hear from you.</p>
               <p className="hx-prose text-[13px] text-portal-muted">info@hexaspace.com.au</p>
             </div>
           )}
@@ -132,7 +159,13 @@ export default function ProposalAccept({ token }) {
               <p className="hx-prose text-[12px] text-portal-muted">Valid for {data.validityDays} days. Pricing excludes GST and is subject to a signed licence agreement.</p>
 
               {state === 'review' ? (
-                <button onClick={() => setState('form')} className="hx-btn w-full">Accept &amp; continue →</button>
+                <>
+                  <button onClick={() => setState('form')} className="hx-btn w-full">Accept &amp; continue →</button>
+                  <button onClick={decline} className="block w-full text-center hx-prose text-[12px] text-portal-muted underline underline-offset-2 hover:text-ink">
+                    This isn't right for me — decline this proposal
+                  </button>
+                  {err && <p className="hx-prose text-[13px] text-red-700 text-center">{err}</p>}
+                </>
               ) : (
                 <form onSubmit={submit} className="space-y-5 border-t border-ink/10 pt-6">
                   <div>
