@@ -59,7 +59,8 @@ export default async function handler(req, res) {
     // Charged invoices drop out of the reminder list; the tenant gets a receipt.
     const charged = [], chargeFailed = []
     const graceDays = Number(settings?.stripe?.chargeGraceDays ?? 7)
-    const chargeCutoff = (() => { const d = new Date(`${todayStr}T00:00:00`); d.setDate(d.getDate() - graceDays); return d.toISOString().split('T')[0] })()
+    // UTC-anchored so the day arithmetic can't drift across timezones.
+    const chargeCutoff = (() => { const d = new Date(`${todayStr}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - graceDays); return d.toISOString().split('T')[0] })()
     if (settings?.stripe?.autoChargeOverdue === true && stripeConfigured()) {
       for (const inv of [...allOverdue]) {
         const tenant = tenants.find((t) => t.id === inv.tenantId)
