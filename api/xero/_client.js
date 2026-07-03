@@ -15,7 +15,9 @@ export const XERO_AUTH_URL = 'https://login.xero.com/identity/connect/authorize'
 export const XERO_TOKEN_URL = 'https://identity.xero.com/connect/token'
 export const XERO_CONNECTIONS_URL = 'https://api.xero.com/connections'
 export const XERO_API = 'https://api.xero.com/api.xro/2.0'
-export const XERO_SCOPES = 'openid profile email offline_access accounting.transactions accounting.contacts accounting.settings.read'
+// Granular scopes — apps created after 2 Mar 2026 can't request the old broad
+// accounting.transactions scope (Xero rejects the whole request: invalid_scope).
+export const XERO_SCOPES = 'openid profile email offline_access accounting.invoices accounting.payments.read accounting.contacts accounting.settings.read'
 
 export function getSupabase() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
