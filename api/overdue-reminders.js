@@ -54,13 +54,18 @@ export default async function handler(req, res) {
 
     // 3b. Card-on-file collection: when enabled in Settings → Stripe, overdue
     // invoices for tenants with a verified saved card are charged directly
-    // (authorised by the payment authority in their signed agreement). Charged
-    // invoices drop out of the reminder list; the tenant gets a receipt email.
+    // (authorised by clause 7(i) of the T&C). A grace period applies after the
+    // due date (default 7 days, per the clause) before any charge is made.
+    // Charged invoices drop out of the reminder list; the tenant gets a receipt.
     const charged = [], chargeFailed = []
+    const graceDays = Number(settings?.stripe?.chargeGraceDays ?? 7)
+    const chargeCutoff = (() => { const d = new Date(`${todayStr}T00:00:00`); d.setDate(d.getDate() - graceDays); return d.toISOString().split('T')[0] })()
     if (settings?.stripe?.autoChargeOverdue === true && stripeConfigured()) {
       for (const inv of [...allOverdue]) {
         const tenant = tenants.find((t) => t.id === inv.tenantId)
         if (!tenant?.stripePaymentMethodId) continue
+        // Grace period: only charge once the due date is graceDays behind us.
+        if (!inv.dueDate || inv.dueDate > chargeCutoff) continue
         // One attempt per day per invoice; skip if today's attempt already failed.
         if (inv.lastChargeAttempt === todayStr) continue
         const result = await chargeInvoiceOffSession(supabase, inv, tenant)

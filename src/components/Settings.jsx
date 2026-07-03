@@ -1230,7 +1230,7 @@ function StripeSection({ settings, updateSettings }) {
       </FormRow>
       <FormRow
         label="Auto-charge overdue invoices to card on file"
-        description="The daily overdue run charges a tenant's verified saved card for overdue invoices (as authorised by the payment authority in their signed agreement) and emails them a receipt. Cards are captured during signing for Virtual Office and desk memberships. One attempt per invoice per day; failures fall back to the reminder email."
+        description="The daily overdue run charges a tenant's verified saved card once an invoice is 7+ days past its due date (per clause 7(i) of the T&C) and emails them a receipt. Cards are captured during signing for Virtual Office and desk memberships. One attempt per invoice per day; failures fall back to the reminder email."
       >
         <div className="flex justify-end">
           <Toggle checked={autoCharge} onChange={setAutoCharge} />
