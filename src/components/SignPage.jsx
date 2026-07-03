@@ -90,7 +90,9 @@ export default function SignPage({ token }) {
       const signatureData = sigRef.current.toDataURL()
       const now = new Date().toISOString()
 
-      await supabase.from('esign_requests').update({
+      // Supabase returns errors instead of throwing — check them, or a failed
+      // write (e.g. schema mismatch) silently loses the signature.
+      const { error: reqError } = await supabase.from('esign_requests').update({
         status: 'tenant_signed',
         licensee_signature_data: signatureData,
         licensee_signer_name: signerName,
@@ -98,11 +100,13 @@ export default function SignPage({ token }) {
         licensee_title: signerTitle,
         licensee_date: signerDate,
       }).eq('token', token)
+      if (reqError) throw reqError
 
       // Update lease to show it's waiting for countersignature
-      await supabase.from('leases').update({
+      const { error: leaseError } = await supabase.from('leases').update({
         data: { ...lease, signatureStatus: 'out_for_signature', tenantSignedAt: now, tenantSignerName: signerName },
       }).eq('id', request.lease_id)
+      if (leaseError) throw leaseError
 
       const companyName = settings?.company?.name ?? 'Hexa Space'
       const contractNum = lease.contractNumber ?? `CON-${lease.id?.slice(-3).toUpperCase()}`

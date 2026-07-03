@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase.js'
 import { jsPDF } from 'jspdf'
 import DocumentsPanel from './DocumentsPanel.jsx'
 import { logAudit } from '../lib/audit.js'
+import { buildPaymentSchedule, scheduleAmount } from '../lib/paymentSchedule.js'
 
 const SIG_STATUS = {
   manually_signed: { label: 'Manually Signed', cls: 'bg-green-500 text-white' },
@@ -180,12 +181,13 @@ export default function ContractDetail({
       const memberLink = lease.eSignMemberLink ?? ''
       const tokenMatch = memberLink.match(/\/sign\/([^/?]+)/)
       if (tokenMatch) {
-        await supabase.from('esign_requests').update({
+        const { error } = await supabase.from('esign_requests').update({
           status: 'fully_signed',
           licensor_signature_data: signatureData,
           licensor_signer_name: licensorName,
           licensor_signed_at: now,
         }).eq('token', tokenMatch[1])
+        if (error) throw error
       }
       // Both parties have now signed → activate the contract. The space is only
       // taken up (reserved → occupied) once the deposit + first invoice are paid
@@ -362,6 +364,64 @@ export default function ContractDetail({
       doc.setFontSize(6.5); doc.setTextColor(130)
       doc.text('*Minimum Term is subject to written notice from either party. Minimum notice period as specified above.', ml, y)
       y += 10; doc.setTextColor(0)
+
+      // ── Payment Schedule ──────────────────────────────────────
+      const schedule = buildPaymentSchedule(lease, settings)
+      if (schedule) {
+        checkPage(24)
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(80)
+        doc.text('PAYMENT SCHEDULE', ml, y); doc.setTextColor(0)
+        doc.setDrawColor(180); doc.setLineWidth(0.3); doc.line(ml, y + 2, mr, y + 2)
+        y += 7
+
+        const sCols = { month: ml, office: ml + 62, services: ml + 92, total: ml + 124, incGst: mr }
+        function scheduleHeader() {
+          doc.setFillColor(20, 20, 20)
+          doc.rect(ml, y - 3.5, mr - ml, 7, 'F')
+          doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255)
+          doc.text('MONTH', sCols.month, y + 0.5)
+          doc.text('OFFICE', sCols.office, y + 0.5, { align: 'right' })
+          doc.text('SERVICES', sCols.services, y + 0.5, { align: 'right' })
+          doc.text('MONTH TOTAL', sCols.total, y + 0.5, { align: 'right' })
+          doc.text('TOTAL INCL. GST', sCols.incGst, y + 0.5, { align: 'right' })
+          doc.setTextColor(0)
+          y += 7
+        }
+        scheduleHeader()
+
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8)
+        schedule.rows.forEach((r, i) => {
+          if (y + 8 > H - 15) { doc.addPage(); y = 20; scheduleHeader(); doc.setFont('helvetica', 'normal'); doc.setFontSize(8) }
+          if (i % 2 === 0) { doc.setFillColor(248, 248, 248); doc.rect(ml, y - 2, mr - ml, 7, 'F') }
+          doc.setTextColor(0)
+          doc.text(r.label + (r.free ? '  (rent-free)' : ''), sCols.month, y + 3)
+          doc.text(`${scheduleAmount(r.office)} AUD`, sCols.office, y + 3, { align: 'right' })
+          doc.text(`${scheduleAmount(r.services)} AUD`, sCols.services, y + 3, { align: 'right' })
+          doc.text(`${scheduleAmount(r.total)} AUD`, sCols.total, y + 3, { align: 'right' })
+          doc.setFont('helvetica', 'bold')
+          doc.text(`${scheduleAmount(r.incGst)} AUD`, sCols.incGst, y + 3, { align: 'right' })
+          doc.setFont('helvetica', 'normal')
+          y += 8
+        })
+        // Totals row
+        if (y + 8 > H - 15) { doc.addPage(); y = 20 }
+        doc.setDrawColor(0); doc.setLineWidth(0.4); doc.line(ml, y - 1, mr, y - 1)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Total', sCols.month, y + 3)
+        doc.text(`${scheduleAmount(schedule.totals.office)} AUD`, sCols.office, y + 3, { align: 'right' })
+        doc.text(`${scheduleAmount(schedule.totals.services)} AUD`, sCols.services, y + 3, { align: 'right' })
+        doc.text(`${scheduleAmount(schedule.totals.total)} AUD`, sCols.total, y + 3, { align: 'right' })
+        doc.text(`${scheduleAmount(schedule.totals.incGst)} AUD`, sCols.incGst, y + 3, { align: 'right' })
+        doc.setFont('helvetica', 'normal')
+        y += 9
+        if (schedule.rows.some((r) => r.free)) {
+          doc.setFontSize(6.5); doc.setTextColor(130)
+          doc.text('*New-member offer — rent-free months are applied to the end of the term as shown above.', ml, y)
+          doc.setTextColor(0)
+          y += 6
+        }
+        y += 4
+      }
 
       // ── Signature blocks ──────────────────────────────────────
       checkPage(65)

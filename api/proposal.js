@@ -1,6 +1,7 @@
 // Vercel serverless — GET /api/proposal?token=...
 // Public: returns the proposal (chosen offices + pricing) for the accept page.
 import { createClient } from '@supabase/supabase-js'
+import { proposalExpired } from './_proposal.js'
 
 const SUPABASE_URL = process.env.SUPABASE_URL
 
@@ -41,7 +42,7 @@ export default async function handler(req, res) {
     })
     return res.status(200).json({
       ok: true,
-      status: p.status || 'sent',
+      status: p.status === 'accepted' ? 'accepted' : (proposalExpired(p) ? 'expired' : p.status || 'sent'),
       company: settings?.company?.name || 'Hexa Space',
       leadName: row.data.name || row.data.businessName || '',
       businessName: row.data.businessName || '',

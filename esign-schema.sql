@@ -10,6 +10,8 @@ create table esign_requests (
   licensee_signature_data text,
   licensee_signer_name text,
   licensee_signed_at timestamptz,
+  licensee_title text,
+  licensee_date text,
   licensor_signature_data text,
   licensor_signer_name text,
   licensor_signed_at timestamptz,

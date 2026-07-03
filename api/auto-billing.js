@@ -7,6 +7,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { sendResendEmail } from './_email.js'
 import { brandFrame, bKicker, bH1, bH2, bSmall, bBtn, bPanel, bTable, SANS, INK, MUTE } from './_brand.js'
+import { isRentFreeMonth } from '../src/lib/paymentSchedule.js'
 
 const SUPABASE_URL = process.env.SUPABASE_URL
 
@@ -112,6 +113,13 @@ export default async function handler(req, res) {
       i.status !== 'voided'
     )
     if (exists) { skipped.push(tenant.businessName); continue }
+
+    // Contract says this month is rent-free (step-encoded $0 or the
+    // final-N-months new-member offer) → nothing to bill.
+    if (isRentFreeMonth(lease, new Date(periodStart + 'T00:00:00'))) {
+      skipped.push(`${tenant.businessName} (rent-free month)`)
+      continue
+    }
 
     const rent       = Number(lease.monthlyRent ?? 0)
     const discPct    = parseFloat(lease.discount ?? lease.items?.[0]?.steps?.[0]?.discount ?? '') || 0

@@ -25,6 +25,7 @@ import {
   provisionSaltoAccess, revokeSaltoAccess,
 } from '../lib/onboarding.js'
 import { CREDIT_VALUE, computeMonthlyAllowance, effectiveAllowance, round2 } from '../lib/credits.js'
+import { isRentFreeMonth } from '../lib/paymentSchedule.js'
 
 // All spaces a lease occupies (primary + any bundled items, e.g. parking).
 function leaseSpaceIds(lease) {
@@ -1440,9 +1441,11 @@ export function useStore() {
       const end = lease.endDate ? new Date(lease.endDate) : monthEnd
       const periodStart = start > monthStart ? start : monthStart
       const periodEnd = end < monthEnd ? end : monthEnd
-      if (periodEnd >= periodStart) {
-        const daysInMonth = Math.floor((monthEnd - monthStart) / 86400000) + 1
-        const daysOcc = Math.floor((periodEnd - periodStart) / 86400000) + 1
+      // Skip if the contract's schedule marks the opening month rent-free.
+      if (periodEnd >= periodStart && !isRentFreeMonth(lease, monthStart)) {
+        // Math.round, not floor: a DST transition makes one day 23/25 hours.
+        const daysInMonth = Math.round((monthEnd - monthStart) / 86400000) + 1
+        const daysOcc = Math.round((periodEnd - periodStart) / 86400000) + 1
         const prorate = (s.billingRules?.prorate ?? true) && daysOcc < daysInMonth
         const amount = prorate ? Math.round((rent * daysOcc / daysInMonth) * 100) / 100 : rent
         const label = `${periodStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} – ${periodEnd.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}${prorate ? ' (prorated)' : ''}`

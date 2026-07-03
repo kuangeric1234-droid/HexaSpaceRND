@@ -1,4 +1,5 @@
 import { format, parseISO } from 'date-fns'
+import { buildPaymentSchedule, scheduleAmount } from '../lib/paymentSchedule.js'
 
 const DEFAULT_BUSINESS = {
   name: 'Hexa Space Pty Ltd',
@@ -45,6 +46,7 @@ export default function ContractTemplate({ lease, tenant, space, settings }) {
     steps: [{ startDate: lease.startDate, endDate: lease.endDate, listPrice: lease.monthlyRent ?? 0, qty: 1 }],
   }]
   const deposit = items[0]?.deposit ?? 0
+  const schedule = buildPaymentSchedule(lease, settings)
   const taxRatePct = settings?.billingRules?.taxRate ?? 10
   const gst = Math.round(deposit * (taxRatePct / 100) * 100) / 100
   const totalInitial = Math.round((deposit + gst) * 100) / 100
@@ -171,6 +173,54 @@ export default function ContractTemplate({ lease, tenant, space, settings }) {
           ))}
         </div>
       </div>
+
+      {/* ── Payment Schedule ── */}
+      {schedule && (
+        <>
+          <h2 className="font-bold uppercase text-gray-900 mb-3 tracking-wide">PAYMENT SCHEDULE</h2>
+          <table className="w-full text-xs border border-gray-300 mb-4">
+            <thead>
+              <tr className="border-b border-gray-300 bg-gray-50">
+                {['MONTH', 'OFFICE', 'SERVICES', 'MONTH TOTAL', 'MONTH TOTAL INCL. GST'].map((h, i) => (
+                  <th
+                    key={h}
+                    className={`px-3 py-2.5 font-semibold text-gray-600 border-r border-gray-200 last:border-r-0 ${i === 0 ? 'text-left' : 'text-right'}`}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {schedule.rows.map((r) => (
+                <tr key={r.key} className="border-b border-gray-200">
+                  <td className="px-3 py-2 border-r border-gray-200">
+                    {r.label}
+                    {r.free && <span className="ml-2 text-[10px] font-semibold uppercase text-gray-500">Rent-free</span>}
+                  </td>
+                  <td className="px-3 py-2 text-right border-r border-gray-200">{scheduleAmount(r.office)} AUD</td>
+                  <td className="px-3 py-2 text-right border-r border-gray-200">{scheduleAmount(r.services)} AUD</td>
+                  <td className="px-3 py-2 text-right border-r border-gray-200">{scheduleAmount(r.total)} AUD</td>
+                  <td className="px-3 py-2 text-right font-medium">{scheduleAmount(r.incGst)} AUD</td>
+                </tr>
+              ))}
+              <tr className="bg-gray-50 font-semibold">
+                <td className="px-3 py-2 border-r border-gray-200">Total</td>
+                <td className="px-3 py-2 text-right border-r border-gray-200">{scheduleAmount(schedule.totals.office)} AUD</td>
+                <td className="px-3 py-2 text-right border-r border-gray-200">{scheduleAmount(schedule.totals.services)} AUD</td>
+                <td className="px-3 py-2 text-right border-r border-gray-200">{scheduleAmount(schedule.totals.total)} AUD</td>
+                <td className="px-3 py-2 text-right">{scheduleAmount(schedule.totals.incGst)} AUD</td>
+              </tr>
+            </tbody>
+          </table>
+          {schedule.rows.some((r) => r.free) && (
+            <p className="text-xs text-gray-400 mb-8 leading-relaxed">
+              *New-member offer — the rent-free month{schedule.rows.filter((r) => r.free).length > 1 ? 's are' : ' is'} applied
+              to the end of the term as shown above.
+            </p>
+          )}
+        </>
+      )}
 
       {/* ── Signature blocks ── */}
       <div className="grid grid-cols-2 gap-12 mt-8 pt-6 border-t border-gray-200">

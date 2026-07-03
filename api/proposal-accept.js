@@ -5,6 +5,7 @@
 // request, and email the licence agreement to sign (client) + notify admin.
 import { createClient } from '@supabase/supabase-js'
 import { fillVars, findEmailTemplate, sendResend } from './_leads.js'
+import { proposalExpired } from './_proposal.js'
 
 const SUPABASE_URL = process.env.SUPABASE_URL
 
@@ -41,8 +42,13 @@ export default async function handler(req, res) {
     const leadRow = (leadRows ?? []).find((r) => r.data?.proposal?.token === token)
     if (!leadRow) return res.status(404).json({ error: 'Proposal not found' })
     const lead = leadRow.data
-    if (lead.proposal?.status === 'accepted' && lead.tenantId) {
+    // Either signal alone means this proposal already produced a client —
+    // requiring both would let a half-recorded accept run twice.
+    if (lead.proposal?.status === 'accepted' || lead.tenantId) {
       return res.status(200).json({ ok: true, alreadyAccepted: true, signLink: lead.proposal?.signLink })
+    }
+    if (proposalExpired(lead.proposal)) {
+      return res.status(410).json({ error: 'This proposal has expired — please contact us to refresh it.', expired: true })
     }
 
     const settings = settRows?.[0]?.data ?? {}
@@ -52,10 +58,34 @@ export default async function handler(req, res) {
     const allParking = lead.proposal?.parking || []
     if (allOffices.length === 0) return res.status(400).json({ error: 'Proposal has no offices' })
     // Offered offices are OPTIONS â€” the client picks which one(s) + optional parking.
+    // Submitted ids must be a subset of what was actually offered.
+    const offeredOfficeIds = allOffices.map((o) => o.spaceId)
+    const offeredParkingIds = allParking.map((o) => o.spaceId)
+    if (Array.isArray(officeIds) && officeIds.some((id) => !offeredOfficeIds.includes(id))) {
+      return res.status(400).json({ error: 'One of the selected offices is not part of this proposal.' })
+    }
+    if (Array.isArray(parkingIds) && parkingIds.some((id) => !offeredParkingIds.includes(id))) {
+      return res.status(400).json({ error: 'One of the selected parking bays is not part of this proposal.' })
+    }
     const offices = (Array.isArray(officeIds) && officeIds.length) ? allOffices.filter((o) => officeIds.includes(o.spaceId)) : allOffices
     const parking = (Array.isArray(parkingIds) && parkingIds.length) ? allParking.filter((o) => parkingIds.includes(o.spaceId)) : []
     if (offices.length === 0) return res.status(400).json({ error: 'Please choose at least one office' })
     const contractItems = [...offices, ...parking]
+
+    // Re-check availability: an office can be taken between proposal and accept
+    // (the same unit is often offered to several leads; first accept wins).
+    const { data: spaceRows } = await supabase.from('spaces').select('id, data').in('id', contractItems.map((o) => o.spaceId))
+    const spacesById = Object.fromEntries((spaceRows ?? []).map((r) => [r.id, r.data]))
+    const unavailable = contractItems.filter((o) => {
+      const s = spacesById[o.spaceId]
+      return !s || s.status === 'occupied' || s.status === 'reserved' || s.occupantTenantId
+    })
+    if (unavailable.length) {
+      const names = unavailable.map((o) => o.unit || spacesById[o.spaceId]?.unitNumber || o.spaceId).join(', ')
+      return res.status(409).json({
+        error: `${names} ${unavailable.length > 1 ? 'are' : 'is'} no longer available. Please contact us and we'll arrange an alternative.`,
+      })
+    }
 
     const now = new Date()
     const today = now.toISOString().split('T')[0]
@@ -64,6 +94,9 @@ export default async function handler(req, res) {
     const term = lead.proposal?.term || '12mo'
     const termMonths = term === '6mo' ? 6 : 12
     const rentFreeMonths = Number(lead.proposal?.freeMonths || 0)
+    if (reqStart && /^\d{4}-\d{2}-\d{2}$/.test(reqStart) && reqStart < today) {
+      return res.status(400).json({ error: 'The start date cannot be in the past.' })
+    }
     const startDate = (reqStart && /^\d{4}-\d{2}-\d{2}$/.test(reqStart)) ? reqStart : today
     const st = new Date(`${startDate}T00:00:00`)
     const endD = new Date(st); endD.setMonth(endD.getMonth() + termMonths); endD.setDate(endD.getDate() - 1)
@@ -115,11 +148,19 @@ export default async function handler(req, res) {
     await supabase.from('esign_requests').insert({ token: eToken, lease_id: leaseId, tenant_id: tenantId, status: 'pending' })
 
     // Reserve the chosen offices + parking for this client
-    const spaceUpdates = contractItems.map((o) => supabase.from('spaces').select('id, data').eq('id', o.spaceId).single().then(async ({ data }) => {
-      if (!data) return
-      await supabase.from('spaces').upsert({ id: o.spaceId, data: { ...data.data, status: 'reserved', occupantTenantId: tenantId }, updated_at: now.toISOString() })
+    // Failures here must surface: an unreserved space invites double-booking.
+    const warnings = []
+    await Promise.all(contractItems.map(async (o) => {
+      const s = spacesById[o.spaceId]
+      if (!s) { warnings.push(`Space ${o.unit || o.spaceId} not found — reserve it manually.`); return }
+      const { error } = await supabase.from('spaces').upsert({
+        id: o.spaceId,
+        data: { ...s, status: 'reserved', occupantTenantId: tenantId },
+        updated_at: now.toISOString(),
+      })
+      if (error) warnings.push(`Could not reserve ${o.unit || o.spaceId}: ${error.message}`)
     }))
-    await Promise.all(spaceUpdates).catch(() => {})
+    if (warnings.length) console.error('proposal-accept reservation warnings:', warnings)
 
     // Update the lead: accepted + converted + moved to Won
     const won = stages.find((s) => s.category === 'won') || stages.find((s) => /won/i.test(s.name || ''))
@@ -148,12 +189,12 @@ export default async function handler(req, res) {
 
       const adminTo = [...new Set(['eric@hexaspace.com.au', 'info@hexaspace.com.au', settings?.emails?.notificationEmail].filter(Boolean).map((e) => e.toLowerCase()))]
       if (adminTo.length) {
-        const adminHtml = `<div style="font-family:Arial,sans-serif;padding:24px;max-width:560px"><h2 style="font-size:16px">Proposal accepted ðŸŽ‰</h2><p><strong>${businessName}</strong> (${contactName}, ${email}) accepted their proposal.</p><p>Client created, contract <strong>${contractNumber}</strong> raised for ${offices.map((o) => o.unit).join(', ')} at $${monthlyRent.toLocaleString('en-AU')}/mo (${termMonths}-month term from ${startDate}${rentFreeMonths ? `, ${rentFreeMonths} month${rentFreeMonths > 1 ? 's' : ''} rent-free` : ''}) and sent for e-signature. Countersign it once they've signed.</p></div>`
+        const adminHtml = `<div style="font-family:Arial,sans-serif;padding:24px;max-width:560px"><h2 style="font-size:16px">Proposal accepted ðŸŽ‰</h2><p><strong>${businessName}</strong> (${contactName}, ${email}) accepted their proposal.</p><p>Client created, contract <strong>${contractNumber}</strong> raised for ${offices.map((o) => o.unit).join(', ')} at $${monthlyRent.toLocaleString('en-AU')}/mo (${termMonths}-month term from ${startDate}${rentFreeMonths ? `, ${rentFreeMonths} month${rentFreeMonths > 1 ? 's' : ''} rent-free` : ''}) and sent for e-signature. Countersign it once they've signed.</p>${warnings.length ? `<p style="color:#b45309"><strong>Warning:</strong> ${warnings.join(' ')}</p>` : ''}</div>`
         await sendResend(resendKey, { fromName, fromEmail, to: adminTo, subject: `Proposal accepted â€” ${businessName} (${contractNumber})`, html: adminHtml, replyTo }).catch(() => {})
       }
     }
 
-    return res.status(200).json({ ok: true, contractNumber, signLink: memberLink })
+    return res.status(200).json({ ok: true, contractNumber, signLink: memberLink, ...(warnings.length ? { warnings } : {}) })
   } catch (err) {
     console.error('proposal-accept error:', err)
     return res.status(500).json({ error: 'Internal server error' })

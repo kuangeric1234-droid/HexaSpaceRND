@@ -6,6 +6,7 @@ import InvoiceDetail from './InvoiceDetail.jsx'
 import InvoiceForm from './InvoiceForm.jsx'
 import { sendEmail, invoiceEmailHtml } from '../lib/sendEmail.js'
 import { invoiceLease, invoiceSpace, locationLabel } from '../lib/billing.js'
+import { isRentFreeMonth } from '../lib/paymentSchedule.js'
 import { jsPDF } from 'jspdf'
 
 const STATUS_STYLE = {
@@ -89,6 +90,10 @@ export default function Billing() {
           format(parseISO(inv.periodStart), 'yyyy-MM') === format(currentMonthStart, 'yyyy-MM')
       )
       if (alreadyBilled) continue
+
+      // Contract says this month is rent-free (step-encoded $0 or the
+      // final-N-months new-member offer) → nothing to bill.
+      if (isRentFreeMonth(lease, currentMonthStart)) continue
 
       const leaseStart = parseISO(lease.startDate)
       const leaseEnd = parseISO(lease.endDate)

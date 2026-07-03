@@ -23,6 +23,7 @@ export default function ProposalAccept({ token }) {
       .then((r) => r.json())
       .then((d) => {
         if (!d.ok) { setState('invalid'); return }
+        if (d.status === 'expired') { setState('expired'); return }
         setData(d)
         setForm((f) => ({ ...f, businessName: d.businessName || '', contactName: d.leadName || '', email: d.email || '', startDate: d.today || '' }))
         // Preselect the office if only one was offered (common case).
@@ -41,6 +42,7 @@ export default function ProposalAccept({ token }) {
     try {
       const res = await fetch('/api/proposal-accept', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, ...form, officeIds: selOffices, parkingIds: selParking }) })
       const d = await res.json()
+      if (res.status === 410) { setState('expired'); return }
       if (!res.ok) { setErr(d.error || 'Something went wrong. Please try again.'); setSubmitting(false); return }
       setResult(d); setState('done')
     } catch { setErr('Something went wrong. Please try again.'); setSubmitting(false) }
@@ -65,6 +67,13 @@ export default function ProposalAccept({ token }) {
         <div className="bg-paper border border-ink/10 border-t-0 rounded-b-lg">
           {state === 'loading' && <div className="p-10 text-center hx-prose">Loading your proposal…</div>}
           {state === 'invalid' && <div className="p-10 text-center hx-prose">This proposal link is invalid or has expired. Please contact us for a new one.</div>}
+          {state === 'expired' && (
+            <div className="p-10 text-center space-y-3">
+              <div className="hx-eyebrow">Proposal expired</div>
+              <p className="hx-prose text-[14px]">This proposal has expired — contact us and we'll refresh it for you with current availability and pricing.</p>
+              <p className="hx-prose text-[13px] text-portal-muted">info@hexaspace.com.au</p>
+            </div>
+          )}
 
           {(state === 'review' || state === 'form') && data && (
             <div className="p-8 space-y-6">
