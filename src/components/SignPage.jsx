@@ -161,24 +161,24 @@ export default function SignPage({ token }) {
   const contractNum = lease?.contractNumber ?? `CON-${lease?.id?.slice(-3).toUpperCase()}`
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-bone font-body text-ink">
       {/* Header */}
-      <div className="bg-black text-white px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div>
-          <span className="font-black tracking-widest text-lg">HEXA SPACE</span>
-          <span className="text-gray-400 text-sm ml-3">Contract Signing</span>
+      <div className="bg-charcoal text-paper px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-baseline gap-3">
+          <span className="font-heading uppercase tracking-[0.28em] text-sm">Hexa&nbsp;Space</span>
+          <span className="font-heading uppercase tracking-nav text-[10px] text-paper/50">Contract Signing</span>
         </div>
-        <div className="text-sm text-gray-300">{contractNum}</div>
+        <div className="font-heading uppercase tracking-nav text-[11px] text-paper/70">{contractNum}</div>
       </div>
 
       {/* Tab bar */}
-      <div className="bg-white border-b border-gray-200 px-6 flex">
+      <div className="bg-paper border-b border-ink/10 px-6 flex">
         {[['contract', 'Review Contract'], ['sign', 'Sign']].map(([key, label]) => (
           <button
             key={key}
             onClick={() => setView(key)}
-            className={`px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              view === key ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'
+            className={`px-5 py-3 font-heading uppercase tracking-nav text-[11px] border-b-2 -mb-px transition-colors ${
+              view === key ? 'border-hexa-green text-ink' : 'border-transparent text-portal-muted hover:text-ink'
             }`}
           >
             {label}
@@ -186,16 +186,16 @@ export default function SignPage({ token }) {
         ))}
       </div>
 
-      {/* Contract view */}
+      {/* Contract view — legal document rendered as-is */}
       {view === 'contract' && (
         <div className="max-w-4xl mx-auto my-6 px-4">
-          <div className="bg-white shadow-sm rounded-md overflow-hidden">
+          <div className="bg-paper border border-ink/10 shadow-sm overflow-hidden">
             <ContractTemplate lease={lease} tenant={tenant} space={space} settings={settings} />
           </div>
           {attachedTemplates.map((tmpl) => (
-            <div key={tmpl.id} className="bg-white shadow-sm rounded-md overflow-hidden mt-4 px-12 py-10">
-              <h2 className="text-base font-bold uppercase tracking-widest text-gray-900 mb-3">{tmpl.name}</h2>
-              <hr className="border-gray-300 mb-6" />
+            <div key={tmpl.id} className="bg-paper border border-ink/10 shadow-sm overflow-hidden mt-4 px-12 py-10">
+              <h2 className="font-heading uppercase tracking-label text-[13px] text-ink mb-3">{tmpl.name}</h2>
+              <hr className="border-ink/15 mb-6" />
               <div
                 className="template-html-body"
                 style={{ lineHeight: 1.6 }}
@@ -204,12 +204,7 @@ export default function SignPage({ token }) {
             </div>
           ))}
           <div className="mt-6 flex justify-end">
-            <button
-              onClick={() => setView('sign')}
-              className="bg-black text-white px-6 py-2.5 rounded-md text-sm font-semibold hover:bg-gray-800"
-            >
-              Proceed to Sign →
-            </button>
+            <button onClick={() => setView('sign')} className="hx-btn">Proceed to sign →</button>
           </div>
         </div>
       )}
@@ -217,72 +212,46 @@ export default function SignPage({ token }) {
       {/* Sign view */}
       {view === 'sign' && (
         <div className="max-w-xl mx-auto my-8 px-4">
-          <div className="bg-white border border-gray-200 rounded-md p-8 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Sign as Licensee</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              By signing below you confirm you have read and agree to the terms of <strong>{contractNum}</strong>.
-            </p>
+          <div className="bg-paper border border-ink/10 p-8 shadow-sm">
+            <div className="hx-eyebrow text-hexa-green mb-2">Licence Agreement</div>
+            <h2 className="font-display font-extralight text-2xl text-ink mb-1">Sign as Licensee</h2>
+            <p className="hx-prose text-[14px] mb-6">By signing below you confirm you have read and agree to the terms of <strong>{contractNum}</strong>.</p>
 
             <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
-              <input
-                type="text"
-                value={signerName}
-                onChange={(e) => setSignerName(e.target.value)}
-                placeholder="Your full legal name"
-                className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-              />
+              <label className="hx-eyebrow block mb-1.5">Full name</label>
+              <input type="text" value={signerName} onChange={(e) => setSignerName(e.target.value)} placeholder="Your full legal name" className="hx-input" />
             </div>
-
             <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Title</label>
-              <input
-                type="text"
-                value={signerTitle}
-                onChange={(e) => setSignerTitle(e.target.value)}
-                placeholder="e.g. Director, CEO, Manager"
-                className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-              />
+              <label className="hx-eyebrow block mb-1.5">Title</label>
+              <input type="text" value={signerTitle} onChange={(e) => setSignerTitle(e.target.value)} placeholder="e.g. Director, Manager" className="hx-input" />
             </div>
-
             <div className="mb-5">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
-              <input
-                type="text"
-                value={signerDate}
-                onChange={(e) => setSignerDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-              />
+              <label className="hx-eyebrow block mb-1.5">Date</label>
+              <input type="text" value={signerDate} onChange={(e) => setSignerDate(e.target.value)} className="hx-input" />
             </div>
 
             <div className="mb-5">
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium text-gray-600">Signature</label>
-                <button onClick={() => sigRef.current?.clear()} className="text-xs text-gray-400 hover:text-gray-700 underline">Clear</button>
+                <label className="hx-eyebrow">Signature</label>
+                <button onClick={() => sigRef.current?.clear()} className="hx-prose text-[12px] underline">Clear</button>
               </div>
               <SignatureCanvas ref={sigRef} height={140} />
-              <p className="text-xs text-gray-400 mt-1">Draw your signature using mouse or finger</p>
+              <p className="hx-prose text-[12px] text-portal-muted mt-1">Draw your signature using mouse or finger</p>
             </div>
 
             <label className="flex items-start gap-3 mb-6 cursor-pointer">
-              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300" />
-              <span className="text-sm text-gray-600">
-                I have read and agree to the terms of this Licence Agreement and confirm that I am authorised to sign on behalf of the company.
-              </span>
+              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1 accent-[#7F8B2F]" />
+              <span className="hx-prose text-[14px]">I have read and agree to the terms of this Licence Agreement and confirm that I am authorised to sign on behalf of the company.</span>
             </label>
 
-            <div className="bg-gray-50 rounded-md p-4 text-xs text-gray-500 mb-6 space-y-1">
-              <div><span className="font-medium text-gray-700">Company:</span> {tenant?.businessName}</div>
-              <div><span className="font-medium text-gray-700">Contract:</span> {contractNum}</div>
-              <div><span className="font-medium text-gray-700">Date:</span> {format(new Date(), 'dd MMM yyyy')}</div>
+            <div className="bg-bone border border-ink/10 p-4 mb-6 space-y-1">
+              <div className="hx-prose text-[13px]"><span className="font-heading uppercase tracking-nav text-[10px] text-portal-muted">Company</span>&nbsp;&nbsp;{tenant?.businessName}</div>
+              <div className="hx-prose text-[13px]"><span className="font-heading uppercase tracking-nav text-[10px] text-portal-muted">Contract</span>&nbsp;&nbsp;{contractNum}</div>
+              <div className="hx-prose text-[13px]"><span className="font-heading uppercase tracking-nav text-[10px] text-portal-muted">Date</span>&nbsp;&nbsp;{format(new Date(), 'dd MMM yyyy')}</div>
             </div>
 
-            <button
-              onClick={handleSign}
-              disabled={submitting || !agreed}
-              className="w-full bg-black text-white py-3 rounded-md text-sm font-bold hover:bg-gray-800 disabled:opacity-40 transition-colors"
-            >
-              {submitting ? 'Submitting…' : 'Sign & Submit'}
+            <button onClick={handleSign} disabled={submitting || !agreed} className="hx-btn w-full disabled:opacity-40">
+              {submitting ? 'Submitting…' : 'Sign & submit'}
             </button>
           </div>
         </div>
@@ -293,13 +262,13 @@ export default function SignPage({ token }) {
 
 function StatusScreen({ icon, title, subtitle }) {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-bone flex items-center justify-center px-4 font-body">
       <div className="text-center max-w-sm w-full">
-        <div className="text-2xl font-black tracking-widest text-gray-900 mb-6">HEXA SPACE</div>
-        <div className="bg-white border border-gray-200 rounded-md p-8 shadow-sm">
+        <div className="font-heading uppercase text-2xl tracking-[0.22em] text-ink mb-6">Hexa&nbsp;Space</div>
+        <div className="bg-paper border border-ink/10 p-8 shadow-sm">
           {icon && <div className="text-4xl mb-4">{icon}</div>}
-          <h1 className="text-lg font-bold text-gray-900 mb-2">{title}</h1>
-          {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+          <h1 className="font-display font-extralight text-2xl text-ink mb-2">{title}</h1>
+          {subtitle && <p className="hx-prose text-[14px]">{subtitle}</p>}
         </div>
       </div>
     </div>
