@@ -1140,6 +1140,14 @@ export function useStore() {
     })
 
     leases.forEach((lease) => {
+      // The daily reconcile cron expires leases whose served-notice vacate date
+      // has passed, flagging them needsOffboard — run their full offboarding
+      // cascade here. The explicit flag keeps legacy (migrated) ended leases
+      // out of the cascade, whose parking side-effects they never expected.
+      if (lease.needsOffboard && !lease.offboardedAt) {
+        updateLease(lease.id, { needsOffboard: false })
+        setTimeout(() => offboardLeaseRef.current?.(lease.id), 0)
+      }
       const space = spaces.find((s) => s.id === lease.spaceId)
       const alreadyOccupied = space?.status === 'occupied'
       if (space) {

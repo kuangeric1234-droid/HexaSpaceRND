@@ -94,7 +94,7 @@ loop is done — say so and stop scheduling.
   $2,800 deposit as $2,800 total (no +GST). Acceptance: node/manual check of
   totals math in InvoiceDetail/calcInvoiceTotal for a vatEnabled:false invoice.
 
-- [ ] **5. Daily reconcile cron.**
+- [x] **5. Daily reconcile cron.** _Done: api/reconcile.js (daily 20:30 UTC ≈ 6:30am Melbourne) — commencement flips (reserved→occupied, never demotes, tenant-guarded), onboarding catch-up (welcome email from editable template + portal invite via shared api/_invite.js; Salto skipped; stamp-first so crashes can't double-send), vacate-date expiry (status expired + needsOffboard flag; store reconcile runs the cascade on next load — flag keeps legacy ended leases out), bond-refund 45-day SLA flag, single admin digest, ?dryRun=1 verified read-only against live data (200, no errors)._
   New `api/reconcile.js` + vercel.json cron (daily, e.g. "30 20 * * *" ≈ 6:30am
   Melbourne). Server-side, using the service key:
   (a) **Commencement flips:** for each active, gate-met lease (port
@@ -217,4 +217,5 @@ loop is done — say so and stop scheduling.
 - 2026-07-03 · Item 1 proposal-accept hardening · b00a3bf
 - 2026-07-03 · Item 2 shared billing engine · 6aec311 (commit also swept in a pre-existing uncommitted Stripe integration — see item 7 note)
 - 2026-07-03 · Item 3 safer invoice numbering · c2e8396
-- 2026-07-03 · Item 4 GST off deposits · (commit follows)
+- 2026-07-03 · Item 4 GST off deposits · b1026b6
+- 2026-07-03 · Item 5 daily reconcile cron · (commit follows)
