@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '../lib/supabase.js'
-import { sendEmail } from '../lib/sendEmail.js'
+import { sendEmail, brandShell, bKicker, bH1, bP, bSmall, bBtn, BRAND } from '../lib/sendEmail.js'
 import SignatureCanvas from './SignatureCanvas.jsx'
 import ContractTemplate from './ContractTemplate.jsx'
 
@@ -325,32 +325,24 @@ function StatusScreen({ icon, title, subtitle }) {
 
 function adminCountersignHtml({ tenant, settings, signerName, contractNum, now, portalUrl }) {
   const company = settings?.company?.name ?? 'Hexa Space'
+  const website = settings?.company?.website ?? 'hexaspace.com.au'
   const date = format(parseISO(now), 'dd MMM yyyy, h:mm a')
-  return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a1a;background:#f5f5f5;margin:0;padding:0">
-  <div style="max-width:560px;margin:32px auto;background:#fff;border:1px solid #e5e5e5;border-radius:6px;overflow:hidden">
-    <div style="background:#000;padding:20px 32px"><span style="color:#fff;font-size:18px;font-weight:bold;letter-spacing:2px">${company.toUpperCase()}</span></div>
-    <div style="padding:32px">
-      <h2 style="margin:0 0 12px;font-size:16px">Action required: Countersign contract 🖊</h2>
-      <p style="color:#555;font-size:14px;margin:0 0 20px"><strong>${tenant?.businessName ?? 'A tenant'}</strong> has signed <strong>${contractNum}</strong>. Please log in to the portal to review and countersign.</p>
-      <div style="background:#f9f9f9;border:1px solid #e5e5e5;border-radius:4px;padding:16px;font-size:13px;color:#555;margin-bottom:20px">
-        <div><strong>Signed by:</strong> ${signerName}</div>
-        <div><strong>Date:</strong> ${date}</div>
-        <div><strong>Contract:</strong> ${contractNum}</div>
-      </div>
-      <a href="${portalUrl}" style="background:#000;color:#fff;padding:12px 24px;border-radius:4px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block">Open Portal to Countersign →</a>
-    </div>
-  </div></body></html>`
+  const detail = (l, v) => `<div style="font-family:${BRAND.SANS};font-size:13px;color:#3a3a3a;line-height:1.7"><span style="color:${BRAND.MUTE}">${l}:</span> <strong style="color:${BRAND.INK}">${v}</strong></div>`
+  const panel = `<div style="background:${BRAND.GREIGE};border-radius:8px;padding:16px 18px;margin:0 0 20px">${detail('Signed by', signerName)}${detail('Date', date)}${detail('Contract', contractNum)}</div>`
+  const inner = bKicker('Action Required') +
+    bH1('Countersign contract 🖊') +
+    bP(`<strong style="color:${BRAND.INK}">${tenant?.businessName ?? 'A tenant'}</strong> has signed <strong style="color:${BRAND.INK}">${contractNum}</strong>. Please log in to the portal to review and countersign.`) +
+    panel +
+    bBtn('Open portal to countersign', portalUrl)
+  return brandShell(inner, { company, website })
 }
 
 function tenantConfirmHtml({ tenant, settings, signerName, contractNum, companyName }) {
-  return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a1a;background:#f5f5f5;margin:0;padding:0">
-  <div style="max-width:560px;margin:32px auto;background:#fff;border:1px solid #e5e5e5;border-radius:6px;overflow:hidden">
-    <div style="background:#000;padding:20px 32px"><span style="color:#fff;font-size:18px;font-weight:bold;letter-spacing:2px">${companyName.toUpperCase()}</span></div>
-    <div style="padding:32px">
-      <h2 style="margin:0 0 12px;font-size:16px">Signature received ✅</h2>
-      <p style="color:#555;font-size:14px;margin:0 0 16px">Hi ${tenant?.contactName ?? ''},</p>
-      <p style="color:#555;font-size:14px;margin:0 0 16px">Your signature for <strong>${contractNum}</strong> has been received. ${companyName} will countersign and send you a fully executed copy shortly.</p>
-      <p style="font-size:12px;color:#888;margin-top:24px">If you have any questions, please contact us directly.</p>
-    </div>
-  </div></body></html>`
+  const website = settings?.company?.website ?? 'hexaspace.com.au'
+  const inner = bKicker('Signature Received') +
+    bH1('Signature received ✅') +
+    bP(`Hi ${tenant?.contactName ?? 'there'},`) +
+    bP(`Your signature for <strong style="color:${BRAND.INK}">${contractNum}</strong> has been received. ${companyName} will countersign and send you a fully executed copy shortly.`) +
+    bSmall('If you have any questions, please contact us directly.')
+  return brandShell(inner, { company: companyName, website })
 }
