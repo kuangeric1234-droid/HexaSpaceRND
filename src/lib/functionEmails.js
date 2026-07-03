@@ -14,6 +14,14 @@ const OLIVE = '#7F8B2F', GREIGE = '#EFEDF2', INK = '#1a1a1a', MUTE = '#6b6b6b', 
 const SERIF = "'HexaBig', Georgia, 'Times New Roman', serif"
 const SANS = "'HexaGT', 'Helvetica Neue', Arial, sans-serif"
 const CAPS = "'HexaRework', 'Helvetica Neue', Arial, sans-serif"
+// Social channels footer row (inline — this module is deliberately import-free).
+const SOCIAL_ROW = `<div style="margin-top:12px">` +
+  `<a href="https://www.instagram.com/hexaspace.coworking" style="font-family:${CAPS};font-size:9px;letter-spacing:.2em;color:${MUTE};text-decoration:none;text-transform:uppercase">Instagram</a>` +
+  `<span style="color:${HAIR};font-size:9px">&nbsp;&nbsp;·&nbsp;&nbsp;</span>` +
+  `<a href="https://www.linkedin.com/company/hexa-space/" style="font-family:${CAPS};font-size:9px;letter-spacing:.2em;color:${MUTE};text-decoration:none;text-transform:uppercase">LinkedIn</a>` +
+  `<span style="color:${HAIR};font-size:9px">&nbsp;&nbsp;·&nbsp;&nbsp;</span>` +
+  `<a href="https://www.hexaspace.com.au/" style="font-family:${CAPS};font-size:9px;letter-spacing:.2em;color:${MUTE};text-decoration:none;text-transform:uppercase">Website</a>` +
+  `</div>`
 const FONTS = `
     @font-face{font-family:'HexaBig';src:url('https://admin.hexaspace.com.au/fonts/BigDailyShort-ExtraLight.otf') format('opentype');font-weight:400;font-display:swap}
     @font-face{font-family:'HexaGT';src:url('https://admin.hexaspace.com.au/fonts/GT-America-Standard-Thin.otf') format('opentype');font-weight:400;font-display:swap}
@@ -33,7 +41,8 @@ function frame(inner) {
     </div>
     <div style="text-align:center;padding:22px 8px 6px">
       <div style="font-family:${CAPS};font-size:10px;letter-spacing:.3em;color:${OLIVE};text-transform:uppercase">Function Space Hire</div>
-      <div style="font-family:${SANS};font-size:11px;color:#9a9aa0;margin-top:7px">Hexa Space · 402/830 Whitehorse Road, Box Hill VIC 3128 · {{website}}</div>
+      ${SOCIAL_ROW}
+      <div style="font-family:${SANS};font-size:11px;color:#9a9aa0;margin-top:10px">Hexa Space · 402/830 Whitehorse Road, Box Hill VIC 3128 · {{website}}</div>
     </div>
   </div>
 </body></html>`

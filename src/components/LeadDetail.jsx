@@ -4,7 +4,7 @@ import {
   X, Mail, StickyNote, Activity as ActivityIcon, User, Phone, Building2, Tag, DollarSign,
   UserPlus, CheckCircle2, Send, Loader2, ArrowRight, Sparkles, Trash2, FileText, FileDown,
 } from 'lucide-react'
-import { sendEmail, renderProposalTemplate, messageEmailHtml, brandShell } from '../lib/sendEmail.js'
+import { sendEmail, renderProposalTemplate, messageEmailHtml, brandShell, PORTAL_URL } from '../lib/sendEmail.js'
 import { buildProposalPdf, buildDeskBrochurePdf } from '../lib/proposalPdf.js'
 
 const TABS = [
@@ -16,6 +16,13 @@ const TABS = [
 ]
 
 function rel(iso) { try { return formatDistanceToNow(parseISO(iso), { addSuffix: true }) } catch { return '' } }
+
+// Clean base64 for email attachments — datauristring is universally supported by
+// jsPDF (image PDFs included); strip the "data:...;base64," prefix Resend rejects.
+function pdfToBase64(doc) {
+  const u = doc.output('datauristring')
+  return u && u.includes(',') ? u.slice(u.indexOf(',') + 1) : (u || '')
+}
 
 const MEMBERSHIP_TYPES = [
   { key: 'office', label: 'Private Office' },
@@ -158,13 +165,13 @@ export default function LeadDetail({ lead, store, onClose }) {
     try {
       const offer = mOffer()
       const token = (crypto?.randomUUID?.() || `${lead.id}-${Date.now()}`)
-      const acceptLink = `${window.location.origin}/proposal/${token}`
+      const acceptLink = `${PORTAL_URL}/proposal/${token}`
       const html = buildMembershipProposalHtml({ lead, settings, offer, coverMsg: proposalMsg.trim(), acceptLink, validityDays })
       const subject = `Your ${offer.typeLabel} proposal — ${settings?.company?.name || 'Hexa Space'}`
       let attachments
       if (isDeskType(propType)) {
         const doc = await buildDeskBrochurePdf(deskArgs(offer))
-        attachments = [{ filename: `${offer.typeLabel.replace(/\s+/g, '_')}_${(lead.businessName || lead.name || 'lead').replace(/\s+/g, '_')}.pdf`, content: doc.output('base64') }]
+        attachments = [{ filename: `${offer.typeLabel.replace(/\s+/g, '_')}_${(lead.businessName || lead.name || 'lead').replace(/\s+/g, '_')}.pdf`, content: pdfToBase64(doc) }]
       }
       await sendEmail({ to: lead.email, subject, html, settings, emailType: 'proposal', attachments })
       const quoted = pipelineStages.find((s) => /quote/i.test(s.name || '') || s.category === 'quoted')
@@ -206,9 +213,10 @@ export default function LeadDetail({ lead, store, onClose }) {
     setSendingProposal(true); setProposalResult('')
     try {
       const doc = await buildProposalPdf(proposalArgs(sel))
-      const pdfBase64 = doc.output('base64')
+      const pdfBase64 = pdfToBase64(doc)
+      if (!pdfBase64) { setProposalResult('Could not generate the PDF — try again.'); setSendingProposal(false); return }
       const token = (crypto?.randomUUID?.() || `${lead.id}-${Date.now()}`)
-      const acceptLink = `${window.location.origin}/proposal/${token}`
+      const acceptLink = `${PORTAL_URL}/proposal/${token}`
       const tpl = (templates ?? []).find((t) => t.category === 'email' && t.emailType === 'proposal' && t.content)
       const oOffer = computeMembershipOffer('office', sel.reduce((s, o) => s + o.price, 0), officeTerm, officeNewClient)
       const { subject: subj, html } = renderProposalTemplate({ template: tpl, lead, settings, acceptLink, offer: buildOfficeOfferHtml(oOffer) })

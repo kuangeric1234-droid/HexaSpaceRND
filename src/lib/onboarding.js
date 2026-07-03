@@ -173,6 +173,14 @@ const _OLIVE = '#7F8B2F', _GREIGE = '#EFEDF2', _INK = '#1a1a1a', _MUTE = '#6b6b6
 const _SERIF = "'HexaBig', Georgia, 'Times New Roman', serif"
 const _SANS = "'HexaGT', 'Helvetica Neue', Arial, sans-serif"
 const _CAPS = "'HexaRework', 'Helvetica Neue', Arial, sans-serif"
+// Social channels footer row (inline — this module is import-free).
+const _SOCIAL_ROW = `<div style="margin-top:12px">` +
+  `<a href="https://www.instagram.com/hexaspace.coworking" style="font-family:${_CAPS};font-size:9px;letter-spacing:.2em;color:${_MUTE};text-decoration:none;text-transform:uppercase">Instagram</a>` +
+  `<span style="color:${_HAIR};font-size:9px">&nbsp;&nbsp;·&nbsp;&nbsp;</span>` +
+  `<a href="https://www.linkedin.com/company/hexa-space/" style="font-family:${_CAPS};font-size:9px;letter-spacing:.2em;color:${_MUTE};text-decoration:none;text-transform:uppercase">LinkedIn</a>` +
+  `<span style="color:${_HAIR};font-size:9px">&nbsp;&nbsp;·&nbsp;&nbsp;</span>` +
+  `<a href="https://www.hexaspace.com.au/" style="font-family:${_CAPS};font-size:9px;letter-spacing:.2em;color:${_MUTE};text-decoration:none;text-transform:uppercase">Website</a>` +
+  `</div>`
 const _FONTS = `
     @font-face{font-family:'HexaBig';src:url('https://admin.hexaspace.com.au/fonts/BigDailyShort-ExtraLight.otf') format('opentype');font-weight:400;font-display:swap}
     @font-face{font-family:'HexaGT';src:url('https://admin.hexaspace.com.au/fonts/GT-America-Standard-Thin.otf') format('opentype');font-weight:400;font-display:swap}
@@ -191,7 +199,8 @@ function oShell(inner, { company = '{{company}}', website = '{{website}}' } = {}
     </div>
     <div style="text-align:center;padding:22px 8px 6px">
       <div style="font-family:${_CAPS};font-size:10px;letter-spacing:.3em;color:${_OLIVE};text-transform:uppercase">HEXA SPACE &nbsp;·&nbsp; 六合空间</div>
-      <div style="font-family:${_SANS};font-size:11px;color:#9a9aa0;margin-top:7px">${company} &middot; <a href="https://${website}" style="color:#9a9aa0;text-decoration:none">${website}</a></div>
+      ${_SOCIAL_ROW}
+      <div style="font-family:${_SANS};font-size:11px;color:#9a9aa0;margin-top:10px">${company} &middot; <a href="https://${website}" style="color:#9a9aa0;text-decoration:none">${website}</a></div>
     </div>
   </div>
 </body></html>`

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import SignatureCanvas from './SignatureCanvas.jsx'
 import { generateAgreementPdf } from '../lib/generateAgreementPdf.js'
+import { PORTAL_URL } from '../lib/sendEmail.js'
 
 // ── June 7 event constants ────────────────────────────────────────────────────
 const EVENT = {
@@ -1255,7 +1256,7 @@ export default function EventBookings() {
     try {
       const token = crypto.randomUUID()
       const now = new Date().toISOString()
-      const signingUrl = `${window.location.origin}/sign/event/${token}`
+      const signingUrl = `${PORTAL_URL}/sign/event/${token}`
       const emailLog = [...(booking.emailLog || []), { type: 'signing_sent', label: 'Agreement sent', sentAt: now }]
       const updated = { ...booking, status: 'sent', signingToken: token, sentAt: now, updatedAt: now, emailLog }
 
@@ -1279,7 +1280,7 @@ export default function EventBookings() {
 
   async function sendSigningReminder(booking) {
     const now = new Date().toISOString()
-    const signingUrl = `${window.location.origin}/sign/event/${booking.signingToken}`
+    const signingUrl = `${PORTAL_URL}/sign/event/${booking.signingToken}`
     const emailLog = [...(booking.emailLog || []), { type: 'signing_reminder', label: `Agreement reminder sent — ${format(parseISO(now), 'dd MMM yyyy, h:mm a')}`, sentAt: now }]
     const updated = { ...booking, updatedAt: now, emailLog }
     await supabase.from('event_bookings').upsert({ id: booking.id, data: updated, updated_at: now })
@@ -1294,7 +1295,7 @@ export default function EventBookings() {
 
   async function sendInsuranceReminder(booking) {
     const now = new Date().toISOString()
-    const signingUrl = booking.signingToken ? `${window.location.origin}/sign/event/${booking.signingToken}` : null
+    const signingUrl = booking.signingToken ? `${PORTAL_URL}/sign/event/${booking.signingToken}` : null
     const emailLog = [...(booking.emailLog || []), { type: 'insurance_reminder', label: `Insurance reminder sent — ${format(parseISO(now), 'dd MMM yyyy, h:mm a')}`, sentAt: now }]
     const updated = { ...booking, updatedAt: now, emailLog }
     await supabase.from('event_bookings').upsert({ id: booking.id, data: updated, updated_at: now })
@@ -1316,7 +1317,7 @@ export default function EventBookings() {
   }
 
   function copySigningLink(booking) {
-    navigator.clipboard.writeText(`${window.location.origin}/sign/event/${booking.signingToken}`)
+    navigator.clipboard.writeText(`${PORTAL_URL}/sign/event/${booking.signingToken}`)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

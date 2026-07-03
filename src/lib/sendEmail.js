@@ -83,6 +83,23 @@ const SANS = "'HexaGT', 'Helvetica Neue', Arial, sans-serif"
 const CAPS = "'HexaRework', 'Helvetica Neue', Arial, sans-serif"
 const OLIVE = '#7F8B2F', GREIGE = '#EFEDF2', INK = '#1a1a1a', MUTE = '#6b6b6b', HAIR = '#e3e1e6'
 
+// Public, client-facing portal (proposal acceptance, e-signature, event signing).
+// Distinct from the admin app (admin.hexaspace.com.au) the team logs into.
+export const PORTAL_URL = 'https://portal.hexaspace.com.au'
+
+// Hexa Space social channels — shown in every email footer.
+export const SOCIALS = {
+  instagram: 'https://www.instagram.com/hexaspace.coworking',
+  linkedin: 'https://www.linkedin.com/company/hexa-space/',
+  website: 'https://www.hexaspace.com.au/',
+}
+// Shared branded footer social row (used by brandShell + self-contained modules).
+export function socialFooterRow({ olive = OLIVE, caps = CAPS, hair = HAIR, mute = MUTE } = {}) {
+  const link = (href, label) => `<a href="${href}" style="font-family:${caps};font-size:9px;letter-spacing:.2em;color:${mute};text-decoration:none;text-transform:uppercase">${label}</a>`
+  const dot = `<span style="color:${hair};font-size:9px">&nbsp;&nbsp;·&nbsp;&nbsp;</span>`
+  return `<div style="margin-top:12px">${link(SOCIALS.instagram, 'Instagram')}${dot}${link(SOCIALS.linkedin, 'LinkedIn')}${dot}${link(SOCIALS.website, 'Website')}</div>`
+}
+
 // Full branded HTML wrapper. `company`/`website` default to {{placeholders}} so
 // editable templates keep working; pass real values from the *EmailHtml builders.
 export function brandShell(inner, { company = '{{company}}', website = '{{website}}' } = {}) {
@@ -103,7 +120,8 @@ ${inner}
     </div>
     <div style="text-align:center;padding:22px 8px 6px">
       <div style="font-family:${CAPS};font-size:10px;letter-spacing:.3em;color:${OLIVE};text-transform:uppercase">HEXA SPACE &nbsp;·&nbsp; 六合空间</div>
-      <div style="font-family:${SANS};font-size:11px;color:#9a9aa0;margin-top:7px">${company} &middot; <a href="https://${website}" style="color:#9a9aa0;text-decoration:none">${website}</a></div>
+      ${socialFooterRow()}
+      <div style="font-family:${SANS};font-size:11px;color:#9a9aa0;margin-top:10px">${company} &middot; <a href="https://${website}" style="color:#9a9aa0;text-decoration:none">${website}</a></div>
     </div>
   </div>
 </body>
@@ -187,7 +205,7 @@ export function eSignEmailHtml({ lease, tenant, settings }) {
   const contracts = settings?.contracts ?? {}
   const name = company.name || 'Hexa Space'
   const signerName = contracts.eSignName || name
-  const memberLink = lease.eSignMemberLink ?? `https://esign.hexaspace.com.au/member/${lease.id}`
+  const memberLink = lease.eSignMemberLink ?? `${PORTAL_URL}/sign/${lease.id}`
   const contractNum = lease.contractNumber ?? lease.id
 
   const website = company.website || 'hexaspace.com.au'

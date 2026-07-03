@@ -9,13 +9,14 @@
 // completed → refunded.
 import { supabase } from './supabase.js'
 import { ADDONS, computeQuote, bufferedWindow, balanceDueDate } from './functionBooking.js'
+import { PORTAL_URL } from './sendEmail.js'
 
 const today = () => new Date().toISOString().split('T')[0]
 const nowIso = () => new Date().toISOString()
 const randToken = () => Array.from({ length: 20 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('')
 
 export function portalBaseUrl(settings) {
-  return settings?.portalUrl || `${window.location.origin}/portal`
+  return settings?.portalUrl || PORTAL_URL
 }
 
 export async function persistFn(record) {

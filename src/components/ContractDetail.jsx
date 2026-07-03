@@ -4,7 +4,7 @@ import { format, parseISO, differenceInDays } from 'date-fns'
 import { ArrowLeft, MoreHorizontal, Pencil, Trash2, FileDown, ChevronDown, LayoutGrid, FileText, CheckCircle2 } from 'lucide-react'
 import ContractTemplate from './ContractTemplate.jsx'
 import SignatureCanvas from './SignatureCanvas.jsx'
-import { sendEmail, eSignEmailHtml, renderEsignTemplate, renderSignedTemplate } from '../lib/sendEmail.js'
+import { sendEmail, eSignEmailHtml, renderEsignTemplate, renderSignedTemplate, PORTAL_URL } from '../lib/sendEmail.js'
 import { supabase } from '../lib/supabase.js'
 import { jsPDF } from 'jspdf'
 import DocumentsPanel from './DocumentsPanel.jsx'
@@ -69,8 +69,8 @@ export default function ContractDetail({
   const isSigned = lease.signatureStatus === 'manually_signed' || lease.signatureStatus === 'e_signed'
   const isOutForSign = lease.signatureStatus === 'out_for_signature'
 
-  const eSignAdminLink = lease.eSignAdminLink ?? `https://esign.hexaspace.com.au/admin/${lease.id}`
-  const eSignMemberLink = lease.eSignMemberLink ?? `https://esign.hexaspace.com.au/member/${lease.id}`
+  const eSignAdminLink = lease.eSignAdminLink ?? `${window.location.origin}/sign/${lease.id}?admin=1`
+  const eSignMemberLink = lease.eSignMemberLink ?? `${PORTAL_URL}/sign/${lease.id}`
 
   function copyLink(link, label) {
     navigator.clipboard?.writeText(link).catch(() => {})
@@ -83,9 +83,8 @@ export default function ContractDetail({
 
     // Generate unique signing token
     const token = crypto.randomUUID()
-    const baseUrl = window.location.origin
-    const memberLink = `${baseUrl}/sign/${token}`
-    const adminLink = `${baseUrl}/sign/${token}?admin=1`
+    const memberLink = `${PORTAL_URL}/sign/${token}`          // client-facing signing page
+    const adminLink = `${window.location.origin}/sign/${token}?admin=1` // internal admin view
 
     // Save token to Supabase esign_requests table
     await supabase.from('esign_requests').insert({
@@ -511,7 +510,8 @@ export default function ContractDetail({
   async function emailSignedCopy(sigData) {
     const doc = await buildContractPDF(sigData)
     const slug = (tenant?.businessName ?? 'contract').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')
-    const pdfBase64 = doc.output('base64')
+    const dataUri = doc.output('datauristring')
+    const pdfBase64 = dataUri.includes(',') ? dataUri.slice(dataUri.indexOf(',') + 1) : dataUri
     const companyName = settings?.company?.name ?? 'Hexa Space'
     const signedDate = format(new Date(), 'dd MMM yyyy')
     const signedTpl = (templates ?? []).find((t) => t.category === 'email' && t.emailType === 'signedContract' && t.content)
