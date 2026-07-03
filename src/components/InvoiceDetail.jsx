@@ -332,6 +332,28 @@ export default function InvoiceDetail({
   const isOverdueNow = !['paid', 'voided'].includes(invoice.status)
     && invoice.dueDate && parseISO(invoice.dueDate) < new Date()
 
+  // Charge the tenant's saved card (off-session, authorised by the agreement's
+  // payment authority) for the amount still owing.
+  const [charging, setCharging] = useState(false)
+  async function handleChargeCard() {
+    if (!window.confirm(`Charge $${totals.amountDue.toLocaleString('en-AU', { minimumFractionDigits: 2 })} to ${tenant?.businessName ?? 'the tenant'}'s saved ${(tenant?.cardBrand || 'card').toUpperCase()} •••• ${tenant?.cardLast4 ?? ''}?`)) return
+    setCharging(true)
+    try {
+      const r = await fetch('/api/stripe/charge', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId: invoice.id }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(d.error ?? 'Charge failed')
+      onUpdate(invoice.id, { status: 'paid', payments: d.invoice.payments })
+      alert(`Charged $${Number(d.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })} — invoice paid.`)
+    } catch (e) {
+      alert(`Card charge failed: ${e.message}`)
+    } finally {
+      setCharging(false)
+    }
+  }
+
   function handleAddLateFee() {
     if (!window.confirm(`Add a $${lateFeeAmount} late payment fee to ${invoice.number}?`)) return
     onUpdate(invoice.id, {
@@ -560,6 +582,15 @@ export default function InvoiceDetail({
                     <span>Amount Due:</span>
                     <span>${totals.amountDue.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
                   </div>
+                  {!['paid', 'voided'].includes(invoice.status) && totals.amountDue > 0 && tenant?.stripePaymentMethodId && (
+                    <button
+                      onClick={handleChargeCard}
+                      disabled={charging}
+                      className="mt-3 w-full text-xs bg-primary text-primary-foreground rounded px-3 py-1.5 font-semibold hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {charging ? 'Charging…' : `Charge saved card (${(tenant.cardBrand || 'card').toUpperCase()} •••• ${tenant.cardLast4})`}
+                    </button>
+                  )}
                   {isOverdueNow && !hasLateFee && (
                     <button
                       onClick={handleAddLateFee}

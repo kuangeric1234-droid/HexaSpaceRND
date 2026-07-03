@@ -66,3 +66,30 @@ One-time setup:
 3. Settings → Integrations → Stripe → toggle "Enable online payments"
    (persisted as settings.stripe.paymentsEnabled; /api/stripe/status shows
    which env keys the deployment can see).
+
+## Card on file (VO / desk memberships)
+Virtual Office, Flexible Desk and Dedicated Desk agreements require a verified
+payment card, captured via Stripe Checkout (setup mode, $0, 3D-Secure) right
+after the client signs on the /sign/<token> page. The webhook writes
+stripeCustomerId / stripePaymentMethodId / brand / last4 / expiry onto the
+tenant; the member portal (Billing → Payment) shows the card with a Replace
+flow; the contract (template + PDF) carries a PAYMENT AUTHORITY section
+authorising off-session charges for overdue amounts.
+
+Collection:
+- Admin: Invoice detail → "Charge saved card" (any unpaid invoice, any tenant
+  with a card).
+- Automatic: Settings → Stripe → "Auto-charge overdue invoices" — the daily
+  overdue cron charges saved cards for overdue invoices (one attempt per
+  invoice per day, receipt email on success, reminder email on failure;
+  failures recorded as lastChargeAttempt/lastChargeError on the invoice).
+
+Suggested clause for the editable Terms & Conditions template (Templates →
+T&C), alongside clause 7 (Fees, Payment and Invoicing):
+  "Direct debit of stored card: For Virtual Office, Flexible Desk and
+  Dedicated Desk memberships, the Member must register a valid payment card
+  (verified and stored by Stripe) at signing and keep one registered for the
+  duration of the membership. Hexa Space may charge this card any amount
+  that remains unpaid after its invoice due date. A receipt is issued for
+  every charge. Card numbers are held by Stripe; Hexa Space does not store
+  full card details."

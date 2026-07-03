@@ -161,26 +161,60 @@ function InvoicesTab({ invoices, company }) {
 }
 
 function PaymentTab({ company }) {
-  const [adding, setAdding] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [cardSaved] = useState(() => new URLSearchParams(window.location.search).get('card') === 'saved')
+  const hasCard = !!company.stripePaymentMethodId
+
+  async function startCardSetup() {
+    setBusy(true)
+    try {
+      const r = await fetch('/api/stripe/setup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId: company.id, returnTo: '/billing' }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(d.error ?? 'Could not start card setup.')
+      window.location.href = d.url
+    } catch (e) {
+      alert(e.message)
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="space-y-8 max-w-2xl">
       <div>
-        <Eyebrow className="mb-4">Saved cards</Eyebrow>
+        <Eyebrow className="mb-4">Saved card</Eyebrow>
+        {cardSaved && !hasCard && (
+          <div className="mb-4 border border-hexa-green/40 bg-hexa-green/10 rounded px-4 py-3">
+            <p className="hx-prose text-[13px] text-ink">✓ Card verified — it will appear here within a few minutes.</p>
+          </div>
+        )}
         <Card className="p-8 text-center">
           <CreditCard size={22} className="mx-auto text-portal-muted" />
-          <p className="hx-prose mt-3">No payment method saved.</p>
-          {adding ? (
-            <div className="mt-6 text-left space-y-4 max-w-sm mx-auto">
-              <div><label className="hx-eyebrow block mb-1.5">Card number</label><input className="hx-input" placeholder="1234 5678 9012 3456" /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="hx-eyebrow block mb-1.5">Expiry</label><input className="hx-input" placeholder="MM / YY" /></div>
-                <div><label className="hx-eyebrow block mb-1.5">CVC</label><input className="hx-input" placeholder="123" /></div>
-              </div>
-              <p className="hx-prose text-[12px]">Secure card payments are being set up. For now, our team will reach out to confirm your card on file.</p>
-              <a href="mailto:info@hexaspace.com.au?subject=Add%20card%20on%20file" className="hx-btn w-full">Request card setup</a>
-            </div>
+          {hasCard ? (
+            <>
+              <p className="font-heading uppercase tracking-nav text-[13px] text-ink mt-4">
+                {(company.cardBrand || 'Card').toUpperCase()} •••• {company.cardLast4}
+              </p>
+              {company.cardExpMonth && (
+                <p className="hx-prose text-[12px] text-portal-muted mt-1">Expires {String(company.cardExpMonth).padStart(2, '0')}/{company.cardExpYear}</p>
+              )}
+              <p className="hx-prose text-[12px] text-portal-muted mt-3">
+                Held securely by Stripe and charged only for amounts owing under your agreement, per your signed payment authority.
+              </p>
+              <button onClick={startCardSetup} disabled={busy} className="hx-btn mt-6 inline-flex disabled:opacity-50">
+                {busy ? 'Opening…' : 'Replace card'}
+              </button>
+            </>
           ) : (
-            <button onClick={() => setAdding(true)} className="hx-btn mt-6 inline-flex"><Plus size={13} /> Add payment method</button>
+            <>
+              <p className="hx-prose mt-3">No payment method saved.</p>
+              <p className="hx-prose text-[12px] text-portal-muted mt-2">Your card is verified and stored by Stripe — we never see the number.</p>
+              <button onClick={startCardSetup} disabled={busy} className="hx-btn mt-6 inline-flex disabled:opacity-50">
+                <Plus size={13} /> {busy ? 'Opening…' : 'Add payment method'}
+              </button>
+            </>
           )}
         </Card>
       </div>

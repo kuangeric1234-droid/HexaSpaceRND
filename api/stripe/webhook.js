@@ -51,6 +51,36 @@ export default async function handler(req, res) {
   try {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object
+
+      // Card-setup sessions (mode=setup): save the verified card onto the
+      // tenant so overdue invoices can be charged off-session, and the portal
+      // can show the card on file.
+      if (session.mode === 'setup' && session.metadata?.tenantId) {
+        const supabase = createClient(SUPABASE_URL, serviceKey, { auth: { persistSession: false } })
+        const { stripeFetch } = await import('../_stripe.js')
+        const si = await stripeFetch(`/setup_intents/${session.setup_intent}`)
+        const pmId = si.json?.payment_method
+        if (pmId) {
+          const pm = await stripeFetch(`/payment_methods/${pmId}`)
+          const card = pm.json?.card ?? {}
+          const { data: tRow } = await supabase.from('tenants').select('data').eq('id', session.metadata.tenantId).single()
+          if (tRow?.data) {
+            const tenant = {
+              ...tRow.data,
+              stripeCustomerId: session.customer ?? tRow.data.stripeCustomerId,
+              stripePaymentMethodId: pmId,
+              cardBrand: card.brand ?? '',
+              cardLast4: card.last4 ?? '',
+              cardExpMonth: card.exp_month ?? null,
+              cardExpYear: card.exp_year ?? null,
+              cardVerifiedAt: new Date().toISOString(),
+            }
+            await supabase.from('tenants').upsert({ id: tenant.id, data: tenant, updated_at: new Date().toISOString() })
+          }
+        }
+        return res.status(200).json({ received: true })
+      }
+
       const invoiceId = session.metadata?.invoiceId
       if (invoiceId && session.payment_status === 'paid') {
         const supabase = createClient(SUPABASE_URL, serviceKey, { auth: { persistSession: false } })

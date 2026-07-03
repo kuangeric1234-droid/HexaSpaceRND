@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { sendResendEmail } from './_email.js'
 import { brandFrame, bKicker, bH1, bP, bSmall, bTable } from './_brand.js'
 import { selectAllRows } from './_db.js'
+import { stripeConfigured, chargeInvoiceOffSession } from './_stripe.js'
 
 const SUPABASE_URL = process.env.SUPABASE_URL
 
@@ -47,12 +48,54 @@ export default async function handler(req, res) {
     }
 
     // 3. Find all overdue invoices (including freshly marked ones)
-    const allOverdue = invoices
+    let allOverdue = invoices
       .map((inv) => nowOverdue.find((o) => o.id === inv.id) ? { ...inv, status: 'overdue' } : inv)
       .filter((inv) => inv.status === 'overdue' && inv.dueDate)
 
+    // 3b. Card-on-file collection: when enabled in Settings → Stripe, overdue
+    // invoices for tenants with a verified saved card are charged directly
+    // (authorised by the payment authority in their signed agreement). Charged
+    // invoices drop out of the reminder list; the tenant gets a receipt email.
+    const charged = [], chargeFailed = []
+    if (settings?.stripe?.autoChargeOverdue === true && stripeConfigured()) {
+      for (const inv of [...allOverdue]) {
+        const tenant = tenants.find((t) => t.id === inv.tenantId)
+        if (!tenant?.stripePaymentMethodId) continue
+        // One attempt per day per invoice; skip if today's attempt already failed.
+        if (inv.lastChargeAttempt === todayStr) continue
+        const result = await chargeInvoiceOffSession(supabase, inv, tenant)
+        if (result.ok) {
+          charged.push({ inv: result.invoice, tenant, amount: result.amount })
+          allOverdue = allOverdue.filter((i) => i.id !== inv.id)
+        } else {
+          chargeFailed.push({ number: inv.number, tenant: tenant.businessName, error: result.error })
+          await supabase.from('invoices').update({
+            data: { ...inv, lastChargeAttempt: todayStr, lastChargeError: result.error },
+          }).eq('id', inv.id)
+        }
+      }
+      // Receipt email per charged tenant.
+      if (resendKey) {
+        for (const c of charged) {
+          if (!c.tenant.email) continue
+          const inner =
+            bKicker('Payment Receipt') +
+            bH1(`$${c.amount.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`) +
+            bP(`Hi ${c.tenant.contactName ?? c.tenant.businessName},`) +
+            bP(`As authorised in your membership agreement, we've charged your saved ${(c.tenant.cardBrand || 'card').toUpperCase()} •••• ${c.tenant.cardLast4} for overdue invoice <strong>${c.inv.number}</strong>. No further action is needed.`) +
+            bSmall(`This is an automated receipt from ${fromName}. Questions? Just reply to this email.`)
+          await sendResendEmail({
+            from: `${fromName} <${fromEmail}>`,
+            to: c.tenant.email,
+            subject: `Payment receipt — ${c.inv.number} (${fromName})`,
+            html: brandFrame(inner, { footerLabel: 'Accounts' }),
+          }).catch(() => {})
+        }
+      }
+    }
+
     if (!resendKey || allOverdue.length === 0) {
-      return res.status(200).json({ marked: nowOverdue.length, reminded: 0 })
+      return res.status(200).json({ marked: nowOverdue.length, reminded: 0, charged: charged.length, chargeFailed })
     }
 
     // 4. Send reminder emails (one per tenant, listing all overdue invoices)
@@ -95,7 +138,7 @@ export default async function handler(req, res) {
       reminded++
     }
 
-    return res.status(200).json({ marked: nowOverdue.length, reminded })
+    return res.status(200).json({ marked: nowOverdue.length, reminded, charged: charged.length, chargeFailed })
   } catch (err) {
     console.error('Overdue reminders error:', err)
     return res.status(500).json({ error: err.message })

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase.js'
 import { sendEmail, brandShell, bKicker, bH1, bP, bSmall, bBtn, BRAND } from '../lib/sendEmail.js'
 import SignatureCanvas from './SignatureCanvas.jsx'
 import ContractTemplate from './ContractTemplate.jsx'
+import { requiresCardOnFile } from '../lib/onboarding.js'
 
 export default function SignPage({ token }) {
   const [state, setState] = useState('loading') // loading|ready|tenant_signed|fully_signed|invalid|error
@@ -22,6 +23,26 @@ export default function SignPage({ token }) {
   const [docPages, setDocPages] = useState([]) // sequential read-through pages (T&Cs, House Rules)
   const [reached, setReached] = useState(0)     // highest step index unlocked via Next
   const sigRef = useRef(null)
+  // Card-on-file step (VO/desk memberships): ?card=saved is the Stripe setup
+  // return; the webhook writes the card to the tenant in the background.
+  const [cardSaved] = useState(() => new URLSearchParams(window.location.search).get('card') === 'saved')
+  const [cardBusy, setCardBusy] = useState(false)
+
+  async function startCardSetup() {
+    setCardBusy(true)
+    try {
+      const r = await fetch('/api/stripe/setup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId: lease?.tenantId, returnTo: window.location.pathname }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(d.error ?? 'Could not start card setup.')
+      window.location.href = d.url
+    } catch (e) {
+      alert(e.message)
+      setCardBusy(false)
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -33,7 +54,19 @@ export default function SignPage({ token }) {
 
         setRequest(req)
         if (req.status === 'fully_signed') { setState('fully_signed'); return }
-        if (req.status === 'tenant_signed') { setState('tenant_signed'); return }
+        if (req.status === 'tenant_signed') {
+          // Still load the lease + tenant: the post-sign card-on-file step
+          // needs them (e.g. the client signed, then came back to the link).
+          const { data: lRows } = await supabase.from('leases').select('data').eq('id', req.lease_id)
+          const l = lRows?.[0]?.data
+          if (l) {
+            setLease(l)
+            const { data: tRows } = await supabase.from('tenants').select('data').eq('id', l.tenantId)
+            setTenant(tRows?.[0]?.data ?? null)
+          }
+          setState('tenant_signed')
+          return
+        }
 
         const [{ data: leaseRows }, { data: settRows }] = await Promise.all([
           supabase.from('leases').select('data').eq('id', req.lease_id),
@@ -157,13 +190,30 @@ export default function SignPage({ token }) {
     <StatusScreen icon="⚠️" title="Something went wrong" subtitle="Please try again or contact Hexa Space." />
   )
 
-  if (state === 'tenant_signed') return (
-    <StatusScreen
-      icon="✅"
-      title="Signature received"
-      subtitle={`Thank you${request?.licensee_signer_name ? `, ${request.licensee_signer_name}` : ''}. Your signature has been received. Hexa Space will countersign and send you a copy shortly.`}
-    />
-  )
+  if (state === 'tenant_signed') {
+    // VO/desk memberships must save a verified payment card as part of the
+    // contract journey (per the agreement's payment authority). The card is
+    // stored by Stripe; we never see the number.
+    const needsCard = lease && requiresCardOnFile(lease) && !tenant?.stripePaymentMethodId && !cardSaved
+    if (needsCard) return (
+      <StatusScreen
+        icon="💳"
+        title="One last step — verify your payment card"
+        subtitle={`Thank you${request?.licensee_signer_name ? `, ${request.licensee_signer_name}` : ''} — your signature has been received. Your membership requires a payment card on file: it's stored securely by Stripe, shown in your member portal, and only charged for amounts owing under your agreement (e.g. overdue invoices), as authorised in the document you just signed.`}
+      >
+        <button onClick={startCardSetup} disabled={cardBusy} className="hx-btn mt-6 disabled:opacity-50">
+          {cardBusy ? 'Opening secure card page…' : 'Verify card with Stripe →'}
+        </button>
+      </StatusScreen>
+    )
+    return (
+      <StatusScreen
+        icon="✅"
+        title={cardSaved ? 'Card verified & signature received' : 'Signature received'}
+        subtitle={`Thank you${request?.licensee_signer_name ? `, ${request.licensee_signer_name}` : ''}. ${cardSaved ? 'Your payment card is safely on file with Stripe. ' : ''}Your signature has been received. Hexa Space will countersign and send you a copy shortly.`}
+      />
+    )
+  }
 
   if (state === 'fully_signed') return (
     <StatusScreen
@@ -312,7 +362,7 @@ export default function SignPage({ token }) {
   )
 }
 
-function StatusScreen({ icon, title, subtitle }) {
+function StatusScreen({ icon, title, subtitle, children }) {
   return (
     <div className="min-h-screen bg-bone flex items-center justify-center px-4 font-body">
       <div className="text-center max-w-sm w-full">
@@ -321,6 +371,7 @@ function StatusScreen({ icon, title, subtitle }) {
           {icon && <div className="text-4xl mb-4">{icon}</div>}
           <h1 className="font-display font-extralight text-2xl text-ink mb-2">{title}</h1>
           {subtitle && <p className="hx-prose text-[14px]">{subtitle}</p>}
+          {children}
         </div>
       </div>
     </div>

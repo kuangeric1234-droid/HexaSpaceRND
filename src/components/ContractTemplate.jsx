@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns'
 import { buildPaymentSchedule, scheduleAmount } from '../lib/paymentSchedule.js'
+import { requiresCardOnFile } from '../lib/onboarding.js'
 
 const DEFAULT_BUSINESS = {
   name: 'Hexa Space Pty Ltd',
@@ -220,6 +221,23 @@ export default function ContractTemplate({ lease, tenant, space, settings }) {
             </p>
           )}
         </>
+      )}
+
+      {/* ── Payment authority (card-on-file memberships) ── */}
+      {requiresCardOnFile(lease) && (
+        <div className="mb-8">
+          <h2 className="font-bold uppercase text-gray-900 mb-3 tracking-wide">PAYMENT AUTHORITY</h2>
+          <p className="text-xs text-gray-700 leading-relaxed">
+            As a condition of this membership, the Member will register a valid payment card, verified and
+            securely stored by Stripe, at the time of signing this Agreement, and will keep a valid card
+            registered for the duration of the membership. The Member authorises Hexa Space to charge this
+            card for any amount that remains unpaid after its invoice due date, including membership fees
+            and other amounts payable under this Agreement. Hexa Space will issue each invoice in the normal
+            course before any charge is made, and a receipt is provided for every charge. Card numbers are
+            held by Stripe — Hexa Space does not store or have access to full card details. The Member may
+            update the registered card at any time via the member portal.
+          </p>
+        </div>
       )}
 
       {/* ── Signature blocks ── */}

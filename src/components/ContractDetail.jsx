@@ -11,6 +11,7 @@ import DocumentsPanel from './DocumentsPanel.jsx'
 import { logAudit } from '../lib/audit.js'
 import { buildPaymentSchedule, scheduleAmount } from '../lib/paymentSchedule.js'
 import { sendLeaseForSigning } from '../lib/esign.js'
+import { requiresCardOnFile } from '../lib/onboarding.js'
 
 const SIG_STATUS = {
   manually_signed: { label: 'Manually Signed', cls: 'bg-green-500 text-white' },
@@ -389,6 +390,21 @@ export default function ContractDetail({
         y += 4
       }
 
+      // ── Payment authority (card-on-file memberships) ───────────
+      if (requiresCardOnFile(lease)) {
+        checkPage(36)
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(80)
+        doc.text('PAYMENT AUTHORITY', ml, y); doc.setTextColor(0)
+        doc.setDrawColor(180); doc.setLineWidth(0.3); doc.line(ml, y + 2, mr, y + 2)
+        y += 7
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(50, 50, 50)
+        const authorityText = 'As a condition of this membership, the Member will register a valid payment card, verified and securely stored by Stripe, at the time of signing this Agreement, and will keep a valid card registered for the duration of the membership. The Member authorises Hexa Space to charge this card for any amount that remains unpaid after its invoice due date, including membership fees and other amounts payable under this Agreement. Hexa Space will issue each invoice in the normal course before any charge is made, and a receipt is provided for every charge. Card numbers are held by Stripe — Hexa Space does not store or have access to full card details. The Member may update the registered card at any time via the member portal.'
+        const authorityLines = doc.splitTextToSize(authorityText, mr - ml)
+        doc.text(authorityLines, ml, y)
+        y += authorityLines.length * 3.6 + 8
+        doc.setTextColor(0)
+      }
+
       // ── Signature blocks ──────────────────────────────────────
       checkPage(65)
       doc.setFillColor(0); doc.rect(ml, y, mr - ml, 0.5, 'F')
@@ -749,6 +765,13 @@ export default function ContractDetail({
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1">
                 <span>✍</span> Signature Status
               </p>
+              {requiresCardOnFile(lease) && (
+                <p className={`mb-2 text-xs ${tenant?.stripePaymentMethodId ? 'text-green-700' : 'text-amber-600'}`}>
+                  {tenant?.stripePaymentMethodId
+                    ? `💳 Card on file — ${(tenant.cardBrand || 'card').toUpperCase()} •••• ${tenant.cardLast4}`
+                    : '💳 No card on file yet — required for this membership (captured right after the client signs).'}
+                </p>
+              )}
               {sigMeta ? (
                 <>
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded ${sigMeta.cls}`}>

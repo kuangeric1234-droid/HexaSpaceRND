@@ -104,6 +104,15 @@ export function exitVirtualOfficeTerm(officeEndDate, todayISO) {
   return { startDate: fmt(start), endDate: fmt(end) }
 }
 
+// Memberships that must keep a verified card on file (captured via Stripe
+// during signing): Virtual Office, Flexible Desk and Dedicated Desk — they
+// bill monthly with no office bond behind them, so overdue amounts are
+// recovered by charging the stored card per the agreement's payment authority.
+export function requiresCardOnFile(lease) {
+  const label = `${lease?.membershipType ?? ''} ${lease?.documentType ?? ''}`
+  return /virtual|desk/i.test(label)
+}
+
 // Does clause 13(b) apply to this contract? Private Office agreements only —
 // never virtual/desk/parking memberships, and never when explicitly opted out.
 export function exitVirtualOfficeApplies(lease) {

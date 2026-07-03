@@ -1182,6 +1182,7 @@ function XeroSection({ settings, updateSettings }) {
 function StripeSection({ settings, updateSettings }) {
   const [st, setSt] = useState(null)
   const [enabled, setEnabled] = useState(settings.stripe?.paymentsEnabled === true)
+  const [autoCharge, setAutoCharge] = useState(settings.stripe?.autoChargeOverdue === true)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -1189,7 +1190,7 @@ function StripeSection({ settings, updateSettings }) {
   }, [])
 
   function save() {
-    updateSettings({ stripe: { ...(settings.stripe ?? {}), paymentsEnabled: enabled } })
+    updateSettings({ stripe: { ...(settings.stripe ?? {}), paymentsEnabled: enabled, autoChargeOverdue: autoCharge } })
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
@@ -1225,6 +1226,14 @@ function StripeSection({ settings, updateSettings }) {
       >
         <div className="flex justify-end">
           <Toggle checked={enabled} onChange={setEnabled} />
+        </div>
+      </FormRow>
+      <FormRow
+        label="Auto-charge overdue invoices to card on file"
+        description="The daily overdue run charges a tenant's verified saved card for overdue invoices (as authorised by the payment authority in their signed agreement) and emails them a receipt. Cards are captured during signing for Virtual Office and desk memberships. One attempt per invoice per day; failures fall back to the reminder email."
+      >
+        <div className="flex justify-end">
+          <Toggle checked={autoCharge} onChange={setAutoCharge} />
         </div>
       </FormRow>
       {!ready && st !== null && (
