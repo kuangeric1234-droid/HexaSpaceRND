@@ -130,7 +130,16 @@ loop is done — say so and stop scheduling.
   "refund overdue" chip in the pending list. Acceptance: build + visual trace.
 
 - [ ] **7. Stripe payments in the member portal.**
-  Keys exist in env. Build:
+  NOTE (2026-07-03): a substantially complete implementation already exists in
+  the tree (committed in 6aec311): api/stripe/checkout.js (settings-gated,
+  inc-GST totals), api/stripe/webhook.js (signature-verified, idempotent),
+  api/stripe/status.js, and a Pay-now flow in src/portal/PortalBilling.jsx.
+  This item is now: REVIEW those files against the spec below, fix anything
+  missing (STRIPE_WEBHOOK_SECRET in .env.example, webhook URL setup notes in
+  docs/build-notes.md, a Settings → Integrations toggle for
+  settings.stripe.paymentsEnabled if none exists, success/cancel redirect
+  handling in the portal), and test the signature helper. Do not rebuild.
+  Original spec:
   (a) `api/stripe/create-checkout-session.js` — POST {invoiceId}; loads the
   invoice + tenant, creates a Stripe Checkout Session (AUD, invoice total incl.
   GST where vatEnabled, `metadata: { invoiceId }`, success/cancel URLs back to
@@ -206,4 +215,4 @@ loop is done — say so and stop scheduling.
 
 (append one line per completed item: date, item, commit hash)
 - 2026-07-03 · Item 1 proposal-accept hardening · b00a3bf
-- 2026-07-03 · Item 2 shared billing engine · (commit follows)
+- 2026-07-03 · Item 2 shared billing engine · 6aec311 (commit also swept in a pre-existing uncommitted Stripe integration — see item 7 note)
