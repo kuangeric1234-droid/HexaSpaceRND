@@ -40,7 +40,7 @@ export default function PortalDashboard({ data }) {
       {/* Hero */}
       <div className="bg-charcoal text-paper px-8 md:px-12 py-12 md:py-16">
         <p className="hx-eyebrow text-paper/50">Welcome back{who ? `, ${who}` : ''}</p>
-        <h1 className="hx-display text-paper mt-4">{company?.businessName}</h1>
+        <h1 className="hx-display mt-4" style={{ color: 'var(--color-paper)' }}>{company?.businessName}</h1>
         <p className="font-display font-extralight text-xl text-paper/70 mt-4">Your space, beautifully serviced.</p>
       </div>
 
