@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CalendarCheck, PartyPopper } from 'lucide-react'
+import { ArrowRight, CalendarCheck, PartyPopper, Mailbox, Package } from 'lucide-react'
+import { supabase } from '../lib/supabase.js'
 import { Page, Card, Eyebrow, StatusBadge, fmt, money, to12, bookingName } from './ui.jsx'
 
 function calcTotal(invoice) {
@@ -35,6 +37,14 @@ export default function PortalDashboard({ data }) {
 
   const who = (member?.name || company?.contactName || company?.businessName || '').split(' ')[0]
 
+  // Mail & deliveries awaiting pickup at reception (logged by the Hexa team).
+  const [mailItems, setMailItems] = useState([])
+  useEffect(() => {
+    if (!company?.id) return
+    supabase.from('mail_items').select('data').eq('data->>companyId', company.id)
+      .then(({ data }) => setMailItems((data ?? []).map((r) => r.data).filter((m) => m?.status === 'awaiting')))
+  }, [company?.id])
+
   return (
     <Page>
       {/* Hero */}
@@ -66,6 +76,32 @@ export default function PortalDashboard({ data }) {
           <div className="flex items-center gap-3">
             <PartyPopper size={20} className="text-hexa-green shrink-0" />
             <p className="hx-prose text-ink">Your function on <strong>{fmt(fnConfirmed.eventDate)}</strong> is confirmed. See the details under <Link to="/function-space" className="underline">Function Space</Link>.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Mail & deliveries awaiting pickup */}
+      {mailItems.length > 0 && (
+        <div className="bg-bone border-y border-ink/10 px-8 md:px-12 py-5">
+          <div className="flex items-start gap-3">
+            <Mailbox size={20} className="text-hexa-green shrink-0 mt-0.5" />
+            <div>
+              <div className="font-heading uppercase tracking-nav text-[11px] text-hexa-green">
+                {mailItems.length === 1 ? 'Mail waiting for you' : `${mailItems.length} items waiting for you`}
+              </div>
+              <div className="mt-1 space-y-0.5">
+                {mailItems.slice(0, 4).map((m) => (
+                  <p key={m.id} className="hx-prose text-ink text-[14px] flex items-center gap-1.5">
+                    {m.type === 'parcel' ? <Package size={13} className="text-portal-muted" /> : <Mailbox size={13} className="text-portal-muted" />}
+                    <span className="capitalize">{m.type}</span>
+                    {m.description ? <span className="text-portal-muted">· {m.description}</span> : null}
+                    <span className="text-portal-muted">· arrived {m.loggedAt ? fmt(m.loggedAt.split('T')[0]) : ''}</span>
+                  </p>
+                ))}
+                {mailItems.length > 4 && <p className="hx-prose text-[13px] text-portal-muted">…and {mailItems.length - 4} more</p>}
+              </div>
+              <p className="hx-prose text-[13px] text-portal-muted mt-2">Collect from reception during opening hours.</p>
+            </div>
           </div>
         </div>
       )}
