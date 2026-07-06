@@ -34,12 +34,12 @@ export default function Book() {
   if (kind === 'rooms') {
     const seen = new Map()
     for (const r of list) {
-      const key = r.pax ? `Up to ${r.pax} guests` : 'More spaces'
+      // Rooms without a capacity on file are the tea room (East) — own section, last.
+      const key = r.pax ? `Up to ${r.pax} guests` : 'Tea Room'
       if (!seen.has(key)) { seen.set(key, []); groups.push({ label: key, items: seen.get(key) }) }
       seen.get(key).push(r)
     }
-    // "More spaces" (no pax on file — e.g. Tea Room) reads better last.
-    groups.sort((a, b) => (a.label === 'More spaces') - (b.label === 'More spaces'))
+    groups.sort((a, b) => (a.label === 'Tea Room') - (b.label === 'Tea Room'))
   } else {
     const media = list.filter((s) => s.type === 'studio')
     const podcast = list.filter((s) => s.type === 'podcast')
