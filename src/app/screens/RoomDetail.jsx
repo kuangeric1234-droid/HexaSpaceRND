@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { format, addDays } from 'date-fns'
 import { Check, Users } from 'lucide-react'
 import { useApp } from '../context.js'
-import { Screen, BackHeader, Label, Rule, Chip, Sheet, BigButton, fmt, to12, money0 } from '../ui.jsx'
+import { Screen, BackHeader, Label, Rule, Chip, Sheet, BigButton, RoomPhoto, fmt, to12, money0 } from '../ui.jsx'
 import { toDec, fromDec, isFree, creditBalance, createBooking, CREDIT_VALUE } from '../lib/bookingActions.js'
 
 // Single-room day calendar — the app's version of the website's booking grid:
@@ -11,6 +11,8 @@ import { toDec, fromDec, isFree, creditBalance, createBooking, CREDIT_VALUE } fr
 
 const DAY_START = 9, DAY_END = 17
 const HOUR_H = 60 // px per hour → 30px per half-hour cell
+const GRID_H = (DAY_END - DAY_START) * HOUR_H
+const LABEL_PAD = 22 // room under the last gridline so the 5pm label isn't clipped
 const DURATIONS = [
   { min: 30, label: '30 mins' },
   { min: 60, label: '1 hour' },
@@ -47,6 +49,9 @@ export default function RoomDetail({ room, onBack }) {
   return (
     <Screen>
       <BackHeader title={room.unitNumber} />
+
+      {/* Arched hero — only when a photo exists */}
+      <RoomPhoto room={room} fallback="none" className="app-arch w-full h-44 mb-5" />
 
       <div className="flex items-end justify-between gap-3 pt-1 pb-5">
         <div>
@@ -85,7 +90,7 @@ export default function RoomDetail({ room, onBack }) {
       {/* Day grid — one column, bookings blocked out */}
       <div className="bg-paper border border-ink/10 flex">
         {/* hour gutter */}
-        <div className="w-14 shrink-0 border-r border-ink/10 relative" style={{ height: (DAY_END - DAY_START) * HOUR_H }}>
+        <div className="w-14 shrink-0 border-r border-ink/10 relative" style={{ height: GRID_H + LABEL_PAD }}>
           {Array.from({ length: DAY_END - DAY_START + 1 }, (_, i) => DAY_START + i).map((h) => (
             <span key={h} style={{ top: (h - DAY_START) * HOUR_H + 3 }}
               className="absolute right-2 font-heading uppercase tracking-nav text-[9px] text-portal-muted">
@@ -94,7 +99,7 @@ export default function RoomDetail({ room, onBack }) {
           ))}
         </div>
         {/* slots + booking overlays */}
-        <div className="relative flex-1" style={{ height: (DAY_END - DAY_START) * HOUR_H }}>
+        <div className="relative flex-1" style={{ height: GRID_H + LABEL_PAD }}>
           {cells.map((d) => {
             const booked = cellBooked(d)
             const past = cellPast(d)

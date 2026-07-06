@@ -3,7 +3,7 @@ import { format } from 'date-fns'
 import { ChevronRight, Users } from 'lucide-react'
 import { useApp } from '../context.js'
 import { isFunctionSpace } from '../../portal/functionSpace.js'
-import { Screen, Label, Display, Rule, Chip, to12, money0, bookingName } from '../ui.jsx'
+import { Screen, Label, Display, Rule, Chip, RoomPhoto, to12, money0, bookingName } from '../ui.jsx'
 import { creditBalance, CREDIT_VALUE } from '../lib/bookingActions.js'
 import RoomDetail from '../screens/RoomDetail.jsx'
 
@@ -95,12 +95,9 @@ export default function Book() {
 
 function RoomRow({ room, onOpen }) {
   const rate = room.hourlyRate ?? room.rate
-  const dark = room.type !== 'meeting'
   return (
     <button onClick={onOpen} className="w-full flex items-center gap-4 py-4 min-h-[68px] active:opacity-60 transition-opacity">
-      <span className={`h-12 w-12 shrink-0 flex items-center justify-center font-display font-extralight text-xl ${dark ? 'bg-charcoal text-paper/85' : 'bg-stone text-ink/70'}`}>
-        {(room.unitNumber || '?').charAt(0).toUpperCase()}
-      </span>
+      <RoomPhoto room={room} className="h-14 w-14 shrink-0 text-xl" />
       <span className="flex-1 min-w-0 text-left">
         <span className="block font-heading uppercase tracking-nav text-[11px] text-ink truncate">{room.unitNumber}</span>
         <span className="hx-prose text-[12px] mt-0.5 flex items-center gap-3">

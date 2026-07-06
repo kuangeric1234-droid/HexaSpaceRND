@@ -4,7 +4,7 @@
 // serif display, small tracked caps. Big tap targets throughout (44px+).
 // Formatting helpers are reused from the portal kit — one brand, one voice.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 
@@ -118,6 +118,27 @@ export function Sheet({ open, onClose, title, children }) {
       </div>
     </div>
   )
+}
+
+/**
+ * Room/studio photo. Sources, in order: space.photo URL (set on the space
+ * record), then /rooms/<space id>.jpg in public/. When neither exists,
+ * falls back to the typographic monogram plate ('plate') or renders nothing
+ * ('none' — for hero slots that shouldn't waste space empty).
+ */
+export function RoomPhoto({ room, className = '', fallback = 'plate' }) {
+  const [failed, setFailed] = useState(false)
+  const src = room.photo || `/rooms/${room.id}.jpg`
+  const dark = room.type !== 'meeting'
+  if (failed) {
+    if (fallback === 'none') return null
+    return (
+      <span className={`flex items-center justify-center font-display font-extralight ${dark ? 'bg-charcoal text-paper/85' : 'bg-stone text-ink/70'} ${className}`}>
+        {(room.unitNumber || '?').charAt(0).toUpperCase()}
+      </span>
+    )
+  }
+  return <img src={src} alt={room.unitNumber} onError={() => setFailed(true)} className={`block object-cover ${className}`} />
 }
 
 /** Centered empty note. */
