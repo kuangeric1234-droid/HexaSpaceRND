@@ -6,6 +6,23 @@ import { Capacitor } from '@capacitor/core'
 
 export const isNative = () => Capacitor.isNativePlatform()
 
+// 'ios' | 'android' | 'web'. On the web build Capacitor reports 'web', so fall
+// back to a userAgent sniff to still tailor the phone print instructions.
+export function platform() {
+  const p = Capacitor.getPlatform()
+  if (p !== 'web') return p
+  const ua = navigator.userAgent || ''
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'ios'
+  if (/Android/i.test(ua)) return 'android'
+  return 'web'
+}
+
+// Store / profile links for Mobility Print, per platform.
+export const ANDROID_PRINT_APP = 'https://play.google.com/store/apps/details?id=com.papercut.projectbanksia&referrer=server=172.16.200.14'
+export const IOS_PRINT_PROFILE = '/downloads/hexa-printer-ios.mobileconfig'
+export const WINDOWS_PRINT_INSTALLER = '/downloads/hexa-printer-windows.exe'
+export const MAC_PRINT_INSTALLER = '/downloads/hexa-printer-mac.dmg'
+
 // The native shell serves bundled assets from https://localhost, so API calls
 // must be absolute. On the web, relative paths keep working as before.
 export const API_BASE = 'https://portal.hexaspace.com.au'

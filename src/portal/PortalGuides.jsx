@@ -1,4 +1,4 @@
-import { Printer, CalendarClock, Receipt, Wifi, KeyRound, Coffee, Laptop, Smartphone, Download } from 'lucide-react'
+import { Printer, CalendarClock, Receipt, Wifi, KeyRound, Coffee, Laptop, Smartphone, Download, ExternalLink } from 'lucide-react'
 import { usePrintPin } from './usePrintPin.js'
 import { Page, PageHeader, Card, Eyebrow } from './ui.jsx'
 
@@ -49,15 +49,17 @@ export default function PortalGuides() {
         {/* Phone / tablet */}
         <MethodCard icon={Smartphone} title="Print from your phone or tablet" subtitle="iPhone, iPad & Android · “Hexa-Secure” printers">
           <p className="hx-eyebrow mb-2">iPhone &amp; iPad</p>
+          <a href="/downloads/hexa-printer-ios.mobileconfig" download className="hx-btn inline-flex items-center gap-2 mb-4"><Download size={13} /> iPhone / iPad printer profile</a>
           <Steps items={[
-            'Connect to the “Hexa Space” Wi-Fi.',
-            'Open your document → Share → Print, then choose the “Hexa-Secure” printer.',
+            'On your iPhone/iPad, download and install the printer profile above (Settings will ask you to confirm).',
+            'On the “Hexa Space” Wi-Fi, open a document → Share → Print → choose “Hexa-Secure”.',
             'First time only: enter your Hexa Space email and password.',
             'Release at any printer with your access pass or PIN.',
           ]} />
           <p className="hx-eyebrow mb-2 mt-6">Android</p>
+          <a href="https://play.google.com/store/apps/details?id=com.papercut.projectbanksia&referrer=server=172.16.200.14" target="_blank" rel="noreferrer" className="hx-btn inline-flex items-center gap-2 mb-4"><ExternalLink size={13} /> Get the Android print app</a>
           <Steps items={[
-            'Install “Mobility Print” from Google Play, then connect to the “Hexa Space” Wi-Fi.',
+            'Install the app above (it comes pre-set to our print server), then connect to the “Hexa Space” Wi-Fi.',
             'Print as usual and pick the “Hexa-Secure” printer.',
             'Tap the sign-in prompt and enter your Hexa Space email and password.',
             'Release at any printer with your access pass or PIN.',

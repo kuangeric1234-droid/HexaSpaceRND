@@ -1,6 +1,7 @@
-import { Printer as PrinterIcon } from 'lucide-react'
+import { Printer as PrinterIcon, Download, ExternalLink } from 'lucide-react'
 import { useApp } from '../context.js'
 import { usePrintPin } from '../lib/usePrintPin.js'
+import { platform, apiUrl, IOS_PRINT_PROFILE, ANDROID_PRINT_APP } from '../lib/native.js'
 import { Screen, BackHeader, Label, Card } from '../ui.jsx'
 
 // Printer setup — mirrors the portal guide (PaperCut) plus the member's own
@@ -41,18 +42,7 @@ export default function Printer() {
       </div>
 
       <Label className="mt-9 mb-3">Print from this phone</Label>
-      <Steps title="iPhone & iPad" items={[
-        'Connect to the “Hexa Space” Wi-Fi.',
-        'Open your document → Share → Print, then choose the “Hexa-Secure” printer.',
-        'First time only: enter your Hexa Space email and password.',
-        'Release at any printer with your PIN above, or tap your pass.',
-      ]} />
-      <Steps title="Android" items={[
-        'Install “Mobility Print” from Google Play, then join the “Hexa Space” Wi-Fi.',
-        'Print as usual and pick the “Hexa-Secure” printer.',
-        'Enter your Hexa Space email and password when prompted.',
-        'Release at any printer with your PIN above, or tap your pass.',
-      ]} />
+      <PhoneSetup />
 
       <Label className="mt-9 mb-3">On a laptop?</Label>
       <Card className="p-5">
@@ -74,6 +64,72 @@ export default function Printer() {
         Trouble printing? Message the team from the More tab and we'll sort it out.
       </p>
     </Screen>
+  )
+}
+
+// Platform-aware phone setup: iOS installs the AirPrint profile, Android gets the
+// Mobility Print app (pre-pointed at the server). On desktop web we show both.
+function PhoneSetup() {
+  const plat = platform()
+
+  if (plat === 'ios') {
+    return (
+      <>
+        <PrintBtn href={apiUrl(IOS_PRINT_PROFILE)} icon={Download} label="Add iPhone / iPad printer" />
+        <Steps title="iPhone & iPad" items={[
+          'Tap the button above and install the printer profile (Settings will ask you to confirm).',
+          'On the “Hexa Space” Wi-Fi, open your document → Share → Print → “Hexa-Secure”.',
+          'First time only: enter your Hexa Space email and password.',
+          'Release at any printer with your PIN above, or tap your pass.',
+        ]} />
+      </>
+    )
+  }
+  if (plat === 'android') {
+    return (
+      <>
+        <PrintBtn href={ANDROID_PRINT_APP} icon={ExternalLink} label="Get the printing app" external />
+        <Steps title="Android" items={[
+          'Tap the button above to install “Mobility Print” (already set to our server).',
+          'On the “Hexa Space” Wi-Fi, print as usual and pick the “Hexa-Secure” printer.',
+          'Enter your Hexa Space email and password when prompted.',
+          'Release at any printer with your PIN above, or tap your pass.',
+        ]} />
+      </>
+    )
+  }
+  // Desktop web — show both options.
+  return (
+    <>
+      <div className="flex flex-wrap gap-3 mb-5">
+        <PrintBtn href={apiUrl(IOS_PRINT_PROFILE)} icon={Download} label="iPhone / iPad profile" inline />
+        <PrintBtn href={ANDROID_PRINT_APP} icon={ExternalLink} label="Android app" external inline />
+      </div>
+      <Steps title="iPhone & iPad" items={[
+        'Install the iPhone/iPad profile above.',
+        'On the “Hexa Space” Wi-Fi, print → choose “Hexa-Secure”.',
+        'First time only: enter your Hexa Space email and password.',
+        'Release with your PIN above, or tap your pass.',
+      ]} />
+      <Steps title="Android" items={[
+        'Install the Android app above (already set to our server).',
+        'Print as usual and pick “Hexa-Secure”.',
+        'Enter your Hexa Space email and password when prompted.',
+        'Release with your PIN above, or tap your pass.',
+      ]} />
+    </>
+  )
+}
+
+function PrintBtn({ href, icon: Icon, label, external, inline }) {
+  return (
+    <a
+      href={href}
+      {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
+      className={`${inline ? 'inline-flex' : 'flex w-full'} items-center justify-center gap-2 bg-charcoal text-paper px-5 py-3.5 mb-4 font-heading uppercase tracking-nav text-[11px] active:opacity-80`}
+    >
+      <Icon size={15} strokeWidth={1.6} /> {label}
+    </a>
   )
 }
 
