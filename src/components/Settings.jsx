@@ -32,6 +32,7 @@ const MENU = [
     items: [
       { key: 'xero', label: 'Xero' },
       { key: 'stripe', label: 'Stripe' },
+      { key: 'papercut', label: 'PaperCut' },
     ],
   },
 ]
@@ -1253,6 +1254,81 @@ function StripeSection({ settings, updateSettings }) {
   )
 }
 
+// ── PaperCut Integration ──────────────────────────────────────────────────────
+function PaperCutSection() {
+  const [st, setSt] = useState(null)
+  useEffect(() => {
+    fetch('/api/papercut/status').then((r) => r.json()).then(setSt).catch(() => setSt({ configured: false }))
+  }, [])
+
+  const fmt = (iso) => {
+    if (!iso) return 'never'
+    const d = new Date(iso)
+    return isNaN(d) ? String(iso) : d.toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+  const money = (n) => `A$${(Number(n) || 0).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`
+
+  const linked = !!st?.configured
+  const pinsOk = (st?.pinsSynced ?? 0) > 0
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-1">
+        <h1 className="text-xl font-bold text-foreground">PaperCut</h1>
+        {st && (
+          <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${linked ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+            <span className={`inline-block w-1.5 h-1.5 rounded-full ${linked ? 'bg-green-500' : 'bg-gray-400'}`} />
+            {linked ? 'Linked & synced' : 'Not linked'}
+          </span>
+        )}
+      </div>
+      <p className="text-sm text-muted-foreground mb-6">
+        Print billing and member accounts. Members are provisioned into PaperCut, their PIN shows in the app &amp; portal, and monthly print overage above the $30 allowance is billed onto their invoice.
+      </p>
+
+      {/* Status card */}
+      <div className="border border-border rounded-md p-5 mb-6 text-sm">
+        {st === null ? (
+          <span className="text-muted-foreground">Checking status…</span>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+            <Stat label="Connection" value={linked ? 'Sync token set' : 'Sync token missing'} ok={linked} />
+            <Stat label="Active members" value={st.activeMembers ?? '—'} />
+            <Stat label="PINs synced" value={st.pinsSynced ?? 0} ok={pinsOk} sub={`last sync ${fmt(st.lastPinSync)}`} />
+            <Stat label="Print fees this month" value={st.feesThisMonth ?? 0} sub={`${money(st.feesThisMonthTotal)} · last ${fmt(st.lastFeeSync)}`} />
+          </div>
+        )}
+      </div>
+
+      {st && !linked && (
+        <p className="text-xs text-amber-600 mb-4">Set <code>PAPERCUT_SYNC_TOKEN</code> in Vercel (and the on-prem connector) to link the integration.</p>
+      )}
+      {st && linked && !pinsOk && (
+        <p className="text-xs text-amber-600 mb-4">Linked, but no PINs synced yet — run <code>sync-pins.mjs</code> on the PaperCut server to populate member PINs.</p>
+      )}
+
+      <div className="border border-border rounded-md p-5 text-sm text-muted-foreground space-y-2">
+        <p className="font-medium text-foreground">How it works</p>
+        <p>An on-prem connector on the PaperCut server (Box Hill LAN) provisions active members into PaperCut, syncs their PINs back for display, and at month-end reads each member's negative balance (print above their $30 allowance) and posts it as a fee that the bill run folds onto their invoice.</p>
+        <p>Runs on the LAN because PaperCut's API isn't reachable from the cloud. The connector authenticates to PaperCut with its own token and to Hexa with the shared sync token.</p>
+      </div>
+    </div>
+  )
+}
+
+function Stat({ label, value, ok, sub }) {
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{label}</div>
+      <div className="flex items-center gap-2">
+        {ok !== undefined && <span className={`inline-block w-2 h-2 rounded-full ${ok ? 'bg-green-500' : 'bg-red-400'}`} />}
+        <span className="text-base font-semibold text-foreground">{value}</span>
+      </div>
+      {sub && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
+    </div>
+  )
+}
+
 // ── Main Settings ─────────────────────────────────────────────────────────────
 export default function Settings() {
   const { settings, updateSettings } = useOutletContext()
@@ -1272,6 +1348,7 @@ export default function Settings() {
     'email-templates': <EmailTemplatesSection settings={settings} updateSettings={updateSettings} />,
     'xero': <XeroSection settings={settings} updateSettings={updateSettings} />,
     'stripe': <StripeSection settings={settings} updateSettings={updateSettings} />,
+    'papercut': <PaperCutSection />,
   }
 
   return (
