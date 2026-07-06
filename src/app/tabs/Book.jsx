@@ -103,7 +103,7 @@ function RoomRow({ room, onOpen }) {
         <span className="hx-prose text-[12px] mt-0.5 flex items-center gap-3">
           <span>{rate ? `${money0(rate)}/hr` : '—'}</span>
           {room.pax && <span className="flex items-center gap-1"><Users size={11} /> up to {room.pax}</span>}
-          {room.size && <span className="truncate">{room.size}</span>}
+          {room.size && !/up\s*to/i.test(room.size) && <span className="truncate">{room.size}</span>}
         </span>
       </span>
       <ChevronRight size={15} className="text-portal-muted shrink-0" />

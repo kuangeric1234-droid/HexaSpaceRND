@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 import { format, addDays } from 'date-fns'
-import { Check, Users } from 'lucide-react'
+import { Check, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useApp } from '../context.js'
 import { Screen, BackHeader, Label, Rule, Chip, Sheet, BigButton, RoomPhoto, fmt, to12, money0 } from '../ui.jsx'
 import { toDec, fromDec, isFree, creditBalance, createBooking, CREDIT_VALUE } from '../lib/bookingActions.js'
@@ -59,28 +59,14 @@ export default function RoomDetail({ room, onBack }) {
           <p className="hx-prose text-[13px] mt-1.5 flex items-center gap-3">
             <span>{rate ? `${money0(rate)}/hr` : '—'}</span>
             {room.pax && <span className="flex items-center gap-1"><Users size={12} /> up to {room.pax}</span>}
-            {room.size && <span>{room.size}</span>}
+            {room.size && !/up\s*to/i.test(room.size) && <span>{room.size}</span>}
           </p>
         </div>
         <Chip tone="green">{balance} cr</Chip>
       </div>
 
-      {/* Date strip — 4 weeks, scrollable */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
-        {days.map((d) => {
-          const ds = format(d, 'yyyy-MM-dd')
-          const on = ds === date
-          return (
-            <button key={ds} onClick={() => { setDate(ds); setSlot(null) }}
-              className={`shrink-0 w-14 py-2.5 border text-center transition-colors ${on ? 'bg-ink text-paper border-ink' : 'bg-paper text-ink border-ink/15 active:bg-bone'}`}>
-              <span className={`block font-heading uppercase tracking-label text-[9px] ${on ? 'text-paper/60' : 'text-portal-muted'}`}>
-                {format(d, 'EEE')}
-              </span>
-              <span className="block font-display font-extralight text-lg leading-tight mt-0.5">{format(d, 'd')}</span>
-            </button>
-          )
-        })}
-      </div>
+      {/* Date strip — 4 weeks: swipeable on touch, chevrons + wheel on desktop */}
+      <DateStrip days={days} date={date} onPick={(ds) => { setDate(ds); setSlot(null) }} />
 
       <div className="flex items-center justify-between mt-5 mb-3">
         <Label>{format(new Date(date + 'T00:00:00'), 'EEEE d MMMM')}</Label>
@@ -152,6 +138,55 @@ export default function RoomDetail({ room, onBack }) {
         />
       )}
     </Screen>
+  )
+}
+
+function DateStrip({ days, date, onPick }) {
+  const ref = useRef(null)
+
+  // Mouse-wheel → horizontal scroll (needs a non-passive listener to prevent
+  // the page scrolling instead; React's onWheel is passive).
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault()
+        el.scrollLeft += e.deltaY
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
+  const page = (dir) => ref.current?.scrollBy({ left: dir * 4 * 64, behavior: 'smooth' })
+
+  return (
+    <div className="flex items-center gap-1 -mx-2">
+      <button onClick={() => page(-1)} aria-label="Earlier dates"
+        className="h-11 w-8 shrink-0 flex items-center justify-center text-portal-muted active:text-ink">
+        <ChevronLeft size={16} strokeWidth={1.5} />
+      </button>
+      <div ref={ref} className="flex gap-2 overflow-x-auto no-scrollbar flex-1 pb-1">
+        {days.map((d) => {
+          const ds = format(d, 'yyyy-MM-dd')
+          const on = ds === date
+          return (
+            <button key={ds} onClick={() => onPick(ds)}
+              className={`shrink-0 w-14 py-2.5 border text-center transition-colors ${on ? 'bg-ink text-paper border-ink' : 'bg-paper text-ink border-ink/15 active:bg-bone'}`}>
+              <span className={`block font-heading uppercase tracking-label text-[9px] ${on ? 'text-paper/60' : 'text-portal-muted'}`}>
+                {format(d, 'EEE')}
+              </span>
+              <span className="block font-display font-extralight text-lg leading-tight mt-0.5">{format(d, 'd')}</span>
+            </button>
+          )
+        })}
+      </div>
+      <button onClick={() => page(1)} aria-label="Later dates"
+        className="h-11 w-8 shrink-0 flex items-center justify-center text-portal-muted active:text-ink">
+        <ChevronRight size={16} strokeWidth={1.5} />
+      </button>
+    </div>
   )
 }
 
