@@ -20,7 +20,15 @@ export function buildMonthlyInvoiceForLease(lease, monthStart, { invoices = [], 
   const fmt = (d) => format(d, 'yyyy-MM-dd')
 
   const start = parseISO(lease.startDate)
-  const end = parseISO(lease.endDate)
+  // A served notice / scheduled cancellation caps billing at the vacate date —
+  // the contract may still be "active" until then, but nothing past it is
+  // ever invoiced and the final month is prorated to it.
+  const capISO = [
+    lease.endDate,
+    lease.noticeGiven ? lease.vacateDate : null,
+    lease.terminationScheduledFor,
+  ].filter(Boolean).sort()[0]
+  const end = parseISO(capISO)
   if (start > mEnd) return { invoice: null, reason: 'not-started' }
   if (end < mStart) return { invoice: null, reason: 'ended' }
 
@@ -47,6 +55,22 @@ export function buildMonthlyInvoiceForLease(lease, monthStart, { invoices = [], 
   const periodStart = start > mStart ? start : mStart
   const periodEnd = end < mEnd ? end : mEnd
   const isProrated = fmt(periodStart) !== fmt(mStart) || fmt(periodEnd) !== fmt(mEnd)
+
+  // Scale the schedule's amounts when the cap truncates this month: the
+  // payment schedule reflects the CONTRACT term, the cap reflects the
+  // cancellation. (Math.round day counts — DST months have a 23/25h day.)
+  const round2 = (n) => Math.round(n * 100) / 100
+  const dayCount = (a, b) => Math.round((b - a) / 86400000) + 1
+  const contractEnd = parseISO(lease.endDate)
+  const schedTo = contractEnd < mEnd ? contractEnd : mEnd
+  let officeAmt = row.office
+  let servicesAmt = row.services
+  if (periodEnd < schedTo && schedTo >= periodStart) {
+    const factor = Math.max(0, dayCount(periodStart, periodEnd) / dayCount(periodStart, schedTo))
+    officeAmt = round2(officeAmt * factor)
+    servicesAmt = round2(servicesAmt * factor)
+  }
+  if (officeAmt + servicesAmt <= 0) return { invoice: null, reason: 'zero-amount' }
   const dayMon = (d, withYear) => d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}) })
   const periodLabel = `${dayMon(periodStart)} – ${dayMon(periodEnd, true)}${isProrated ? ' (prorated)' : ''}`
 
@@ -59,20 +83,20 @@ export function buildMonthlyInvoiceForLease(lease, monthStart, { invoices = [], 
   const parkingUnits = unitNames(itemIds.filter(isParking))
 
   const lineItems = []
-  if (row.office > 0) {
+  if (officeAmt > 0) {
     lineItems.push({
       id: `li_${lease.id}_${key}_m`,
       description: `${officeUnits} · ${periodLabel}`,
       revenueAccount: 'Membership Fees',
-      unitPrice: row.office, qty: 1, discountPct,
+      unitPrice: officeAmt, qty: 1, discountPct,
     })
   }
-  if (row.services > 0) {
+  if (servicesAmt > 0) {
     lineItems.push({
       id: `li_${lease.id}_${key}_p`,
       description: `${parkingUnits ? `Parking ${parkingUnits}` : 'Parking'} · ${periodLabel}`,
       revenueAccount: 'Parking',
-      unitPrice: row.services, qty: 1, discountPct,
+      unitPrice: servicesAmt, qty: 1, discountPct,
     })
   }
 

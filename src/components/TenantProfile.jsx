@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { format, parseISO } from 'date-fns'
-import { ArrowLeft, Pencil, Building2, Mail, Phone, Hash, Plus, FileDown, Send, MessageSquare, Users, CreditCard, Receipt, Trash2, User, UserPlus } from 'lucide-react'
+import { ArrowLeft, Pencil, Building2, Mail, Phone, Hash, Plus, FileDown, Send, MessageSquare, Users, CreditCard, Receipt, Trash2, User, UserPlus, Settings as SettingsIcon, FileText, Ban } from 'lucide-react'
+import TerminateModal, { TERMINATION_REASONS, applyTermination } from './TerminateModal.jsx'
 import InvoiceForm from './InvoiceForm.jsx'
 import DocumentsPanel from './DocumentsPanel.jsx'
 import { jsPDF } from 'jspdf'
@@ -78,6 +79,8 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
   const [showInvoiceForm, setShowInvoiceForm] = useState(false)
   const [memberModal, setMemberModal] = useState(null)   // null | {} (new) | member (edit)
   const [showMembership, setShowMembership] = useState(false)
+  const [gearLeaseId, setGearLeaseId] = useState(null)          // contract row with the open gear menu
+  const [terminateTarget, setTerminateTarget] = useState(null)  // lease to terminate
   const tenantLeases = leases.filter((l) => l.tenantId === tenant.id)
   const companyMembers = members.filter((m) => m.companyId === tenant.id)
 
@@ -443,8 +446,8 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50 border-b border-border">
                     <tr>
-                      {['Number', 'Document Type', 'Status', 'Signature', 'Period', 'Monthly'].map((h) => (
-                        <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
+                      {['Number', 'Document Type', 'Status', 'Signature', 'Period', 'Monthly', ''].map((h, i) => (
+                        <th key={i} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -452,12 +455,15 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
                     {tenantLeases.map((l) => {
                       const sig = SIG_BADGE[l.signatureStatus] ?? SIG_BADGE.not_signed
                       const space = spaces.find((s) => s.id === l.spaceId)
+                      const ending = l.noticeGiven && l.vacateDate && ['active', 'pending'].includes(l.status)
                       return (
                         <tr key={l.id} className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer" onClick={() => onSelectContract?.(l)}>
                           <td className="px-5 py-3 font-medium text-foreground">{l.contractNumber ?? `CON-${l.id.slice(-3).toUpperCase()}`}</td>
                           <td className="px-5 py-3 text-muted-foreground">{l.documentType ?? 'License Agreement'}</td>
                           <td className="px-5 py-3">
-                            <Badge label={l.status} cls={l.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'} />
+                            {ending
+                              ? <Badge label={`Ends ${fmt(l.vacateDate)}`} cls="bg-orange-100 text-orange-700" />
+                              : <Badge label={l.status} cls={l.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'} />}
                           </td>
                           <td className="px-5 py-3"><Badge label={sig.label} cls={sig.cls} /></td>
                           <td className="px-5 py-3 text-muted-foreground text-xs">
@@ -465,6 +471,33 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
                             <span className="text-muted-foreground">{space?.unitNumber ?? ''}</span>
                           </td>
                           <td className="px-5 py-3 font-medium text-foreground">{fmtAud(l.monthlyRent)}</td>
+                          <td className="px-5 py-3 text-right relative" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setGearLeaseId(gearLeaseId === l.id ? null : l.id)}
+                              className="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-muted"
+                              title="Contract actions"
+                            >
+                              <SettingsIcon size={14} />
+                            </button>
+                            {gearLeaseId === l.id && (
+                              <div className="absolute right-4 top-9 z-20 bg-card border border-border rounded-md shadow-lg py-1 w-44 text-left">
+                                <button
+                                  onClick={() => { setGearLeaseId(null); onSelectContract?.(l) }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted/60"
+                                >
+                                  <FileText size={13} /> View contract
+                                </button>
+                                {['active', 'pending'].includes(l.status) && (
+                                  <button
+                                    onClick={() => { setGearLeaseId(null); setTerminateTarget(l) }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                  >
+                                    <Ban size={13} /> Terminate…
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         </tr>
                       )
                     })}
@@ -576,6 +609,21 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
         />
       )
     })()}
+
+    {gearLeaseId && <div className="fixed inset-0 z-10" onClick={() => setGearLeaseId(null)} />}
+
+    {terminateTarget && (
+      <TerminateModal
+        lease={terminateTarget}
+        reasons={settings?.contracts?.terminationReasons ?? TERMINATION_REASONS}
+        exitFee={Number(settings?.billingRules?.exitFee ?? 350)}
+        onConfirm={(data) => {
+          applyTermination(terminateTarget, data, { updateLease, addInvoice: onAddInvoice, spaces, settings })
+          setTerminateTarget(null)
+        }}
+        onClose={() => setTerminateTarget(null)}
+      />
+    )}
 
     {memberModal && (
       <MemberModal

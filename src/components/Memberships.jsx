@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useOutletContext, useNavigate } from 'react-router-dom'
 import { format, parseISO, startOfMonth, endOfMonth, addMonths, isWithinInterval } from 'date-fns'
-import { ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, AlertTriangle, Settings, FileText, Ban } from 'lucide-react'
+import TerminateModal, { TERMINATION_REASONS, applyTermination } from './TerminateModal.jsx'
 
 // Memberships organised by TYPE (columns) and by BILLING PERIOD (month navigator).
 // Read view — populated from the contracts members have signed. Flags overdue invoices.
@@ -24,8 +25,12 @@ function membershipType(lease, space) {
 const NOW = new Date()
 
 export default function Memberships() {
-  const { leases = [], tenants = [], spaces = [], invoices = [] } = useOutletContext()
+  const store = useOutletContext()
+  const { leases = [], tenants = [], spaces = [], invoices = [], updateLease, addInvoice, settings } = store
+  const navigate = useNavigate()
   const [offset, setOffset] = useState(0) // months from current
+  const [gearId, setGearId] = useState(null)          // membership card with the open menu
+  const [terminateTarget, setTerminateTarget] = useState(null) // lease to terminate
 
   const company = (id) => tenants.find((t) => t.id === id)
   const space = (id) => spaces.find((s) => s.id === id)
@@ -92,6 +97,7 @@ export default function Memberships() {
         startDate: lease?.startDate, endDate: lease?.endDate,
         monthlyRent: sp.monthlyRate ?? lease?.monthlyRent,
         overdue: !vacant && !!companyId && overdueCompany(companyId),
+        lease, noticeGiven: lease?.noticeGiven, vacateDate: lease?.vacateDate,
       }
     })
 
@@ -138,25 +144,59 @@ export default function Memberships() {
               </div>
               <div className="px-3 pb-3 space-y-2 min-h-[120px]">
                 {items.length === 0 && <div className="text-xs text-muted-foreground text-center py-8">None this period.</div>}
-                {items.map((r) => (
-                  <div key={r.id} className={`bg-card border rounded-md p-3 ${r.overdue ? 'border-red-300' : r.vacant ? 'border-dashed border-border' : 'border-border'}`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="font-medium text-foreground text-sm leading-tight">{r.unit}{r.level ? <span className="text-muted-foreground font-normal"> · {r.level}</span> : null}</span>
-                      {r.overdue
-                        ? <span className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-700 shrink-0"><AlertTriangle size={10} /> Overdue</span>
-                        : r.vacant
-                          ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 bg-muted text-muted-foreground">Vacant</span>
-                          : <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${r.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-muted text-muted-foreground'}`}>{r.status || 'active'}</span>}
-                    </div>
-                    <div className={`text-xs mt-0.5 ${r.vacant ? 'text-muted-foreground italic' : 'text-foreground'}`}>{r.companyName}</div>
-                    {!r.vacant && (
-                      <div className="text-[11px] text-muted-foreground mt-1.5">
-                        {r.startDate ? format(parseISO(r.startDate), 'd MMM yyyy') : '—'} – {r.endDate ? format(parseISO(r.endDate), 'd MMM yyyy') : 'Month-to-month'}
-                        {r.monthlyRent != null ? ` · A$${Number(r.monthlyRent).toLocaleString('en-AU')}/mo` : ''}
+                {items.map((r) => {
+                  // Desk/VO rows ARE the lease (spread); office cards carry it.
+                  const lease = r.lease ?? (r.tenantId ? r : null)
+                  const ending = (r.noticeGiven ?? lease?.noticeGiven) && (r.vacateDate ?? lease?.vacateDate)
+                  return (
+                    <div key={r.id} className={`bg-card border rounded-md p-3 relative ${r.overdue ? 'border-red-300' : r.vacant ? 'border-dashed border-border' : 'border-border'}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-medium text-foreground text-sm leading-tight">{r.unit}{r.level ? <span className="text-muted-foreground font-normal"> · {r.level}</span> : null}</span>
+                        <span className="flex items-center gap-1 shrink-0">
+                          {r.overdue
+                            ? <span className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-700"><AlertTriangle size={10} /> Overdue</span>
+                            : r.vacant
+                              ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Vacant</span>
+                              : ending
+                                ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">Ends {format(parseISO(r.vacateDate ?? lease.vacateDate), 'd MMM')}</span>
+                                : <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${r.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-muted text-muted-foreground'}`}>{r.status || 'active'}</span>}
+                          {lease && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setGearId(gearId === r.id ? null : r.id) }}
+                              className="p-0.5 text-muted-foreground hover:text-foreground rounded hover:bg-muted"
+                              title="Membership actions"
+                            >
+                              <Settings size={13} />
+                            </button>
+                          )}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div className={`text-xs mt-0.5 ${r.vacant ? 'text-muted-foreground italic' : 'text-foreground'}`}>{r.companyName}</div>
+                      {!r.vacant && (
+                        <div className="text-[11px] text-muted-foreground mt-1.5">
+                          {r.startDate ? format(parseISO(r.startDate), 'd MMM yyyy') : '—'} – {r.endDate ? format(parseISO(r.endDate), 'd MMM yyyy') : 'Month-to-month'}
+                          {r.monthlyRent != null ? ` · A$${Number(r.monthlyRent).toLocaleString('en-AU')}/mo` : ''}
+                        </div>
+                      )}
+                      {gearId === r.id && lease && (
+                        <div className="absolute right-2 top-8 z-20 bg-card border border-border rounded-md shadow-lg py-1 w-44">
+                          <button
+                            onClick={() => { setGearId(null); navigate('/leases', { state: { openLeaseId: lease.id } }) }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted/60"
+                          >
+                            <FileText size={13} /> View contract
+                          </button>
+                          <button
+                            onClick={() => { setGearId(null); setTerminateTarget(lease) }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                          >
+                            <Ban size={13} /> Terminate…
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )
@@ -167,6 +207,22 @@ export default function Memberships() {
         <p className="text-sm text-muted-foreground mt-8 text-center">
           No memberships yet — they appear here automatically when a member signs a contract for a space, and roll forward each billing period.
         </p>
+      )}
+
+      {/* Click-outside to close the gear menu */}
+      {gearId && <div className="fixed inset-0 z-10" onClick={() => setGearId(null)} />}
+
+      {terminateTarget && (
+        <TerminateModal
+          lease={terminateTarget}
+          reasons={settings?.contracts?.terminationReasons ?? TERMINATION_REASONS}
+          exitFee={Number(settings?.billingRules?.exitFee ?? 350)}
+          onConfirm={(data) => {
+            applyTermination(terminateTarget, data, { updateLease, addInvoice, spaces, settings })
+            setTerminateTarget(null)
+          }}
+          onClose={() => setTerminateTarget(null)}
+        />
       )}
     </div>
   )
