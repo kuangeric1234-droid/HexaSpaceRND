@@ -145,7 +145,9 @@ export default async function handler(req, res) {
 
     // ── PULL: mark platform invoices paid when they're paid in Xero ─────────
     if (action === 'pull') {
-      const candidates = invoices.filter((i) => i.xeroInvoiceId && i.status === 'pending')
+      // Overdue counts too — an unpaid invoice flips to 'overdue' after its
+      // due date, and those are exactly the ones that get paid late.
+      const candidates = invoices.filter((i) => i.xeroInvoiceId && ['pending', 'overdue'].includes(i.status))
       const paidMarked = [], partial = [], voidedInXero = []
 
       for (const batch of chunk(candidates, 40)) {
@@ -159,8 +161,9 @@ export default async function handler(req, res) {
           if (xi.Status === 'PAID') {
             // Several platform invoices can share one combined Xero invoice
             // (migrated office+parking) — record each invoice's OWN total,
-            // not the combined AmountPaid.
-            const shared = candidates.filter((c) => c.xeroInvoiceId === xi.InvoiceID).length > 1
+            // not the combined AmountPaid. Count ALL invoices sharing the
+            // link (an already-paid group-mate still means "combined").
+            const shared = invoices.filter((c) => c.xeroInvoiceId === xi.InvoiceID && c.status !== 'voided').length > 1
             const ownTotal = Math.round(invoiceTotal(inv) * (inv.vatEnabled !== false ? 1.1 : 1) * 100) / 100
             if (!dryRun) {
               inv.payments = [
