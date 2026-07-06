@@ -630,7 +630,7 @@ function deskClosingPage(ctx) {
 function voCoverPage(ctx) {
   const who = ctx.client || ctx.business || ''
   return `<div class="page" style="display:flex;">
-    <div style="position:relative;width:54%;height:100%;">${bgFill(PHOTO + 'lounge-main.jpg')}</div>
+    <div style="position:relative;width:54%;height:100%;">${bgFill(PHOTO + 'vo-cover.jpg')}</div>
     <div style="width:46%;height:100%;position:relative;padding:.8in;">
       <div class="eyebrow" style="letter-spacing:.34em;">HEXA SPACE &nbsp;·&nbsp; 六合空间</div>
       <div style="position:absolute;left:.8in;top:2.2in;right:.8in;">
@@ -650,7 +650,7 @@ function voCoverPage(ctx) {
 
 function voStatementPage() {
   return `<div class="page">
-    ${bgFill(PHOTO + 'lounge-2.jpg')}
+    ${bgFill(PHOTO + 'vo-statement.jpg')}
     <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,15,12,.64) 0%,rgba(15,15,12,.18) 55%,rgba(15,15,12,0) 100%);"></div>
     <div style="position:absolute;left:.9in;bottom:1.1in;right:4.6in;">
       <div class="eyebrow" style="color:#c9d08a;">Box Hill · Whitehorse Road</div>
@@ -673,8 +673,8 @@ function voAddressPage() {
       </div>
     </div>
     <div style="width:53%;display:flex;flex-direction:column;gap:.28in;">
-      <div style="position:relative;height:3.5in;overflow:hidden;">${bgFill(PHOTO + 'reception.jpg')}</div>
-      <div style="position:relative;height:2in;overflow:hidden;">${bgFill(PHOTO + 'lounge.jpg')}</div>
+      <div style="position:relative;height:3.5in;overflow:hidden;">${bgFill(PHOTO + 'vo-address-1.jpg')}</div>
+      <div style="position:relative;height:2in;overflow:hidden;">${bgFill(PHOTO + 'vo-address-2.jpg')}</div>
     </div>
   </div>${FOOT}</div>`
 }
@@ -746,7 +746,7 @@ function voReceptionPage() {
         <li>Notifications when items arrive</li>
       </ul>
     </div>
-    <div style="width:52%;position:relative;overflow:hidden;">${bgFill(PHOTO + 'reception.jpg')}</div>
+    <div style="width:52%;position:relative;overflow:hidden;">${bgFill(PHOTO + 'vo-reception.jpg')}</div>
   </div>${FOOT}</div>`
 }
 
@@ -768,10 +768,10 @@ function voAmenitiesPage() {
       </ul>
     </div>
     <div style="width:54%;display:flex;flex-direction:column;gap:.28in;">
-      <div style="position:relative;height:3.5in;overflow:hidden;">${bgFill(PHOTO + 'room-east.jpg')}</div>
+      <div style="position:relative;height:3.5in;overflow:hidden;">${bgFill(PHOTO + 'vo-amenity-1.jpg')}</div>
       <div style="display:flex;gap:.28in;height:2in;">
-        <div style="flex:1;position:relative;overflow:hidden;">${bgFill(PHOTO + 'media-1.jpg')}</div>
-        <div style="flex:1;position:relative;overflow:hidden;">${bgFill(PHOTO + 'event-space.jpg')}</div>
+        <div style="flex:1;position:relative;overflow:hidden;">${bgFill(PHOTO + 'vo-amenity-2.jpg')}</div>
+        <div style="flex:1;position:relative;overflow:hidden;">${bgFill(PHOTO + 'vo-amenity-3.jpg')}</div>
       </div>
     </div>
   </div>${FOOT}</div>`
