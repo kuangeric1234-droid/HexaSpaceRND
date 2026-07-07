@@ -45,6 +45,15 @@ export default async function handler(req, res) {
   if (!memberEmail) return res.status(400).json({ error: 'memberEmail is required.' })
   const accessGroup = resolveAccessGroup(doorId, spaceLabel, membershipType)
 
+  // KS's API assigns groups by ID. settings.salto.accessGroupIds maps our
+  // group names → KS group IDs (harvested once from the Zapier dropdown /
+  // KS portal). Data-driven: updating the map needs no redeploy.
+  let accessGroupId = null
+  try {
+    const { data: settRow } = await auth.sb.from('settings').select('data').eq('id', 'global').single()
+    accessGroupId = settRow?.data?.salto?.accessGroupIds?.[accessGroup] ?? null
+  } catch { /* map optional until harvested */ }
+
   const webhook = process.env.SALTO_PROVISION_WEBHOOK
 
   // ── ZAPIER MODE ────────────────────────────────────────────────────────────
@@ -63,6 +72,7 @@ export default async function handler(req, res) {
           firstName: nameParts[0] ?? '',
           lastName: nameParts.slice(1).join(' ') || nameParts[0] || '',
           accessGroup,
+          accessGroupId, // null until settings.salto.accessGroupIds is filled
           accessFrom: accessFrom ?? null,
           accessUntil: accessUntil ?? null,
           source: 'hexaspace-platform',
