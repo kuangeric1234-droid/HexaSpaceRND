@@ -34,6 +34,9 @@ export default async function handler(req, res) {
   // ── ZAPIER MODE ────────────────────────────────────────────────────────────
   if (webhook) {
     try {
+      // Salto KS "Add User" wants First/Last name separately — send both split
+      // and joined so the zap can map either.
+      const nameParts = String(memberName ?? '').trim().split(/\s+/)
       const r = await fetch(webhook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -41,6 +44,8 @@ export default async function handler(req, res) {
           action: 'add_user',
           email: memberEmail,
           name: memberName ?? '',
+          firstName: nameParts[0] ?? '',
+          lastName: nameParts.slice(1).join(' ') || nameParts[0] || '',
           accessGroup: doorId ?? spaceLabel ?? 'Members',
           accessFrom: accessFrom ?? null,
           accessUntil: accessUntil ?? null,
