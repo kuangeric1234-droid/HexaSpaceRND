@@ -1275,6 +1275,43 @@ export function useStore() {
   const addBooking = useCallback((booking) => {
     const ref = Array.from({ length: 7 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
     const item = { reference: ref, ...booking, id: `bk${Date.now()}`, createdAt: new Date().toISOString() }
+
+    // Charge the company for admin-created bookings, exactly like the portal:
+    // deduct the monthly credit pool; any overage becomes a Booking Fee on the
+    // company (invoice it manually from Fees, or the bill run sweeps it at
+    // month end). Skipped when the caller already charged (Calendar's
+    // reconcile passes paidBy), for function venue holds, and for bookings
+    // without a company or a priced room.
+    if (item.paidBy == null && item.type !== 'function' && item.status !== 'Cancelled' && item.companyId) {
+      const tenant = tenantsRef.current.find((t) => t.id === item.companyId)
+      const room = spacesRef.current.find((s) => s.id === item.resourceId)
+      const toDec = (t) => { const [h, m] = String(t || '0:0').split(':').map(Number); return (h || 0) + (m || 0) / 60 }
+      const hrs = Math.max(0, toDec(item.endTime) - toDec(item.startTime))
+      const need = round2(hrs * Number(room?.hourlyRate || 0) / CREDIT_VALUE)
+      if (tenant && need > 0) {
+        // Monthly pool with rollover, mirroring the portal calendar.
+        const mk = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+        const available = tenant.creditsPeriod === mk
+          ? Number(tenant.creditsRemaining ?? 0)
+          : Number(tenant.monthlyAllowance ?? tenant.creditsRemaining ?? 0)
+        const used = Math.max(0, Math.min(available, need))
+        const shortfall = round2(need - used)
+        item.creditsUsed = used
+        item.paidBy = shortfall > 0 ? (used > 0 ? 'part_credits' : 'fee') : 'credits'
+        updateTenant(item.companyId, { creditsRemaining: round2(available - used), creditsPeriod: mk })
+        if (shortfall > 0) {
+          const fee = addFee({
+            name: `Meeting room — ${room?.unitNumber ?? ''} · ${item.date} (over allowance)`,
+            type: 'Booking Fee', memberId: item.memberId ?? null, companyId: item.companyId,
+            date: item.date || new Date().toISOString().split('T')[0],
+            price: round2(shortfall * CREDIT_VALUE), status: 'Not Paid',
+            notes: `${need} credits needed · ${used} from allowance · ${shortfall} over · admin booking`,
+          })
+          item.feeId = fee?.id ?? null
+        }
+      }
+    }
+
     setBookings((prev) => [...prev, item])
     syncRow('bookings', item.id, item)
     logAudit('create', 'booking', item.id, item.reference)

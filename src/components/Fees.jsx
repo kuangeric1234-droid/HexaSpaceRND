@@ -24,7 +24,31 @@ const today = () => new Date().toISOString().split('T')[0]
 const EMPTY = { name: '', type: 'One-Off', memberId: '', companyId: '', date: today(), price: '', status: 'Not Paid', notes: '' }
 
 export default function Fees() {
-  const { fees = [], members = [], tenants = [], addFee, updateFee, deleteFee } = useOutletContext()
+  const { fees = [], members = [], tenants = [], addFee, updateFee, deleteFee, addInvoice, settings } = useOutletContext()
+
+  // Manually invoice a fee now instead of waiting for the month-end bill run:
+  // raises a pending invoice for the company and flips the fee to Invoiced
+  // (which takes it out of the bill run's sweep — same guard both ways).
+  function invoiceFee(f) {
+    const company = tenants.find((t) => t.id === f.companyId)
+    if (!company) { alert('This fee has no company attached — add one first.'); return }
+    if (!confirm(`Invoice ${company.businessName} now for "${f.name}" (A$${Number(f.price).toFixed(2)} + GST)?`)) return
+    const today = new Date().toISOString().split('T')[0]
+    const due = new Date(); due.setDate(due.getDate() + (settings?.invoicing?.dueDateDays ?? 14))
+    const inv = addInvoice({
+      tenantId: f.companyId, invoiceType: 'fees', source: 'fees-page',
+      status: 'pending', sentStatus: 'not_sent', vatEnabled: true,
+      issueDate: today, dueDate: due.toISOString().split('T')[0],
+      payments: [], comments: [],
+      lineItems: [{
+        id: `li_fee_${f.id}`,
+        description: `${f.name}${f.date ? ` (${f.date})` : ''}`,
+        revenueAccount: 'Meeting Room & Booking Fees',
+        unitPrice: Number(f.price) || 0, qty: 1, discountPct: 0,
+      }],
+    })
+    updateFee(f.id, { status: 'Invoiced', invoiceId: inv?.id ?? null })
+  }
   const [tab, setTab] = useState('All')
   const [search, setSearch] = useState('')
   const [companyFilter, setCompanyFilter] = useState('')
@@ -113,6 +137,9 @@ export default function Fees() {
                 </td>
                 <td className="px-4 py-3 font-medium text-foreground">A${(Number(f.price) || 0).toLocaleString('en-AU', { minimumFractionDigits: 2 })}</td>
                 <td className="px-4 py-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                  {f.companyId && Number(f.price) > 0 && !['Paid', 'Waived', 'Invoiced'].includes(f.status) && (
+                    <button onClick={() => invoiceFee(f)} className="text-xs font-semibold text-green-700 hover:underline mr-3">Invoice now</button>
+                  )}
                   <button onClick={() => openEdit(f)} className="text-xs text-blue-600 hover:underline mr-3">Edit</button>
                   <button onClick={() => { if (confirm('Delete this fee?')) deleteFee(f.id) }} className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 inline-flex align-middle"><Trash2 size={14} /></button>
                 </td>
