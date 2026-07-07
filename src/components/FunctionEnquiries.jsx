@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { format } from 'date-fns'
 import { Mail, UserPlus, CheckCircle2, X, RefreshCw, CalendarDays, Users, ExternalLink } from 'lucide-react'
-import { STAGES, money, computeQuote, dateClashes } from '../lib/functionBooking.js'
-import { sendBrochure, sendBookingInvite, approveFunctionBooking, declineFunctionBooking, askAmendDate } from '../lib/functionActions.js'
+import { STAGES, money, computeQuote, dateClashes, RATES } from '../lib/functionBooking.js'
+import { sendBrochure, sendBookingInvite, approveFunctionBooking, declineFunctionBooking, askAmendDate, updatePricing } from '../lib/functionActions.js'
 
 const today = () => new Date().toISOString().split('T')[0]
 function StageBadge({ stage }) {
@@ -40,6 +40,10 @@ export default function FunctionEnquiries({ store }) {
   async function run(key, fn) {
     setBusy(key)
     try { const updated = await fn(); if (updated) replace(updated) } finally { setBusy('') }
+  }
+
+  async function applyDiscount(overrides) {
+    await run('pricing', () => updatePricing({ booking: selected, overrides }))
   }
 
   return (
@@ -95,6 +99,9 @@ export default function FunctionEnquiries({ store }) {
               <div className="text-sm text-muted-foreground">Indicative total: <strong className="text-foreground">{money((selected.quote || computeQuote({ ...selected, bookedOn: today() })).total)}</strong></div>
             )}
             {selected.additionalRequirements && <div><dt className="text-xs text-muted-foreground uppercase mb-1">Requirements</dt><dd className="text-foreground whitespace-pre-wrap">{selected.additionalRequirements}</dd></div>}
+            {['enquiry', 'quoted', 'requested'].includes(selected.stage) && (
+              <DiscountEditor booking={selected} disabled={!!busy} onApply={applyDiscount} onClear={() => applyDiscount(null)} />
+            )}
             {selected.brochureSentAt && <div className="text-xs text-muted-foreground">Brochure sent {format(new Date(selected.brochureSentAt), 'dd MMM')}</div>}
             {selected.inviteSentAt && <div className="text-xs text-indigo-600">Portal invite sent {format(new Date(selected.inviteSentAt), 'dd MMM')}</div>}
             {selected.signedAt && <div className="text-xs text-yellow-700">Signed {format(new Date(selected.signedAt), 'dd MMM')} by {selected.signerName}</div>}
@@ -126,6 +133,70 @@ export default function FunctionEnquiries({ store }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// Set a negotiated discount before sending the brochure / booking invite. Writes
+// booking.priceOverrides; the brochure keeps RRP, but the emailed proposal, the
+// sign page and the members portal all show the discounted venue hire.
+const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100
+function DiscountEditor({ booking, disabled, onApply, onClear }) {
+  const o = booking.priceOverrides || {}
+  const [rate, setRate] = useState(o.rate ?? '')
+  const [pct, setPct] = useState(o.discountPct ?? '')
+  const [reason, setReason] = useState(o.discountReason ?? '')
+  useEffect(() => {
+    const oo = booking.priceOverrides || {}
+    setRate(oo.rate ?? ''); setPct(oo.discountPct ?? ''); setReason(oo.discountReason ?? '')
+  }, [booking.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const hasRate = rate !== '' && Number(rate) > 0
+  const hasPct = !hasRate && pct !== '' && Number(pct) > 0
+  const effWk = hasRate ? Number(rate) : hasPct ? round2(RATES.weekday * (1 - Number(pct) / 100)) : RATES.weekday
+  const effWe = hasRate ? Number(rate) : hasPct ? round2(RATES.weekend * (1 - Number(pct) / 100)) : RATES.weekend
+  const dirty = hasRate || hasPct
+
+  function build() {
+    const out = {}
+    if (hasRate) out.rate = Number(rate)
+    else if (hasPct) out.discountPct = Number(pct)
+    if (dirty && reason.trim()) out.discountReason = reason.trim()
+    return Object.keys(out).length ? out : null
+  }
+
+  const isActive = !!(o.rate || o.discountPct)
+  const inp = 'w-full border border-input rounded px-2 py-1.5 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-ring'
+  return (
+    <div className="border border-border rounded-md p-3 bg-muted/30 space-y-2.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-foreground uppercase tracking-wide">Venue-hire discount</span>
+        {isActive && <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-0.5">Applied</span>}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[11px] text-muted-foreground mb-0.5">Discounted rate $/hr</label>
+          <input type="number" min={0} step="0.01" className={inp} value={rate} onChange={(e) => setRate(e.target.value)} placeholder={`${RATES.weekday}/${RATES.weekend}`} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-muted-foreground mb-0.5">or Discount %</label>
+          <input type="number" min={0} max={100} step="0.1" className={inp} value={pct} onChange={(e) => setPct(e.target.value)} placeholder="—" disabled={hasRate} />
+        </div>
+      </div>
+      <div>
+        <label className="block text-[11px] text-muted-foreground mb-0.5">Reason (client sees this)</label>
+        <input className={inp} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Repeat client — negotiated rate" />
+      </div>
+      <div className="text-[11px] text-muted-foreground">
+        {dirty
+          ? <>Venue hire → <span className="font-semibold text-foreground">{money(effWk)}/hr</span> weekday · <span className="font-semibold text-foreground">{money(effWe)}/hr</span> weekend <span className="text-muted-foreground/70 line-through">was {money(RATES.weekday)}/{money(RATES.weekend)}</span></>
+          : <>Standard RRP: {money(RATES.weekday)}/hr weekday · {money(RATES.weekend)}/hr weekend</>}
+      </div>
+      <div className="flex items-center gap-2">
+        <button disabled={disabled || !dirty} onClick={() => onApply(build())} className="flex-1 bg-primary text-primary-foreground py-1.5 rounded text-xs font-semibold hover:bg-primary/90 disabled:opacity-40">Apply discount</button>
+        {isActive && <button disabled={disabled} onClick={onClear} className="border border-input py-1.5 px-3 rounded text-xs font-medium hover:bg-muted/50 disabled:opacity-40">Clear</button>}
+      </div>
+      <p className="text-[10px] text-muted-foreground leading-snug">The brochure keeps standard RRP — this discount shows on the emailed proposal and their members portal.</p>
     </div>
   )
 }

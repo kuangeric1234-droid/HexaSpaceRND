@@ -84,7 +84,9 @@ export default function PortalFunction({ spaces, member, company }) {
     })()
   }, [company?.id])
 
-  const quote = computeQuote({ eventDate: f.date, startTime: f.startTime, endTime: f.endTime, guests: f.guests, addons: f.addons, bookedOn: today() })
+  // Carry any negotiated pricing (discount / custom rate) from the client's
+  // existing booking so the portal shows the SAME numbers as the proposal.
+  const quote = computeQuote({ eventDate: f.date, startTime: f.startTime, endTime: f.endTime, guests: f.guests, addons: f.addons, priceOverrides: existing?.priceOverrides, bookedOn: today() })
 
   async function submit(e) {
     e.preventDefault()

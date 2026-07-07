@@ -80,6 +80,7 @@ function summaryRows(b) {
     ${row('Event', b.eventName || 'â€”')}
     ${row('Date', `${b.eventDate || 'â€”'} Â· ${b.startTime || ''}â€“${b.endTime || ''}`)}
     ${row('Guests', b.guests || 'â€”')}
+    ${q.discount > 0 ? row('Discount' + (q.discountPct ? ` (${q.discountPct}%)` : '') + (q.discountReason ? ` - ${q.discountReason}` : ''), `-${money(q.discount)}`) : ''}
     ${row('Total (inc GST)', money(q.total), true)}
     ${row('Payable now', `${money(q.dueNow)} <span style="color:${MUTE}">(50% deposit + $300 security)</span>`)}
   </table>`
