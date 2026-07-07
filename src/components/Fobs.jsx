@@ -73,6 +73,7 @@ export default function Fobs() {
   async function addDevice({ serial, type, location, notes }) {
     const s = normalizeSerial(serial)
     if (!s) return alert('Serial number is required.')
+    if (fobs.some((x) => x.serial === s)) return alert(`Serial ${s} is already in inventory — use Issue to assign it.`)
     if (fobs.some((f) => f.serial === s)) return alert(`A device with serial ${s} already exists.`)
     const fob = { id: rid('fob'), serial: s, type, location, status: 'available', currentMemberId: null, currentCompanyId: null, currentAssignmentId: null, notes: notes || '', createdAt: today() }
     await persist('fobs', fob)
@@ -255,7 +256,7 @@ export default function Fobs() {
         </div>
       )}
 
-      {modal?.kind === 'add' && <AddModal onClose={() => setModal(null)} onSave={addDevice} />}
+      {modal?.kind === 'add' && <AddModal fobs={fobs} onClose={() => setModal(null)} onSave={addDevice} />}
       {modal?.kind === 'issue' && <IssueModal fobs={fobs} preFob={modal.fob} members={members} tenants={tenants} requestMemberId={modal.requestMemberId} requestType={modal.requestType} onClose={() => setModal(null)} onIssue={issueDevice} />}
       {modal?.kind === 'return' && <ReturnModal ctx={modal} paid={depositPaid(modal.assignment, invoices)} onClose={() => setModal(null)} onReturn={returnDevice} />}
       {modal?.kind === 'lost' && <LostModal ctx={modal} onClose={() => setModal(null)} onLost={markLost} />}
@@ -278,18 +279,40 @@ function ModalShell({ title, onClose, children }) {
   )
 }
 
-function AddModal({ onClose, onSave }) {
+function AddModal({ fobs = [], onClose, onSave }) {
   const [f, setF] = useState({ serial: '', type: 'fob', location: 'hexa', notes: '' })
   const up = (k) => (e) => setF({ ...f, [k]: e.target.value })
+  // Fobs only exist at Hexa; remotes can belong to any location.
+  const setType = (e) => {
+    const type = e.target.value
+    setF({ ...f, type, location: type === 'fob' ? 'hexa' : f.location })
+  }
+  const locations = f.type === 'fob' ? ['hexa'] : LOCATIONS
+  // Serial suggestions: every available (unassigned) device already in
+  // inventory, so staff can see what exists while typing. Re-adding an
+  // existing serial is blocked outright.
+  const existing = fobs.find((x) => x.serial === normalizeSerial(f.serial))
+  const availableSerials = fobs.filter((x) => x.status === 'available').map((x) => x.serial)
   return (
     <ModalShell title="Add device" onClose={onClose}>
-      <div><label className="block text-xs text-muted-foreground mb-1">Serial number</label><input value={f.serial} onChange={up('serial')} className={`${field} font-mono`} placeholder="e.g. 807APD0A2B" /></div>
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">Serial number</label>
+        <input list="available-fob-serials" value={f.serial} onChange={up('serial')} className={`${field} font-mono`} placeholder="e.g. 807APD0A2B" />
+        <datalist id="available-fob-serials">
+          {availableSerials.map((s) => <option key={s} value={s} />)}
+        </datalist>
+        {existing && (
+          <p className="text-xs text-red-600 mt-1">
+            Already in inventory — {existing.type} at {existing.location}, status "{FOB_STATUS[existing.status]?.label ?? existing.status}". Use Issue to assign it.
+          </p>
+        )}
+      </div>
       <div className="grid grid-cols-2 gap-3">
-        <div><label className="block text-xs text-muted-foreground mb-1">Type</label><select value={f.type} onChange={up('type')} className={field}>{DEVICE_TYPES.map((t) => <option key={t} value={t}>{t} — {money(depositFor(t))} deposit</option>)}</select></div>
-        <div><label className="block text-xs text-muted-foreground mb-1">Location</label><select value={f.location} onChange={up('location')} className={field}>{LOCATIONS.map((l) => <option key={l} value={l} className="capitalize">{l}</option>)}</select></div>
+        <div><label className="block text-xs text-muted-foreground mb-1">Type</label><select value={f.type} onChange={setType} className={field}>{DEVICE_TYPES.map((t) => <option key={t} value={t}>{t} — {money(depositFor(t))} deposit</option>)}</select></div>
+        <div><label className="block text-xs text-muted-foreground mb-1">Location</label><select value={f.location} onChange={up('location')} className={field}>{locations.map((l) => <option key={l} value={l} className="capitalize">{l}</option>)}</select></div>
       </div>
       <div><label className="block text-xs text-muted-foreground mb-1">Notes</label><input value={f.notes} onChange={up('notes')} className={field} /></div>
-      <div className="flex justify-end pt-1"><button onClick={() => onSave(f)} className="bg-primary text-primary-foreground px-4 py-2 rounded text-sm font-medium hover:bg-primary/90">Add device</button></div>
+      <div className="flex justify-end pt-1"><button onClick={() => onSave(f)} disabled={!!existing} className="bg-primary text-primary-foreground px-4 py-2 rounded text-sm font-medium hover:bg-primary/90 disabled:opacity-50">Add device</button></div>
     </ModalShell>
   )
 }
