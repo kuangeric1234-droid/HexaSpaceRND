@@ -39,7 +39,14 @@ export default function Tenants() {
   const activeLeases = (tid) => leases.filter((l) => l.tenantId === tid && l.status === 'active')
   const spaceName = (id) => spaces.find((s) => s.id === id)?.unitNumber
   // Active only when the company has an active membership; everything else is Former.
-  const statusOf = (t) => (activeLeases(t.id).length > 0 ? 'Active' : (t.status && t.status !== 'Active' ? t.status : 'Former'))
+  // Status follows active contracts, EXCEPT when an admin explicitly set it in
+  // the edit modal (statusManual) — that choice wins. The legacy fallback maps
+  // imported "Active"-without-a-lease to Former so the Former tab stays honest.
+  const statusOf = (t) => {
+    if (activeLeases(t.id).length > 0) return 'Active'
+    if (t.statusManual && t.status) return t.status
+    return t.status && t.status !== 'Active' ? t.status : 'Former'
+  }
   const isActive = (t) => statusOf(t) === 'Active'
 
   const activeCount = tenants.filter(isActive).length
@@ -54,9 +61,16 @@ export default function Tenants() {
   function openAdd() { setEditId(null); setForm({ ...EMPTY_FORM, startDate: today() }); setShowForm(true) }
   function openEdit(t) { setEditId(t.id); setForm({ ...EMPTY_FORM, ...t }); setShowForm(true) }
   function handleSubmit() {
-    if (editId) updateTenant(editId, form); else addTenant(form)
+    // An explicit status change in the modal must win over the derived
+    // status (which otherwise follows active contracts — see statusOf).
+    const payload = { ...form }
+    if (editId) {
+      const original = tenants.find((t) => t.id === editId)
+      if (original && form.status !== original.status) payload.statusManual = true
+      updateTenant(editId, payload)
+    } else addTenant(payload)
     setShowForm(false)
-    if (selectedTenant && editId) setSelectedTenant(tenants.find((t) => t.id === editId) ?? { ...selectedTenant, ...form })
+    if (selectedTenant && editId) setSelectedTenant(tenants.find((t) => t.id === editId) ?? { ...selectedTenant, ...payload })
   }
   function handleDelete(id) {
     if (window.confirm('Delete this company? Any associated contracts will remain.')) deleteTenant(id)
