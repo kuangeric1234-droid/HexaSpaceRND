@@ -300,6 +300,7 @@ function RefundBox({ booking, onResolve }) {
 function Detail({ booking, onClose, onEdit, onDelete, actions, busy, clash, calClash }) {
   const b = booking
   const [showPricing, setShowPricing] = useState(false)
+  const [resent, setResent] = useState(false)
   const sessions = bookingSessions(b)
   const lastDate = sessions[sessions.length - 1]?.date ?? b.eventDate
   const passed = lastDate && lastDate < today()
@@ -425,8 +426,18 @@ function Detail({ booking, onClose, onEdit, onDelete, actions, busy, clash, calC
           )}
           {b.stage === 'invited' && (
             <div className="bg-indigo-50 border border-indigo-100 rounded-md px-3 py-2.5 text-xs text-indigo-800">
-              Portal invite sent{b.inviteSentAt ? ` ${format(new Date(b.inviteSentAt), 'dd MMM')}` : ''}. Waiting for the client to complete their details &amp; deposit in the portal.
-              <button onClick={() => actions.invite(b)} className="block mt-2 underline">Resend invite</button>
+              Portal invite sent{b.inviteSentAt ? ` ${format(new Date(b.inviteSentAt), 'dd MMM · h:mm a')}` : ''}. Waiting for the client to complete their details &amp; deposit in the portal.
+              {resent ? (
+                <div className="flex items-center gap-1.5 mt-2 text-green-700 font-semibold">
+                  <CheckCircle2 size={13} /> Invite re-sent to {b.email}
+                </div>
+              ) : (
+                <button disabled={busy}
+                  onClick={async () => { await actions.invite(b); setResent(true); setTimeout(() => setResent(false), 6000) }}
+                  className="block mt-2 underline disabled:opacity-50 disabled:no-underline">
+                  {busy ? 'Resending…' : 'Resend invite'}
+                </button>
+              )}
             </div>
           )}
           {b.stage === 'awaiting_deposit' && (
