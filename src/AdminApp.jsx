@@ -21,6 +21,7 @@ import FoodOrders from './components/FoodOrders.jsx'
 import Members from './components/Members.jsx'
 import Memberships from './components/Memberships.jsx'
 import Fees from './components/Fees.jsx'
+import Fobs from './components/Fobs.jsx'
 import Bookings from './components/Bookings.jsx'
 import ActivityLog from './components/ActivityLog.jsx'
 import Calendar from './components/Calendar.jsx'
@@ -52,6 +53,7 @@ export default function AdminApp({ onLogout }) {
           <Route path="members" element={<Members />} />
           <Route path="memberships" element={<Memberships />} />
           <Route path="fees" element={<Fees />} />
+          <Route path="fobs" element={<Fobs />} />
           <Route path="bookings" element={<Bookings />} />
           <Route path="calendar" element={<Calendar />} />
           <Route path="activity" element={<ActivityLog />} />
