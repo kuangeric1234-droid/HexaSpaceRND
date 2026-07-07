@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { jsPDF } from 'jspdf'
 import { Minus, Plus, Send, Download, CheckCircle2 } from 'lucide-react'
 import { logAudit } from '../lib/audit.js'
 import { authHeaders } from '../lib/apiFetch.js'
+import { fillMaxaFobForm, toBase64 } from '../lib/maxaFobForm.js'
 
 // Fob Order — orders new FOBs/REMOTEs from the building manager. Fills out
 // MAXA's official order form (828 Whitehorse Rd — Panorama Box Hill) as a PDF
@@ -21,55 +21,16 @@ const money = (n) => `$${Number(n).toFixed(2)}`
 const inp = 'w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
 const lab = 'block text-xs font-medium text-muted-foreground mb-1'
 
-function buildOrderPdf(f, totals) {
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-  const W = 210, M = 18
-  let y = 20
-
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(20, 20, 20)
-  doc.text('Fob / Remote Order Form — 828 Whitehorse Rd, Box Hill — Panorama Box Hill', W / 2, y, { align: 'center', maxWidth: W - M * 2 })
-  y += 12
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(70, 70, 70)
-  doc.text(`Submitted by Hexa Space Pty Ltd · ${new Date().toLocaleDateString('en-AU')} · per Maxa OC order process (payment on receipt of details)`, M, y)
-  y += 10
-
-  // Details block
-  doc.setDrawColor(30, 30, 30); doc.rect(M, y, W - M * 2, 44)
-  doc.setTextColor(20, 20, 20); doc.setFontSize(10)
-  const line = (label, value, dy) => {
-    doc.setFont('helvetica', 'bold'); doc.text(label, M + 4, y + dy)
-    doc.setFont('helvetica', 'normal'); doc.text(String(value || ''), M + 4 + doc.getTextWidth(label) + 2, y + dy)
+// Fills MAXA's actual order form (bundled at /forms/maxa-fob-order.pdf) —
+// their own PDF with our values overlaid, not a recreation.
+let _templateBytes = null
+async function filledFormBytes(f, totals) {
+  if (!_templateBytes) {
+    const r = await fetch('/forms/maxa-fob-order.pdf')
+    if (!r.ok) throw new Error('Could not load the Maxa order form template.')
+    _templateBytes = await r.arrayBuffer()
   }
-  line('Apartment/Retail Lot Number:', `U ${f.lot} /828 Whitehorse Road Box Hill`, 8)
-  line('Owner requesting these items:', f.requester === 'owner' ? 'Y' : 'N', 16)
-  doc.setFont('helvetica', 'bold'); doc.text('Agent requesting these items:', M + 95, y + 16)
-  doc.setFont('helvetica', 'normal'); doc.text(f.requester === 'agent' ? 'Y' : 'N', M + 95 + doc.getTextWidth('Agent requesting these items:') + 2, y + 16)
-  line('Owner/Agent Name:', f.name, 24)
-  line('Owner/Agent Phone Number:', f.phone, 32)
-  line('Reason for the order:', f.reason, 40)
-  y += 52
-
-  // Items table
-  const cols = [M, M + 32, M + 92, M + 138, M + 160, W - M]
-  const row = (cells, h = 9, bold = false) => {
-    doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(9)
-    cells.forEach((c, i) => {
-      doc.rect(cols[i], y, cols[i + 1] - cols[i], h)
-      doc.text(String(c), cols[i] + 2, y + 5.5, { maxWidth: cols[i + 1] - cols[i] - 4 })
-    })
-    y += h
-  }
-  row(['ITEM', 'ACCESS AREA', 'COST PER ITEM (INCL. GST)', 'QUANTITY', 'TOTAL (INCL. GST)'], 9, true)
-  row(['FOB', 'Door entry / permitted lift levels', money(FOB_PRICE), String(f.fobs), f.fobs ? money(totals.fobs) : '—'], 11)
-  row(['REMOTE', 'Door entry, lift levels & car park entry', money(REMOTE_PRICE), String(f.remotes), f.remotes ? money(totals.remotes) : '—'], 11)
-  row(['ADMINISTRATIVE CHARGE', 'N/A', money(ADMIN_CHARGE), '1', money(ADMIN_CHARGE)], 9)
-  row(['TOTAL COST', 'N/A', 'N/A', 'N/A', money(totals.total)], 9, true)
-
-  y += 10
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(90, 90, 90)
-  doc.text('Collection from the Building Manager — no delivery. Lost or misplaced devices are reported to the Building Manager /', M, y)
-  doc.text('OC Manager for immediate deactivation.', M, y + 4)
-  return doc
+  return fillMaxaFobForm(_templateBytes, f, totals)
 }
 
 export default function FobOrderTab({ settings }) {
@@ -93,8 +54,18 @@ export default function FobOrderTab({ settings }) {
   }
   const valid = (f.fobs > 0 || f.remotes > 0) && f.lot.trim() && f.name.trim()
 
-  function downloadPdf() {
-    buildOrderPdf(f, totals).save(`Fob-order-U${f.lot}-${new Date().toISOString().split('T')[0]}.pdf`)
+  async function downloadPdf() {
+    try {
+      const bytes = await filledFormBytes(f, totals)
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Fob-order-U${f.lot}-${new Date().toISOString().split('T')[0]}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setError(e.message)
+    }
   }
 
   async function send() {
@@ -102,8 +73,7 @@ export default function FobOrderTab({ settings }) {
     if (!confirm(`Send this order (${f.fobs} fob${f.fobs === 1 ? '' : 's'}, ${f.remotes} remote${f.remotes === 1 ? '' : 's'} — ${money(totals.total)}) to Maxa OC and Pro Facility Management?`)) return
     setSending(true); setError('')
     try {
-      const pdf = buildOrderPdf(f, totals)
-      const b64 = pdf.output('datauristring').split(',')[1]
+      const b64 = toBase64(await filledFormBytes(f, totals))
       const html = `
         <p>Hi team,</p>
         <p>Please find attached our fob/remote order for <strong>U ${f.lot}/828 Whitehorse Road, Box Hill</strong>:</p>
