@@ -227,13 +227,26 @@ function CompanyBillingSection({ settings, updateSettings }) {
   )
 }
 
+// Copy for the admin set-password email — both add paths send it, so a new
+// admin always receives a login link (their email in adminUsers is what routes
+// them to the management app on sign-in).
+const ADMIN_INVITE_COPY = (name) => ({
+  subject: "You've been added as a Hexa Space admin",
+  heading: 'Welcome to the Hexa Space team',
+  intro: `Hi ${name || 'there'} — you've been given admin access to the Hexa Space management system: companies, members, billing, bookings, function hire and more. Set your password below, then sign in at portal.hexaspace.com.au — your email routes you straight to the admin dashboard.`,
+  ctaLabel: 'Set my password',
+})
+
 function AddExistingUserForm({ users, updateSettings }) {
   const [form, setForm] = useState({ name: '', email: '', role: 'Admin' })
   const [done, setDone] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [warn, setWarn] = useState('')
 
-  function handleAdd(e) {
+  async function handleAdd(e) {
     e.preventDefault()
     if (!form.email.trim()) return
+    setSaving(true); setWarn('')
     const newUser = {
       id: `u_${Date.now()}`,
       name: form.name.trim() || form.email.trim(),
@@ -241,10 +254,22 @@ function AddExistingUserForm({ users, updateSettings }) {
       role: form.role,
       access: form.role === 'Super Admin' ? 'Full Access' : 'Standard Access',
     }
+    // Send their set-password login email — an admin listed without an auth
+    // account can never actually sign in.
+    try {
+      const res = await fetch('/api/auth/invite', {
+        method: 'POST', headers: await authHeaders(),
+        body: JSON.stringify({ email: newUser.email, ...ADMIN_INVITE_COPY(form.name.trim().split(' ')[0]) }),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Invite email failed')
+    } catch (err) {
+      setWarn(`Added, but the login email failed (${err.message}) — use "Invite" to resend.`)
+    }
     updateSettings({ adminUsers: [...users, newUser] })
     setForm({ name: '', email: '', role: 'Admin' })
+    setSaving(false)
     setDone(true)
-    setTimeout(() => setDone(false), 3000)
+    setTimeout(() => setDone(false), 4000)
   }
 
   return (
@@ -270,10 +295,11 @@ function AddExistingUserForm({ users, updateSettings }) {
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <button type="submit" className="px-4 py-2 bg-primary text-primary-foreground text-sm rounded-md font-medium hover:bg-primary/90">
-          Add User
+        <button type="submit" disabled={saving} className="px-4 py-2 bg-primary text-primary-foreground text-sm rounded-md font-medium hover:bg-primary/90 disabled:opacity-40">
+          {saving ? 'Adding…' : 'Add User'}
         </button>
-        {done && <span className="text-sm text-green-600">✓ Added successfully</span>}
+        {done && !warn && <span className="text-sm text-green-600">✓ Added — login email sent</span>}
+        {warn && <span className="text-sm text-amber-600">{warn}</span>}
       </div>
     </form>
   )
@@ -308,7 +334,7 @@ function AdminUsersSection({ settings, updateSettings }) {
       const res = await fetch('/api/auth/invite', {
         method: 'POST',
         headers: await authHeaders(),
-        body: JSON.stringify({ email: inviteEmail.trim() }),
+        body: JSON.stringify({ email: inviteEmail.trim(), ...ADMIN_INVITE_COPY(inviteName.trim().split(' ')[0]) }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Invite failed')

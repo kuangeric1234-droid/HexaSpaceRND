@@ -3,39 +3,50 @@ import { useOutletContext } from 'react-router-dom'
 import { format } from 'date-fns'
 import { Plus, X, Check, Mailbox, Package, RefreshCw, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase.js'
-import { sendEmail, brandShell, bKicker, bH1, bP, bSmall } from '../lib/sendEmail.js'
+import { sendEmail, brandShell, bKicker, bH1, bP, bSmall, bBtn, PORTAL_URL } from '../lib/sendEmail.js'
 import { logAudit } from '../lib/audit.js'
 
-// Mail & Deliveries register: reception logs an item against a company, the
-// member is emailed straight away ("collect from reception"), the item shows
-// on their portal dashboard until it's marked collected at handover.
+// Mail & Deliveries register: reception logs an item addressed to a company OR
+// a specific member; the addressee is emailed straight away ("collect from
+// reception") and the item shows on their portal/app until marked collected.
 
 const today = () => new Date().toISOString().split('T')[0]
 const nowIso = () => new Date().toISOString()
 const inp = 'w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
 const lab = 'block text-xs font-medium text-muted-foreground mb-1'
 
-function mailArrivedEmailHtml({ item, tenant, settings }) {
+function mailArrivedEmailHtml({ item, addresseeFirst, settings }) {
   const company = settings?.company?.name || 'Hexa Space'
-  const kind = item.type === 'parcel' ? 'parcel' : 'mail'
+  const parcel = item.type === 'parcel'
+  const HAIR = 'rgba(0,0,0,.09)'
+  const detail = (k, v) => `
+        <tr>
+          <td style="padding:9px 0;font-family:Arial,sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8a8a86;border-top:1px solid ${HAIR};width:130px">${k}</td>
+          <td style="padding:9px 0;font-family:Arial,sans-serif;font-size:14px;color:#161614;border-top:1px solid ${HAIR}">${v}</td>
+        </tr>`
   const inner =
-    bKicker(item.type === 'parcel' ? 'Delivery arrived' : "You've got mail") +
-    bH1(item.type === 'parcel' ? '📦 A parcel is waiting for you' : '📬 Mail is waiting for you') +
-    bP(`Hi ${tenant?.contactName || tenant?.businessName || 'there'},`) +
-    bP(`A ${kind} addressed to <strong>${tenant?.businessName || 'you'}</strong> has arrived at Hexa Space${item.description ? ` — <em>${item.description}</em>` : ''}. Please collect it from reception during opening hours.`) +
-    bP('Uncollected items are held at reception; storage charges may apply to parcels left over 48 hours (see House Rules).') +
+    bKicker(parcel ? 'Delivery arrived' : "You've got mail") +
+    bH1(parcel ? 'A parcel is waiting for you 📦' : 'Mail is waiting for you 📬') +
+    bP(`Hi ${addresseeFirst || 'there'},`) +
+    bP(`${parcel ? 'A parcel' : 'Mail'} addressed to <strong>${item.addresseeName || 'you'}</strong> has just arrived at reception.`) +
+    `      <table style="width:100%;border-collapse:collapse;margin:6px 0 10px">
+${detail('Item', parcel ? 'Parcel' : 'Mail')}${item.description ? detail('Details', item.description) : ''}${detail('Arrived', format(new Date(), 'EEEE d MMMM · h:mm a'))}${detail('Collect from', 'Reception · Level 4, 402/830 Whitehorse Rd')}
+      </table>` +
+    bBtn('View in the member portal', `${PORTAL_URL}/app/mail`) +
+    bSmall(`Reception holds items securely during opening hours. Parcels left over 48 hours may incur a storage charge (see House Rules).`) +
     bSmall(`${company} · 402/830 Whitehorse Road, Box Hill VIC 3128`)
   return brandShell(inner, { company, website: settings?.company?.website || 'hexaspace.com.au' })
 }
 
 export default function MailRegister() {
-  const { tenants, settings } = useOutletContext()
+  const { tenants, members = [], settings } = useOutletContext()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('awaiting')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ companyId: '', type: 'mail', description: '', notify: true })
+  // addressee: 'c:<tenantId>' (company) or 'm:<memberId>' (individual member)
+  const [form, setForm] = useState({ addressee: '', type: 'mail', description: '', notify: true })
 
   useEffect(() => { load() }, [])
   async function load() {
@@ -51,36 +62,45 @@ export default function MailRegister() {
 
   async function logItem(e) {
     e.preventDefault()
-    if (!form.companyId) { alert('Choose the company the item is addressed to.'); return }
+    if (!form.addressee) { alert('Choose who the item is addressed to.'); return }
     setSaving(true)
     try {
-      const tenant = tenants.find((t) => t.id === form.companyId)
+      // Resolve the addressee: a specific member, or the company generally.
+      const [kind, id] = form.addressee.split(':')
+      const member = kind === 'm' ? members.find((m) => m.id === id) : null
+      const tenant = tenants.find((t) => t.id === (member ? member.companyId : id))
+      const addresseeName = member?.name || tenant?.businessName || ''
+      const email = member?.email || tenant?.email || ''
+      const first = (member?.name || tenant?.contactName || '').split(' ')[0]
+
       const item = {
         id: `mail${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        companyId: form.companyId,
+        companyId: tenant?.id ?? '',
         companyName: tenant?.businessName ?? '',
+        memberId: member?.id ?? null,
+        addresseeName,
         type: form.type,
         description: form.description.trim(),
         status: 'awaiting',
         loggedAt: nowIso(),
       }
-      if (form.notify && tenant?.email) {
+      if (form.notify && email) {
         try {
           await sendEmail({
-            to: tenant.email,
+            to: email,
             subject: item.type === 'parcel'
               ? `📦 A parcel has arrived for you at ${settings?.company?.name || 'Hexa Space'}`
               : `📬 You've got mail at ${settings?.company?.name || 'Hexa Space'}`,
-            html: mailArrivedEmailHtml({ item, tenant, settings }),
-            settings, tenantId: tenant.id, emailType: 'mail_arrived',
+            html: mailArrivedEmailHtml({ item, addresseeFirst: first, settings }),
+            settings, tenantId: tenant?.id, emailType: 'mail_arrived',
           })
           item.notifiedAt = nowIso()
         } catch (err) { console.error('Mail notification failed:', err) }
       }
       await persist(item)
-      logAudit('create', 'mail', item.id, tenant?.businessName ?? item.companyId, `${item.type} logged${item.notifiedAt ? ' + notified' : ''}`)
+      logAudit('create', 'mail', item.id, addresseeName || item.companyId, `${item.type} logged${item.notifiedAt ? ' + notified' : ''}`)
       setShowForm(false)
-      setForm({ companyId: '', type: 'mail', description: '', notify: true })
+      setForm({ addressee: '', type: 'mail', description: '', notify: true })
     } finally { setSaving(false) }
   }
 
@@ -96,6 +116,8 @@ export default function MailRegister() {
   }
 
   const sortedTenants = [...(tenants ?? [])].sort((a, b) => (a.businessName || '').localeCompare(b.businessName || ''))
+  const sortedMembers = [...(members ?? [])].filter((m) => m.name).sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  const companyNameById = new Map((tenants ?? []).map((t) => [t.id, t.businessName]))
   const filtered = rows.filter((r) => (filter === 'all' ? true : r.status === filter))
   const awaitingCount = rows.filter((r) => r.status === 'awaiting').length
 
@@ -134,7 +156,7 @@ export default function MailRegister() {
             <thead className="text-xs text-muted-foreground uppercase border-b border-border">
               <tr>
                 <th className="text-left px-4 py-2.5 font-medium">Item</th>
-                <th className="text-left px-4 py-2.5 font-medium">Company</th>
+                <th className="text-left px-4 py-2.5 font-medium">Addressed to</th>
                 <th className="text-left px-4 py-2.5 font-medium">Logged</th>
                 <th className="text-left px-4 py-2.5 font-medium">Status</th>
                 <th className="text-right px-4 py-2.5" />
@@ -150,7 +172,10 @@ export default function MailRegister() {
                       {r.description && <span className="text-muted-foreground">· {r.description}</span>}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-foreground">{r.companyName || r.companyId}</td>
+                  <td className="px-4 py-3 text-foreground">
+                    {r.addresseeName || r.companyName || r.companyId}
+                    {r.memberId && r.companyName && <div className="text-xs text-muted-foreground">{r.companyName}</div>}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {r.loggedAt ? format(new Date(r.loggedAt), 'dd/MM/yyyy HH:mm') : '—'}
                     {r.notifiedAt && <span className="ml-1.5 text-[10px] font-semibold uppercase bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Notified</span>}
@@ -187,9 +212,18 @@ export default function MailRegister() {
             <form onSubmit={logItem} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
               <div>
                 <label className={lab}>Addressed to *</label>
-                <select className={inp} value={form.companyId} onChange={(e) => setForm((p) => ({ ...p, companyId: e.target.value }))} required>
-                  <option value="">Choose company…</option>
-                  {sortedTenants.map((t) => <option key={t.id} value={t.id}>{t.businessName}</option>)}
+                <select className={inp} value={form.addressee} onChange={(e) => setForm((p) => ({ ...p, addressee: e.target.value }))} required>
+                  <option value="">Choose company or member…</option>
+                  <optgroup label="Companies">
+                    {sortedTenants.map((t) => <option key={t.id} value={`c:${t.id}`}>{t.businessName}</option>)}
+                  </optgroup>
+                  <optgroup label="Members">
+                    {sortedMembers.map((m) => (
+                      <option key={m.id} value={`m:${m.id}`}>
+                        {m.name}{companyNameById.get(m.companyId) ? ` — ${companyNameById.get(m.companyId)}` : ''}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
               <div>
