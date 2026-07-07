@@ -479,9 +479,9 @@ const SAMPLE_SPACES = [
   { id: 'hx_func',       unitNumber: 'Function',     type: 'meeting', size: '20–100',   monthlyRate: 0, hourlyRate: 250, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l4', attributes: 'Hexa Function Space · $250/hr · 20–100 guests.' },
 
   // ── Media Studios & Podcast (Level 5) ──────────────────────────────────────
-  { id: 'hx_studio_1',  unitNumber: 'Media Studio 1', type: 'studio',  size: '90 m²', monthlyRate: 0, rate: 120, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l5', attributes: 'Green-screen photography & video studio.' },
+  { id: 'hx_studio_1',  unitNumber: 'Media Studios', type: 'studio',  size: '90 m²', monthlyRate: 0, rate: 120, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l5', attributes: 'Green-screen photography & video studio.' },
   { id: 'hx_studio_2',  unitNumber: 'Media Studio 2', type: 'studio',  size: '60 m²', monthlyRate: 0, rate: 100, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l5', attributes: 'Content / livestream studio.' },
-  { id: 'hx_podcast_1', unitNumber: 'Podcast Room 1', type: 'podcast', size: '4 seats', monthlyRate: 0, rate: 80, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l5', attributes: 'Acoustically treated 4-mic podcast booth.' },
+  { id: 'hx_podcast_1', unitNumber: 'Podcast Room', type: 'podcast', size: '4 seats', monthlyRate: 0, rate: 80, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l5', attributes: 'Acoustically treated 4-mic podcast booth.' },
 
   // ── Parking Slots (Level 2 / basement) ─────────────────────────────────────
   { id: 'hx_park_1', unitNumber: 'P1', type: 'parking', monthlyRate: 0, rate: 300, status: 'vacant', location: 'whitehorse', address: '830 Whitehorse Rd, Box Hill', floor: 'l2', attributes: '' },

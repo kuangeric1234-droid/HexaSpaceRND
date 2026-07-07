@@ -11,8 +11,8 @@ No code changes needed. ~1200px wide is plenty; keep files < 300 KB.
 - hx_mr_central.jpg   — Central
 - hx_mr_sky.jpg       — Sky
 - hx_mr_earth.jpg     — Earth
-- hx_studio_1.jpg     — Media Studio 1
-- hx_podcast_1.jpg    — Podcast Room 1
+- hx_studio_1.jpg     — Media Studios
+- hx_podcast_1.jpg    — Podcast Room
 
 Alternatively set a `photo` URL on the space record (spaces table, data.photo)
 — that wins over these files. Rooms without either show the monogram plate.

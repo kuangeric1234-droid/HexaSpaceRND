@@ -80,8 +80,8 @@ const spacesSeed = [
   { id: 'hx_mr_north', unitNumber: 'North', type: 'meeting', size: 'Up to 8', hourlyRate: 60, floor: 'l4', attributes: 'North (Bei) — floor-to-ceiling windows, full video conferencing.' },
   { id: 'hx_mr_east',  unitNumber: 'East',  type: 'meeting', size: 'Up to 6', hourlyRate: 80, floor: 'l4', attributes: 'East (Dong) — traditional Chinese tearoom with integrated tea service.' },
   { id: 'hx_mr_west',  unitNumber: 'West',  type: 'meeting', size: 'Up to 8', hourlyRate: 80, floor: 'l4', attributes: 'West (Xi) — boardroom plus tiered seating, up to 12 central.' },
-  { id: 'hx_studio_1', unitNumber: 'Media Studio 1', type: 'studio',  size: '90 m²', rate: 120, floor: 'l5', attributes: 'Green-screen photography & video studio.' },
-  { id: 'hx_podcast_1',unitNumber: 'Podcast Room 1', type: 'podcast', size: '4 seats', rate: 80, floor: 'l5', attributes: 'Acoustically treated 4-mic podcast booth.' },
+  { id: 'hx_studio_1', unitNumber: 'Media Studios', type: 'studio',  size: '90 m²', rate: 120, floor: 'l5', attributes: 'Green-screen photography & video studio.' },
+  { id: 'hx_podcast_1',unitNumber: 'Podcast Room', type: 'podcast', size: '4 seats', rate: 80, floor: 'l5', attributes: 'Acoustically treated 4-mic podcast booth.' },
 ]
 
 // ── Run ─────────────────────────────────────────────────────────────────
