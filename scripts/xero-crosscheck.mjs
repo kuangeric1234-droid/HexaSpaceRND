@@ -101,7 +101,11 @@ async function fetchXeroInvoices() {
 }
 
 // ── Comparison ───────────────────────────────────────────────────────────────
-const norm = (s) => String(s ?? '').toLowerCase().replace(/p\/l/g, '').replace(/\b(pty|ltd|pty\.|ltd\.|limited)\b/g, '').replace(/[^a-z0-9]/g, '')
+const ALIAS = { hexapacifichp: 'hexapacific' } // Xero contact "Hexa Pacific Pty Ltd - HP"
+const norm = (s) => {
+  const n = String(s ?? '').toLowerCase().replace(/p\/l/g, '').replace(/\b(pty|ltd|pty\.|ltd\.|limited)\b/g, '').replace(/[^a-z0-9]/g, '')
+  return ALIAS[n] ?? n
+}
 const aud = (n) => '$' + Number(n ?? 0).toLocaleString('en-AU', { minimumFractionDigits: 2 })
 const invoiceExGst = (inv) => (inv.lineItems ?? []).reduce(
   (s, li) => s + Number(li.unitPrice ?? 0) * Number(li.qty ?? 1) * (1 - Number(li.discountPct ?? 0) / 100), 0)
