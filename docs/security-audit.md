@@ -256,12 +256,69 @@ new frontend code deploys:
 
 ---
 
-## Phase results (appended as completed)
+## Phase results
 
-- **Phase 1 — Audit:** ✅ complete (this document + baseline probe).
-- **Phase 2 — Public pages off anon:** pending.
-- **Phase 3 — Member scoping:** pending.
-- **Phase 4 — Admin auth:** pending.
-- **Phase 5 — Settings/secrets:** pending.
-- **API IDOR remediation:** pending.
-- **Phase 6 — Anon lockdown + adversarial verification:** pending.
+- **Phase 1 — Audit:** ✅ complete (this document + `docs/_probe-baseline.txt`).
+- **Phase 2 — Public pages off anon:** ✅ code shipped. SignPage / FunctionSignPage /
+  EventBookingSignPage now use token-verifying endpoints (`api/sign/*`,
+  `api/function-bookings/{load,sign}`, `api/event-bookings/{load,save,upload}`).
+  The anon-drop for those tables is folded into the Phase 6 cutover migration.
+- **Phase 3 — Member scoping:** ✅ `migrations/phase3_member_scoping.sql` APPLIED
+  live (additive/inert). Helpers `current_email()`/`current_company()`, `mem_*`
+  policies, and the sanitized `booking_availability` view. Portal + mobile loaders
+  switched to the view for cross-company availability.
+- **Phase 4 — Admin auth:** ✅ `migrations/phase4_admin_auth.sql` APPLIED live
+  (additive). `admins` allow-list + `is_admin()` + `adm_*` full-access policies +
+  a trigger syncing the allow-list from the Settings UI. `App.jsx` role now via the
+  `is_admin()` RPC. Seeded admins: eric@, info@, admin@, william@hexa.com.au.
+- **Phase 5 — Settings/secrets:** ✅ code shipped. `api/portal/settings.js` public
+  subset; mobile reads it instead of the raw row. `event-insurance` bucket
+  privatization + signed URLs (`migrations/phase5_storage_bucket.sql`, folded into
+  Phase 6). Settings row becomes admin-only at cutover.
+- **API IDOR remediation:** ✅ shipped. `api/_auth.js` gates + `src/lib/apiFetch.js`
+  send the caller's JWT. Admin-gated: invite, revoke, salto/*, google-ads/*,
+  sanity-*, xero/disconnect, send-email, notify-reply, status. Ownership-scoped:
+  add-teammate, stripe/charge+checkout+setup, food/charge+checkout,
+  function-bookings/submit. Crons require `CRON_SECRET` (or admin).
+- **Phase 6 — Cutover + adversarial verification:** ⏳ PENDING DEPLOY. The additive
+  work above is live but INERT (permissive policies still present → holes still
+  open exactly as at baseline; production behaviour unchanged). The cutover
+  (`migrations/phase6_cutover.sql`) drops every permissive policy — it must run
+  only AFTER this branch is deployed to production (verified: prod still serves the
+  old bundle as of this writing).
+
+## Cutover runbook (Phase 6)
+
+Do these in order:
+
+1. **Deploy** the `security/rls-remediation` branch to **production** (merge to
+   `main` → Vercel deploy). This makes the new endpoints + JWT-sending client live.
+2. **Set Vercel env vars** (Project → Settings → Environment Variables):
+   - `CRON_SECRET` — any long random string. Vercel sends it as the cron Bearer;
+     until set, crons run **unguarded** (still functional, just not enforced).
+   - `SANITY_WEBHOOK_SECRET` (optional) — if the website Sanity webhook calls
+     `portal/notify-event`; also add it to the Sanity webhook's `sanity-webhook-secret` header.
+3. **Verify prod is live**: `POST https://portal.hexaspace.com.au/api/sign/load {}`
+   should return JSON `{"error":"Missing token."}` (not the SPA HTML / 405).
+4. **Apply the cutover**: `node scripts/migrate.mjs migrations/phase6_cutover.sql`.
+5. **Verify adversarially** with a member JWT (target 0 holes):
+   `node scripts/security-test-member.mjs up` then
+   `TEST_MEMBER_EMAIL=… TEST_MEMBER_PASSWORD=… VICTIM_COMPANY_ID=__sectest__co VICTIM_TENANT_ID=tc4 node scripts/security-probe.mjs`
+   then `node scripts/security-test-member.mjs down` to remove the disposable member.
+6. **Smoke-test** live: admin login + a page load, portal login + bookings/invoices,
+   a `/sign/<token>` page, Stripe webhook (unchanged), and one cron (`?key=$CRON_SECRET`).
+
+Rollback: re-adding a permissive policy restores open access, e.g.
+`create policy tmp_open on public.<t> for all to authenticated using (true);` (emergency only).
+
+## Residual items (documented, lower priority)
+
+- `api/book-tour.js` / `api/function-request.js` (MED-LOW): public forms overwrite an
+  existing lead/booking matched by email/ref. Recommend: don't mutate an owned record
+  from a public form keyed only on email; create a new record or require the token.
+- `api/auth/login.js` + `src/components/Login.jsx` (LOW): dead code (no endpoint
+  validates the token; real login is Supabase Auth). Safe to delete.
+- Credit balances (`tenants.data.creditsRemaining`) are written client-side by members
+  (booking deduction). Members can update their own tenant row (`mem_upd_tenants`), so a
+  determined member could tamper with their own credit balance. Recommend moving credit
+  math into the booking endpoint. Not cross-tenant, so out of scope for this pass.
