@@ -154,12 +154,24 @@ export default function PortalApp() {
       const mine = (rows) => rows.filter((r) =>
         r.tenantId === cid || r.companyId === cid || (member && r.memberId === member.id))
 
+      // Availability across ALL companies comes from the sanitized view (resource
+      // + date + times + status only — no title/company/member), so per-tenant RLS
+      // on `bookings` doesn't blind the calendar. Own bookings keep full detail;
+      // everyone else's render as a plain "Booked" slot. Robust whether the
+      // bookings read returned all rows (pre-cutover) or only ours (post-cutover).
+      const ownBookings = cid ? mine(bookings) : (member ? bookings.filter((b) => b.memberId === member.id) : [])
+      const ownIds = new Set(ownBookings.map((b) => b.id))
+      const availRes = await supabase.from('booking_availability').select('*')
+      const slots = (availRes.data ?? [])
+        .filter((s) => !ownIds.has(s.id))
+        .map((s) => ({ id: s.id, resourceId: s.resource_id, date: s.date, startTime: s.start_time, endTime: s.end_time, status: s.status }))
+
       setData({
         company, member, members, companies, spaces, templates,
         leases,
         invoices,
-        bookings: cid ? mine(bookings) : (member ? bookings.filter((b) => b.memberId === member.id) : []),
-        allBookings: bookings, // every booking — used by the calendar for availability
+        bookings: ownBookings,
+        allBookings: [...ownBookings, ...slots], // own (detailed) + others (masked)
         functionBookings: functionBookings.filter((fb) =>
           (cid && (fb.companyId === cid || fb.tenantId === cid)) ||
           (member && fb.memberId === member.id) ||

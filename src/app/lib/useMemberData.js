@@ -49,11 +49,20 @@ export function useMemberData(email) {
       const mine = (rows) => rows.filter((r) =>
         r.tenantId === cid || r.companyId === cid || (member && r.memberId === member.id))
 
+      // Cross-company availability via the sanitized view (no title/company/member);
+      // own bookings keep full detail. Robust pre- and post-cutover (see PortalApp).
+      const ownBookings = cid ? mine(bookings) : (member ? bookings.filter((b) => b.memberId === member.id) : [])
+      const ownIds = new Set(ownBookings.map((b) => b.id))
+      const availRes = await supabase.from('booking_availability').select('*')
+      const slots = (availRes.data ?? [])
+        .filter((s) => !ownIds.has(s.id))
+        .map((s) => ({ id: s.id, resourceId: s.resource_id, date: s.date, startTime: s.start_time, endTime: s.end_time, status: s.status }))
+
       setData({
         company, member, members, companies, spaces, fees, settings,
         leases, invoices, mailItems,
-        bookings: cid ? mine(bookings) : (member ? bookings.filter((b) => b.memberId === member.id) : []),
-        allBookings: bookings, // every booking — used for availability
+        bookings: ownBookings,
+        allBookings: [...ownBookings, ...slots], // own (detailed) + others (masked)
       })
     } catch (err) {
       console.error('App fetchData error:', err)

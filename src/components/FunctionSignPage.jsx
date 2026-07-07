@@ -145,6 +145,9 @@ export default function FunctionSignPage({ token }) {
               {q?.staffApplies ? <Row label={`F&B & AV staff (80+ pax) — ${q?.hours} hrs @ $40/hr`} value={money(q?.staff)} /> : null}
               {addonLines.map((a) => <Row key={a.key} label={a.label} value={money(a.price)} />)}
               {q?.lateFee ? <Row label="Late booking surcharge (within 7 days)" value={money(q?.lateFee)} /> : null}
+              {q?.discount > 0 && (
+                <Row label={`Discount${q.discountPct ? ` (${q.discountPct}%)` : ''}${q.discountReason ? ` — ${q.discountReason}` : ''}`} value={`−${money(q.discount)}`} />
+              )}
               <div className="border-t border-gray-100 mt-2 pt-2">
                 <Row label="GST (10%)" value={money(q?.gst)} muted />
                 <Row label="Total (inc GST)" value={money(q?.total)} strong />
