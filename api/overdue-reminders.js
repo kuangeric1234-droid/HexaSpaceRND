@@ -70,6 +70,11 @@ export default async function handler(req, res) {
       for (const inv of [...allOverdue]) {
         const tenant = tenants.find((t) => t.id === inv.tenantId)
         if (!tenant?.stripePaymentMethodId) continue
+        // Unattended charging needs a RECORDED payment authority (the opt-in
+        // ticked at card setup, or stamped by new-contract onboarding). Members
+        // on pre-authority contracts who merely saved a card are never
+        // auto-charged — see src/lib/cardAuthority.js.
+        if (tenant.cardAuthorityAccepted !== true) continue
         // Grace period: only charge once the due date is graceDays behind us.
         if (!inv.dueDate || inv.dueDate > chargeCutoff) continue
         // One attempt per day per invoice; skip if today's attempt already failed.

@@ -5,6 +5,8 @@ import { useApp } from '../context.js'
 import { Screen, BackHeader, Label, Card, Chip, Rule, EmptyNote, StatusBadge, fmt, money } from '../ui.jsx'
 import { invoiceTotal, unpaidInvoices } from '../lib/invoiceTotal.js'
 import { apiUrl, openPayment } from '../lib/native.js'
+import { supabase } from '../../lib/supabase.js'
+import { CARD_AUTHORITY_TEXT, cardAuthorityFields } from '../../lib/cardAuthority.js'
 import PaySheet from './PaySheet.jsx'
 
 // Billing & invoices — pay outstanding invoices (saved card / Checkout),
@@ -14,6 +16,10 @@ export default function Billing() {
   const { company, invoices, leases, spaces } = data
   const [payInvoice, setPayInvoice] = useState(null)
   const [busyCard, setBusyCard] = useState(false)
+  const [authorityTicked, setAuthorityTicked] = useState(false)
+  // Pre-authority contracts: storing a card is opt-in — consent is recorded
+  // on the company record before Stripe setup starts (see lib/cardAuthority.js).
+  const needsAuthority = !company?.cardAuthorityAccepted
 
   const [cardSaved] = useState(() => new URLSearchParams(window.location.search).get('card') === 'saved')
   const [justPaid] = useState(() => new URLSearchParams(window.location.search).get('paid'))
@@ -31,8 +37,14 @@ export default function Billing() {
   const nameFor = (id) => spaces.find((s) => s.id === id)?.unitNumber
 
   async function startCardSetup() {
+    if (needsAuthority && !authorityTicked) return
     setBusyCard(true)
     try {
+      if (needsAuthority) {
+        const consented = { ...company, ...cardAuthorityFields(data.member?.email || company.email) }
+        await supabase.from('tenants').upsert({ id: company.id, data: consented, updated_at: new Date().toISOString() })
+        patch((prev) => ({ ...prev, company: consented }))
+      }
       const r = await fetch(apiUrl('/api/stripe/setup'), {
         method: 'POST', headers: await authHeaders(),
         body: JSON.stringify({ tenantId: company.id, returnTo: '/app/more/billing' }),
@@ -132,7 +144,13 @@ export default function Billing() {
         ) : (
           <>
             <p className="hx-prose text-[13px] mt-3">No payment method saved.</p>
-            <button onClick={startCardSetup} disabled={busyCard}
+            {needsAuthority && (
+              <label className="flex items-start gap-3 text-left mt-4 cursor-pointer">
+                <input type="checkbox" checked={authorityTicked} onChange={(e) => setAuthorityTicked(e.target.checked)} className="mt-1 shrink-0" />
+                <span className="hx-prose text-[12px]">{CARD_AUTHORITY_TEXT}</span>
+              </label>
+            )}
+            <button onClick={startCardSetup} disabled={busyCard || (needsAuthority && !authorityTicked)}
               className="mt-4 hx-btn mx-auto disabled:opacity-50">
               <Plus size={13} /> {busyCard ? 'Opening…' : 'Add payment method'}
             </button>

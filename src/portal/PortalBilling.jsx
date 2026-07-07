@@ -3,6 +3,8 @@ import { authHeaders } from '../lib/apiFetch.js'
 import { jsPDF } from 'jspdf'
 import { Download, CreditCard, Plus } from 'lucide-react'
 import { Page, PageHeader, Card, SubTabs, Segmented, StatusBadge, Empty, Eyebrow, Field, fmt, money } from './ui.jsx'
+import { supabase } from '../lib/supabase.js'
+import { CARD_AUTHORITY_TEXT, cardAuthorityFields } from '../lib/cardAuthority.js'
 
 function calcTotals(invoice) {
   let taxable = 0, exempt = 0
@@ -164,11 +166,20 @@ function InvoicesTab({ invoices, company }) {
 function PaymentTab({ company }) {
   const [busy, setBusy] = useState(false)
   const [cardSaved] = useState(() => new URLSearchParams(window.location.search).get('card') === 'saved')
+  const [authorityTicked, setAuthorityTicked] = useState(false)
   const hasCard = !!company.stripePaymentMethodId
+  // Members on pre-authority contracts must opt in before a card is stored;
+  // consent (text version + when + by whom) is recorded on the company record.
+  const needsAuthority = !company.cardAuthorityAccepted
 
   async function startCardSetup() {
+    if (needsAuthority && !authorityTicked) { alert('Please tick the payment authority first.'); return }
     setBusy(true)
     try {
+      if (needsAuthority) {
+        const consented = { ...company, ...cardAuthorityFields(company.email) }
+        await supabase.from('tenants').upsert({ id: company.id, data: consented, updated_at: new Date().toISOString() })
+      }
       const r = await fetch('/api/stripe/setup', {
         method: 'POST', headers: await authHeaders(),
         body: JSON.stringify({ tenantId: company.id, returnTo: '/billing' }),
@@ -212,7 +223,13 @@ function PaymentTab({ company }) {
             <>
               <p className="hx-prose mt-3">No payment method saved.</p>
               <p className="hx-prose text-[12px] text-portal-muted mt-2">Your card is verified and stored by Stripe — we never see the number.</p>
-              <button onClick={startCardSetup} disabled={busy} className="hx-btn mt-6 inline-flex disabled:opacity-50">
+              {needsAuthority && (
+                <label className="flex items-start gap-3 text-left mt-5 mx-auto max-w-md cursor-pointer">
+                  <input type="checkbox" checked={authorityTicked} onChange={(e) => setAuthorityTicked(e.target.checked)} className="mt-1" />
+                  <span className="hx-prose text-[12px]">{CARD_AUTHORITY_TEXT}</span>
+                </label>
+              )}
+              <button onClick={startCardSetup} disabled={busy || (needsAuthority && !authorityTicked)} className="hx-btn mt-6 inline-flex disabled:opacity-50">
                 <Plus size={13} /> {busy ? 'Opening…' : 'Add payment method'}
               </button>
             </>

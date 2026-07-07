@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Plus, X } from 'lucide-react'
 import MemberProfile from './MemberProfile.jsx'
+import MigrationPanel from './MigrationPanel.jsx'
 
 const today = () => new Date().toISOString().split('T')[0]
 
@@ -95,6 +96,7 @@ export default function Members() {
 
   return (
     <div className="p-8">
+      <MigrationPanel />
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-bold text-foreground">Members</h1>
         <div className="flex items-center gap-2">
