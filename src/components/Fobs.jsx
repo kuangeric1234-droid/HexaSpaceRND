@@ -6,6 +6,7 @@ import {
   DEVICE_TYPES, LOCATIONS, FOB_STATUS, DEPOSIT_STATUS, depositFor, normalizeSerial, money,
   openAssignment, depositPaid, depositState,
 } from '../lib/fobs.js'
+import FobOrderTab from './FobOrderTab.jsx'
 
 const today = () => new Date().toISOString().split('T')[0]
 const nowIso = () => new Date().toISOString()
@@ -22,7 +23,7 @@ function Badge({ map, k }) {
 
 export default function Fobs() {
   const store = useOutletContext()
-  const { members = [], tenants = [], invoices = [], addInvoice } = store
+  const { members = [], tenants = [], invoices = [], addInvoice, settings } = store
   const [fobs, setFobs] = useState([])
   const [assignments, setAssignments] = useState([])
   const [requests, setRequests] = useState([])
@@ -173,7 +174,7 @@ export default function Fobs() {
       </div>
 
       <div className="flex items-center gap-1 mb-4 border-b border-border">
-        {[['devices', 'Devices'], ['requests', `Requests${pendingRequests.length ? ` (${pendingRequests.length})` : ''}`]].map(([k, label]) => (
+        {[['devices', 'Devices'], ['requests', `Requests${pendingRequests.length ? ` (${pendingRequests.length})` : ''}`], ['order', 'Fob Order']].map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${tab === k ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>{label}</button>
         ))}
       </div>
@@ -255,6 +256,8 @@ export default function Fobs() {
             )}
         </div>
       )}
+
+      {tab === 'order' && <FobOrderTab settings={settings} />}
 
       {modal?.kind === 'add' && <AddModal fobs={fobs} onClose={() => setModal(null)} onSave={addDevice} />}
       {modal?.kind === 'issue' && <IssueModal fobs={fobs} preFob={modal.fob} members={members} tenants={tenants} requestMemberId={modal.requestMemberId} requestType={modal.requestType} onClose={() => setModal(null)} onIssue={issueDevice} />}
