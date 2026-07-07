@@ -1,25 +1,54 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { format } from 'date-fns'
+import { format, parseISO, isFuture, isToday } from 'date-fns'
 import {
-  Mailbox, Printer, Croissant, ArrowRight, ArrowUpRight, KeyRound, Receipt, CalendarClock,
+  Mailbox, Printer, Coffee, ArrowRight, ArrowUpRight, KeyRound, Receipt,
+  CalendarClock, Bell, Send,
 } from 'lucide-react'
+import { supabase } from '../../lib/supabase.js'
+import { fetchSanityEvents } from '../../lib/sanity.js'
 import { useApp } from '../context.js'
-import { Screen, Label, Display, Rule, Card, Chip, fmt, to12, money, bookingName } from '../ui.jsx'
+import { Screen, Label, Display, Rule, Card, Chip, Sheet, fmt, to12, money, bookingName } from '../ui.jsx'
 import { invoiceTotal, unpaidInvoices } from '../lib/invoiceTotal.js'
+import { accessSummary, saltoWebUrl } from '../lib/doorAccess.js'
+import { buildNotifications } from '../lib/notifications.js'
 import PaySheet from '../screens/PaySheet.jsx'
+
+// Home — Eclat-style front page: wordmark + icon row, serif greeting,
+// "what's happening" (upcoming events) with the lounge photo, quick actions,
+// then the member's own signals (invoices due, next booking).
 
 export default function Home() {
   const { data, patch } = useApp()
   const nav = useNavigate()
   const { company, member, bookings, spaces, invoices, mailItems } = data
   const [payInvoice, setPayInvoice] = useState(null)
+  const [showNotifications, setShowNotifications] = useState(false)
 
   // Stripe Checkout bounces back to /app?paid=<invoice number>.
   const [justPaid] = useState(() => new URLSearchParams(window.location.search).get('paid'))
   useEffect(() => {
     if (justPaid) window.history.replaceState({}, '', window.location.pathname)
   }, [justPaid])
+
+  // Upcoming events for the "what's happening" strip (same sources as Events).
+  const [events, setEvents] = useState([])
+  useEffect(() => {
+    let alive = true
+    async function load() {
+      const [sanityEvents, localRes] = await Promise.all([
+        fetchSanityEvents().catch(() => []),
+        supabase.from('portal_events').select('data'),
+      ])
+      const local = (localRes.data ?? []).map((r) => r.data)
+      const upcoming = [...sanityEvents, ...local]
+        .filter((e) => { try { const d = parseISO(e.date); return isFuture(d) || isToday(d) } catch { return false } })
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+      if (alive) setEvents(upcoming.slice(0, 2))
+    }
+    load()
+    return () => { alive = false }
+  }, [])
 
   const firstName = (member?.name || company?.contactName || company?.businessName || '').split(' ')[0]
   const awaitingMail = (mailItems ?? []).filter((m) => m.status === 'awaiting')
@@ -31,19 +60,72 @@ export default function Home() {
 
   const unpaid = unpaidInvoices(invoices)
   const owing = unpaid.reduce((s, i) => s + invoiceTotal(i), 0)
+  const doorActive = accessSummary(data).status === 'active'
+  const notifications = buildNotifications(data)
+
+  const openKey = () => window.open(saltoWebUrl(data.settings), '_blank', 'noopener')
 
   return (
     <Screen>
-      {/* Greeting */}
-      <div className="pt-9 pb-7">
-        <Label>{format(new Date(), 'EEEE d MMMM')} · Box Hill</Label>
-        <Display className="mt-4 text-[38px]">
-          Hello {firstName},<br />welcome back.
-        </Display>
+      {/* Top bar — wordmark + key / bell / messages */}
+      <div className="flex items-center justify-between pt-5">
+        <span className="font-heading uppercase text-[15px] tracking-[0.22em] text-ink">Hexa&nbsp;Space</span>
+        <div className="flex items-center gap-1">
+          <button onClick={openKey} aria-label="Door key"
+            className="h-10 w-10 flex items-center justify-center text-ink active:opacity-60">
+            <KeyRound size={18} strokeWidth={1.5} />
+          </button>
+          <button onClick={() => setShowNotifications(true)} aria-label="Notifications"
+            className="relative h-10 w-10 flex items-center justify-center text-ink active:opacity-60">
+            <Bell size={18} strokeWidth={1.5} />
+            {notifications.count > 0 && (
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-hexa-green ring-2 ring-bone" />
+            )}
+          </button>
+          <button onClick={() => nav('/more/messages')} aria-label="Messages"
+            className="h-10 w-10 -mr-2 flex items-center justify-center text-ink active:opacity-60">
+            <Send size={18} strokeWidth={1.5} />
+          </button>
+        </div>
       </div>
 
+      {/* Greeting */}
+      <div className="pt-6 pb-4">
+        <Display className="text-[38px]">
+          Hello {firstName},<br />welcome back!
+        </Display>
+        <p className="font-display font-extralight text-[19px] text-charcoal mt-4 leading-snug">
+          Here is what's happening at{' '}
+          <Link to="/more/events" className="underline decoration-ink/40 underline-offset-4 active:opacity-60">Hexa Space</Link>
+        </p>
+      </div>
+
+      {/* Lounge photo */}
+      <img src="/app-home.jpg" alt="Hexa Space lounge" className="w-full h-52 object-cover" />
+
+      {/* Upcoming events strip */}
+      {events.length > 0 && (
+        <div className="divide-y divide-ink/5 border-b border-ink/10">
+          {events.map((e, i) => (
+            <Link key={e.id ?? i} to="/more/events" className="flex items-center gap-4 py-3.5 active:opacity-60">
+              <span className="bg-paper border border-ink/10 h-11 w-11 shrink-0 flex flex-col items-center justify-center">
+                <span className="font-display font-extralight text-lg leading-none">{String(e.date).slice(8, 10)}</span>
+                <span className="font-heading uppercase tracking-label text-[7px] text-portal-muted mt-0.5">
+                  {format(parseISO(e.date), 'MMM')}
+                </span>
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block font-body text-[14px] text-ink truncate">{e.title}</span>
+                <span className="block hx-prose text-[11px] mt-0.5 truncate">{e.time && e.time !== '12:00 am' ? `${e.time} · ` : ''}{e.location || 'Hexa Space'}</span>
+              </span>
+              <ArrowUpRight size={14} className="text-portal-muted shrink-0" />
+            </Link>
+          ))}
+        </div>
+      )}
+
       {justPaid && (
-        <div className="mb-5 border border-hexa-green/40 bg-hexa-green/10 px-4 py-3">
+        <div className="mt-5 border border-hexa-green/40 bg-hexa-green/10 px-4 py-3">
           <p className="hx-prose text-[13px] text-ink">
             ✓ Payment received for <span className="font-heading uppercase tracking-nav text-[11px]">{justPaid}</span> — thank
             you. It will show as paid within a few minutes.
@@ -51,10 +133,23 @@ export default function Home() {
         </div>
       )}
 
+      {/* Quick actions — Eclat tile row + full-width drinks */}
+      <div className="grid grid-cols-3 gap-px bg-ink/10 mt-6 border border-ink/10">
+        <Tile icon={KeyRound} label="My key" onClick={openKey} chip={doorActive ? null : 'soon'} />
+        <Tile icon={Mailbox} label={`${awaitingMail.length} ${awaitingMail.length === 1 ? 'Delivery' : 'Deliveries'}`}
+          onClick={() => nav('/mail')} highlight={awaitingMail.length > 0} />
+        <Tile icon={Printer} label="Printer" onClick={() => nav('/printer')} />
+      </div>
+      <button onClick={() => nav('/food')}
+        className="w-full mt-px border border-ink/10 bg-paper min-h-[52px] flex items-center justify-center gap-2.5 active:bg-bone transition-colors">
+        <Coffee size={16} strokeWidth={1.5} className="text-ink" />
+        <span className="font-heading uppercase tracking-nav text-[11px] text-ink">Order drinks</span>
+      </button>
+
       {/* Unpaid invoice banner */}
       {unpaid.length > 0 && !justPaid && (
         <button onClick={() => setPayInvoice(unpaid[0])}
-          className="w-full mb-5 bg-charcoal text-paper px-5 py-4 flex items-center gap-4 text-left active:opacity-80">
+          className="w-full mt-6 bg-charcoal text-paper px-5 py-4 flex items-center gap-4 text-left active:opacity-80">
           <Receipt size={18} strokeWidth={1.5} className="text-hexa-green shrink-0" />
           <span className="flex-1 min-w-0">
             <span className="block font-heading uppercase tracking-nav text-[10px] text-paper/60">
@@ -70,37 +165,8 @@ export default function Home() {
         </button>
       )}
 
-      {/* Door access — Salto mobile key; the slot exists ahead of go-live */}
-      <div className="bg-charcoal text-paper p-6">
-        <div className="flex items-center justify-between">
-          <Label className="text-paper/50">Door access</Label>
-          <Chip tone="green">Coming soon</Chip>
-        </div>
-        <div className="flex items-center gap-4 mt-6">
-          <span className="h-12 w-12 shrink-0 border border-paper/20 bg-paper/5 flex items-center justify-center">
-            <KeyRound size={18} strokeWidth={1.4} className="text-paper/70" />
-          </span>
-          <div>
-            <p className="font-heading uppercase tracking-nav text-[11px] text-paper">Mobile key</p>
-            <p className="hx-prose text-[12px] text-paper/50 mt-0.5">Unlock the door from your phone</p>
-          </div>
-        </div>
-        <p className="hx-prose text-[12px] text-paper/50 mt-5">
-          Smart access is on its way — your key will live here. Until then, your access pass works
-          around the clock.
-        </p>
-      </div>
-
-      {/* Quick actions */}
-      <div className="grid grid-cols-3 gap-px bg-ink/10 mt-px">
-        <QuickAction icon={Mailbox} label={'Mail &\ndeliveries'} onClick={() => nav('/mail')}
-          badge={awaitingMail.length > 0 ? awaitingMail.length : null} />
-        <QuickAction icon={Printer} label={'Printer\nsetup'} onClick={() => nav('/printer')} />
-        <QuickAction icon={Croissant} label={'Order\nfood'} onClick={() => nav('/food')} />
-      </div>
-
       {/* Next booking */}
-      <div className="mt-9">
+      <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
           <Label>Next booking</Label>
           <Link to="/book" className="font-heading uppercase tracking-nav text-[10px] text-ink flex items-center gap-1 py-2 active:opacity-60">
@@ -142,6 +208,27 @@ export default function Home() {
         Hexa Space · 402/830 Whitehorse Road, Box Hill · build locally, scale sustainably
       </p>
 
+      {/* Notifications */}
+      <Sheet open={showNotifications} onClose={() => setShowNotifications(false)} title="Notifications">
+        {notifications.items.length === 0 ? (
+          <p className="hx-prose text-[13px] text-center py-8">You're all caught up.</p>
+        ) : (
+          <div className="divide-y divide-ink/5">
+            {notifications.items.map((n) => (
+              <button key={n.key} onClick={() => { setShowNotifications(false); nav(n.to) }}
+                className="w-full flex items-center gap-4 py-4 text-left active:opacity-60">
+                <span className={`h-2 w-2 rounded-full shrink-0 ${n.tone === 'green' ? 'bg-hexa-green' : 'bg-ink'}`} />
+                <span className="flex-1 min-w-0">
+                  <span className="block font-body text-[14px] text-ink truncate">{n.label}</span>
+                  <span className="block hx-prose text-[11px] mt-0.5 truncate">{n.sub}</span>
+                </span>
+                <ArrowRight size={13} className="text-portal-muted shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+      </Sheet>
+
       {payInvoice && (
         <PaySheet
           invoice={payInvoice}
@@ -160,18 +247,16 @@ export default function Home() {
   )
 }
 
-function QuickAction({ icon: Icon, label, onClick, badge }) {
+function Tile({ icon: Icon, label, onClick, chip, highlight }) {
   return (
-    <button onClick={onClick} className="relative bg-paper p-4 min-h-[96px] flex flex-col items-start justify-between active:bg-bone transition-colors">
-      <Icon size={18} strokeWidth={1.4} className="text-ink" />
-      {badge != null && (
-        <span className="absolute top-3 right-3 min-w-[20px] h-5 px-1.5 bg-hexa-green text-paper text-[10px] font-heading flex items-center justify-center">
-          {badge}
+    <button onClick={onClick} className="relative bg-paper min-h-[84px] flex flex-col items-center justify-center gap-2 px-2 active:bg-bone transition-colors">
+      <Icon size={18} strokeWidth={1.4} className={highlight ? 'text-hexa-green' : 'text-ink'} />
+      <span className="font-heading uppercase tracking-nav text-[10px] text-ink text-center leading-tight">{label}</span>
+      {chip && (
+        <span className="absolute top-2 right-2 font-heading uppercase tracking-label text-[7px] text-hexa-green border border-hexa-green/40 px-1.5 py-0.5">
+          {chip}
         </span>
       )}
-      <span className="font-heading uppercase tracking-nav text-[10px] text-ink text-left whitespace-pre-line leading-[1.5]">
-        {label}
-      </span>
     </button>
   )
 }
