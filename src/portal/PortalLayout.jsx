@@ -21,7 +21,7 @@ const nav = [
 // Non-members (function-only clients, no membership agreement) get a cut-down
 // portal — they can book/track functions, see their invoices, their account and
 // message us, but NOT the member facilities, directory, discounts or perks.
-const FUNCTION_ONLY_PATHS = new Set(['/function-space', '/billing', '/account', '/messages'])
+const FUNCTION_ONLY_PATHS = new Set(['/', '/function-space', '/billing', '/account', '/messages'])
 
 export default function PortalLayout({ company, member, onSignOut, children, restricted = false }) {
   const [open, setOpen] = useState(false)
