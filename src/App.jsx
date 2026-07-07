@@ -45,13 +45,15 @@ function RootAuth() {
     let cancelled = false
     ;(async () => {
       const email = (session.user?.email || '').toLowerCase()
-      let admins = [...ADMIN_FALLBACK]
+      // DB-enforced admin check (admins allow-list). No longer reads the whole
+      // settings blob. Falls back to the hardcoded core-team list if the RPC is
+      // unavailable, so the team can always get in.
+      let isAdmin = ADMIN_FALLBACK.includes(email)
       try {
-        const { data } = await supabase.from('settings').select('data').eq('id', 'global')
-        const list = data?.[0]?.data?.adminUsers ?? []
-        admins = admins.concat(list.map((u) => (u.email || '').toLowerCase()))
-      } catch { /* fall back to the hardcoded list */ }
-      if (!cancelled) setRole(admins.includes(email) ? 'admin' : 'member')
+        const { data, error } = await supabase.rpc('is_admin')
+        if (!error) isAdmin = !!data || isAdmin
+      } catch { /* keep fallback */ }
+      if (!cancelled) setRole(isAdmin ? 'admin' : 'member')
     })()
     return () => { cancelled = true }
   }, [session])
