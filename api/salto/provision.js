@@ -18,6 +18,21 @@ import { sendResendEmail } from '../_email.js'
 import { brandFrame, bKicker, bH1, bP, bSmall, bTable } from '../_brand.js'
 import { requireAdmin } from '../_auth.js'
 
+// Resolve the KS access-group name from what the platform knows about the
+// member's space. KS groups are per-space ("Office 15", "Suite 12") plus
+// functional groups for desk/flex/VO members — names verified against the
+// live KS group list (7 Jul 2026). A space's explicit saltoDoors field wins.
+function resolveAccessGroup(doorId, spaceLabel, membershipType) {
+  if (doorId) return doorId
+  const label = `${spaceLabel ?? ''} ${membershipType ?? ''}`
+  const m = label.match(/(office|suite)\s*0?(\d+)/i)
+  if (m) return `${m[1][0].toUpperCase() + m[1].slice(1).toLowerCase()} ${Number(m[2])}`
+  if (/dedicated/i.test(label)) return 'Dedicated Desk'
+  if (/virtual|\bvo\b/i.test(label)) return 'Virtual Office'
+  if (/flex|desk|coworking/i.test(label)) return 'Flexible Access'
+  return 'Flexible Access' // safest general-member default (KS has no "Members" group)
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -26,8 +41,9 @@ export default async function handler(req, res) {
   const auth = await requireAdmin(req)
   if (auth.error) return res.status(auth.status).json({ error: auth.error })
 
-  const { memberEmail, memberName, doorId, spaceLabel, accessFrom, accessUntil } = req.body ?? {}
+  const { memberEmail, memberName, doorId, spaceLabel, membershipType, accessFrom, accessUntil } = req.body ?? {}
   if (!memberEmail) return res.status(400).json({ error: 'memberEmail is required.' })
+  const accessGroup = resolveAccessGroup(doorId, spaceLabel, membershipType)
 
   const webhook = process.env.SALTO_PROVISION_WEBHOOK
 
@@ -46,7 +62,7 @@ export default async function handler(req, res) {
           name: memberName ?? '',
           firstName: nameParts[0] ?? '',
           lastName: nameParts.slice(1).join(' ') || nameParts[0] || '',
-          accessGroup: doorId ?? spaceLabel ?? 'Members',
+          accessGroup,
           accessFrom: accessFrom ?? null,
           accessUntil: accessUntil ?? null,
           source: 'hexaspace-platform',
@@ -68,7 +84,7 @@ export default async function handler(req, res) {
     bTable([
       ['Name', memberName ?? '—', true],
       ['Email (KS invite goes here)', memberEmail, true],
-      ['Access group / door', doorId ?? spaceLabel ?? 'Members (default)', true],
+      ['Access group / door', accessGroup, true],
       ['Access from', accessFrom ?? 'immediately', true],
       ['Access until', accessUntil ?? 'ongoing (lease end)', true],
     ]) +

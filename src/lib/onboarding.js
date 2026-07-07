@@ -138,6 +138,7 @@ export async function provisionSaltoAccess({ member, space, lease }) {
       // Office→door link comes from the office form's "Salto doors" field.
       doorId: space?.saltoDoors ?? space?.saltoDoorId ?? null,
       spaceLabel: space?.unitNumber ?? null,
+      membershipType: lease?.membershipType ?? space?.type ?? null,
       accessFrom: lease?.startDate ?? null,
       accessUntil: lease?.endDate ?? null,
     }),
