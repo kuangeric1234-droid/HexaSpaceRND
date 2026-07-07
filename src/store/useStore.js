@@ -1208,9 +1208,24 @@ export function useStore() {
   // ── Members ───────────────────────────────────────────────────────────────
   const addMember = useCallback((member) => {
     const item = { ...member, id: `m${Date.now()}`, createdAt: new Date().toISOString().split('T')[0] }
+    // Auto portal access: a member added with an email to a company that
+    // already has an active lease is invited on the spot — no separate
+    // Members → invite step. Signup-wizard members are created before their
+    // lease exists so onboarding still handles those; calendar quick-adds
+    // usually have no email and are skipped.
+    const activeCo = !!item.email && item.portalAccess !== false &&
+      leasesRef.current.some((l) => l.tenantId === item.companyId && l.status === 'active')
+    if (activeCo) {
+      item.portalAccess = true
+      item.portalInvitedAt = new Date().toISOString()
+      authHeaders()
+        .then((headers) => fetch('/api/auth/invite', { method: 'POST', headers, body: JSON.stringify({ email: item.email }) }))
+        .then((r) => { if (!r?.ok) console.error('auto portal invite failed for', item.email) })
+        .catch((e) => console.error('auto portal invite failed:', e))
+    }
     setMembers((prev) => [...prev, item])
     syncRow('members', item.id, item)
-    logAudit('create', 'member', item.id, item.name)
+    logAudit('create', 'member', item.id, item.name, activeCo ? 'portal invite auto-sent' : '')
     return item
   }, [])
 
