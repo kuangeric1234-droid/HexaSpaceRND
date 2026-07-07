@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { format, parseISO } from 'date-fns'
-import { supabase } from '../lib/supabase.js'
 import SignatureCanvas from './SignatureCanvas.jsx'
 import { generateAgreementPdf } from '../lib/generateAgreementPdf.js'
+
+// Read a File/Blob as a base64 data URL for POSTing to the upload endpoint.
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(r.result)
+    r.onerror = reject
+    r.readAsDataURL(file)
+  })
+}
 
 // ── Lonsdale 369 permanent pop-up venue ───────────────────────────────────────
 // TODO CONFIRM: set the real Lonsdale 369 street address below.
@@ -578,15 +587,21 @@ export default function EventBookingSignPage({ token }) {
   const [agreed, setAgreed] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [insuranceChoice, setInsuranceChoice] = useState(null)
+  const licensorSigRef = useRef(null)
   const sigRef = useRef(null)
 
   useEffect(() => {
     async function load() {
       try {
-        const { data, error } = await supabase.from('event_bookings').select('data')
-        if (error) { setState('error'); return }
-        const match = (data ?? []).map(r => r.data).find(b => b?.signingToken === token)
+        const r = await fetch('/api/event-bookings/load', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        })
+        if (r.status === 404) { setState('invalid'); return }
+        if (!r.ok) { setState('error'); return }
+        const { booking: match, licensorSig } = await r.json()
         if (!match) { setState('invalid'); return }
+        licensorSigRef.current = licensorSig ?? null
         setBooking(match)
         if (match.signedAt) { setState('signed'); return }
         if (match.vendorName) setSignerName(match.vendorName)
@@ -608,58 +623,43 @@ export default function EventBookingSignPage({ token }) {
     setSubmitting(true)
     try {
       const signatureData = sigRef.current.toDataURL()
-      const now = new Date().toISOString()
-      let updated = {
-        ...booking,
+      const signedFields = {
         status: 'signed',
-        signedAt: now,
+        signedAt: new Date().toISOString(),
         signerName: signerName.trim(),
         signerTitle: signerTitle.trim(),
         signerDate,
         signatureData,
-        updatedAt: now,
       }
 
-      // Fetch admin/licensor signature for countersigning
-      let adminSig = null
+      // Generate the signed PDF client-side (licensor sig came from /load), then
+      // upload it via the service-role endpoint (best-effort).
+      let agreementPdfUrl = null
       try {
-        const { data: sigRows } = await supabase
-          .from('event_bookings')
-          .select('data')
-          .eq('id', 'hexaspace_licensor_sig')
-          .single()
-        if (sigRows?.data) adminSig = sigRows.data
-      } catch (_) {}
-
-      // Generate and upload the signed PDF (best-effort — signing succeeds regardless)
-      try {
-        const pdfBlob = generateAgreementPdf(updated, adminSig)
-        const pdfPath = `agreements/${booking.id}.pdf`
-        const { error: uploadError } = await supabase.storage.from('event-insurance').upload(pdfPath, pdfBlob, {
-          contentType: 'application/pdf',
-          upsert: false,
+        const pdfBlob = generateAgreementPdf({ ...booking, ...signedFields }, licensorSigRef.current)
+        const pdfBase64 = await fileToBase64(pdfBlob)
+        const up = await fetch('/api/event-bookings/upload', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, kind: 'agreement', fileBase64: pdfBase64, contentType: 'application/pdf', fileName: `${booking.id}.pdf` }),
         })
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage.from('event-insurance').getPublicUrl(pdfPath)
-          updated = { ...updated, agreementPdfUrl: publicUrl }
-        }
-        // If upload fails (bucket not set up yet), admin can regenerate from portal later
+        if (up.ok) agreementPdfUrl = (await up.json()).url ?? null
       } catch (_) {}
 
-      await supabase.from('event_bookings').update({ data: updated, updated_at: now }).eq('id', booking.id)
+      const save = await fetch('/api/event-bookings/save', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, patch: { ...signedFields, ...(agreementPdfUrl ? { agreementPdfUrl } : {}) } }),
+      })
+      if (!save.ok) throw new Error('save failed')
+      const updated = (await save.json()).booking
 
-      // Notify admin
+      // Notify admin + send the vendor their signed copy (server-persisted data).
       fetch('/api/event-bookings/send-signing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ booking: updated, mode: 'admin_notify' }),
       }).catch(() => {})
-
-      // Send vendor their signed copy
       if (updated.agreementPdfUrl) {
         fetch('/api/event-bookings/send-signing', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ booking: updated, mode: 'agreement_copy' }),
         }).catch(() => {})
       }
@@ -675,20 +675,19 @@ export default function EventBookingSignPage({ token }) {
   }
 
   async function submitInsuranceChoice(choice) {
-    const now = new Date().toISOString()
-    const updated = {
-      ...booking,
-      status: choice === 'later' ? 'insurance_pending' : 'insurance_received',
-      insuranceStatus: choice === 'later' ? 'pending' : 'received',
-      insuranceDeferredAt: choice === 'later' ? now : null,
-      updatedAt: now,
-    }
-    await supabase.from('event_bookings').update({ data: updated, updated_at: now }).eq('id', booking.id)
+    const patch = choice === 'later'
+      ? { status: 'insurance_pending', insuranceStatus: 'pending', insuranceDeferredAt: new Date().toISOString() }
+      : { status: 'insurance_received', insuranceStatus: 'received' }
+    const save = await fetch('/api/event-bookings/save', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, patch }),
+    })
+    const updated = save.ok ? (await save.json()).booking : booking
+    setBooking(updated)
     setInsuranceChoice(choice)
     if (choice === 'later') {
       await fetch('/api/event-bookings/send-signing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ booking: updated, mode: 'insurance_deferred' }),
       }).catch(() => {})
     }
@@ -698,6 +697,7 @@ export default function EventBookingSignPage({ token }) {
     return (
       <VendorDetailsForm
         booking={booking}
+        token={token}
         onComplete={(updated) => {
           setBooking(updated)
           if (updated.vendorName) setSignerName(updated.vendorName)
@@ -728,7 +728,7 @@ export default function EventBookingSignPage({ token }) {
             <p className="text-sm text-gray-500 mb-6 text-center">
               Thank you, {booking?.signerName}. Your agreement is signed. Hexa Space will countersign and be in touch to confirm your participation.
             </p>
-            <InsuranceUploadStep booking={booking} onDone={setInsuranceChoice} />
+            <InsuranceUploadStep booking={booking} token={token} onDone={setInsuranceChoice} />
           </div>
         </div>
       </div>
@@ -836,7 +836,7 @@ const VENDOR_TYPES = [
   'Other',
 ]
 
-function VendorDetailsForm({ booking, onComplete }) {
+function VendorDetailsForm({ booking, token, onComplete }) {
   const [form, setForm] = useState({
     vendorBusiness: booking.vendorBusiness || '',
     vendorAbn: booking.vendorAbn || '',
@@ -858,17 +858,12 @@ function VendorDetailsForm({ booking, onComplete }) {
     setSaving(true)
     setError(null)
     try {
-      const now = new Date().toISOString()
-      const updated = {
-        ...booking,
-        ...form,
-        detailsCompleted: true,
-        updatedAt: now,
-      }
-      await supabase.from('event_bookings')
-        .update({ data: updated, updated_at: now })
-        .eq('id', booking.id)
-      onComplete(updated)
+      const save = await fetch('/api/event-bookings/save', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, patch: { ...form, detailsCompleted: true } }),
+      })
+      if (!save.ok) throw new Error('save failed')
+      onComplete((await save.json()).booking)
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -985,44 +980,33 @@ function VendorDetailsForm({ booking, onComplete }) {
 
 // ── Insurance upload step ─────────────────────────────────────────────────────
 
-function InsuranceUploadStep({ booking, onDone }) {
+function InsuranceUploadStep({ booking, token, onDone }) {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState(null)
   const fileRef = useRef(null)
 
   async function handleUpload(file) {
     if (!file) return
-    if (file.size > 10 * 1024 * 1024) { setUploadError('File must be under 10 MB.'); return }
+    if (file.size > 4 * 1024 * 1024) { setUploadError('File must be under 4 MB — or email it to info@hexaspace.com.au.'); return }
     setUploading(true)
     setUploadError(null)
     try {
-      const ext = file.name.split('.').pop()
-      const filePath = `${booking.id}/${Date.now()}.${ext}`
-      const { error: uploadErr } = await supabase.storage
-        .from('event-insurance')
-        .upload(filePath, file, { contentType: file.type, upsert: true })
+      const fileBase64 = await fileToBase64(file)
+      const up = await fetch('/api/event-bookings/upload', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, kind: 'insurance', fileBase64, contentType: file.type, fileName: file.name }),
+      })
+      if (!up.ok) throw new Error('upload failed')
+      const { url } = await up.json()
 
-      if (uploadErr) throw uploadErr
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('event-insurance')
-        .getPublicUrl(filePath)
-
-      const now = new Date().toISOString()
-      const updated = {
-        ...booking,
-        status: 'insurance_received',
-        insuranceStatus: 'received',
-        insuranceUrl: publicUrl,
-        insuranceFileName: file.name,
-        insuranceUploadedAt: now,
-        updatedAt: now,
-      }
-      await supabase.from('event_bookings').update({ data: updated, updated_at: now }).eq('id', booking.id)
+      const save = await fetch('/api/event-bookings/save', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, patch: { status: 'insurance_received', insuranceStatus: 'received', insuranceUrl: url, insuranceFileName: file.name, insuranceUploadedAt: new Date().toISOString() } }),
+      })
+      const updated = save.ok ? (await save.json()).booking : { ...booking, insuranceUrl: url }
 
       await fetch('/api/event-bookings/send-signing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ booking: updated, mode: 'insurance_uploaded' }),
       }).catch(() => {})
 
@@ -1036,18 +1020,13 @@ function InsuranceUploadStep({ booking, onDone }) {
   }
 
   async function handleDefer() {
-    const now = new Date().toISOString()
-    const updated = {
-      ...booking,
-      status: 'insurance_pending',
-      insuranceStatus: 'pending',
-      insuranceDeferredAt: now,
-      updatedAt: now,
-    }
-    await supabase.from('event_bookings').update({ data: updated, updated_at: now }).eq('id', booking.id)
+    const save = await fetch('/api/event-bookings/save', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, patch: { status: 'insurance_pending', insuranceStatus: 'pending', insuranceDeferredAt: new Date().toISOString() } }),
+    })
+    const updated = save.ok ? (await save.json()).booking : booking
     await fetch('/api/event-bookings/send-signing', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ booking: updated, mode: 'insurance_deferred' }),
     }).catch(() => {})
     onDone('later')

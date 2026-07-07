@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { format } from 'date-fns'
-import { supabase } from '../lib/supabase.js'
 import SignatureCanvas from './SignatureCanvas.jsx'
 import { TERMS, TERMS_INTRO, ADDONS, money, computeQuote } from '../lib/functionBooking.js'
 
@@ -53,9 +52,13 @@ export default function FunctionSignPage({ token }) {
   useEffect(() => {
     async function load() {
       try {
-        const { data, error } = await supabase.from('function_bookings').select('data')
-        if (error) { setState('error'); return }
-        const match = (data ?? []).map((r) => r.data).find((x) => x?.signingToken === token)
+        const r = await fetch('/api/function-bookings/load', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        })
+        if (r.status === 404) { setState('invalid'); return }
+        if (!r.ok) { setState('error'); return }
+        const { booking: match } = await r.json()
         if (!match) { setState('invalid'); return }
         setB(match)
         if (match.name) setName(match.name)
@@ -74,17 +77,15 @@ export default function FunctionSignPage({ token }) {
     setSubmitting(true)
     try {
       const signatureData = sigRef.current.toDataURL()
-      const now = new Date().toISOString()
-      const updated = {
-        ...b, stage: 'signed', signedAt: now, signerName: name.trim(), signerTitle: title.trim(),
-        signerDate: dateStr, signatureData, agreed: true, read: false, updatedAt: now,
-      }
-      await supabase.from('function_bookings').update({ data: updated, updated_at: now }).eq('id', b.id)
-      fetch('/api/function-bookings/notify', {
+      const r = await fetch('/api/function-bookings/sign', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ booking: updated, mode: 'signed' }),
-      }).catch(() => {})
-      setB(updated)
+        body: JSON.stringify({ token, signerName: name.trim(), signerTitle: title.trim(), signerDate: dateStr, signatureData }),
+      })
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}))
+        throw new Error(d.error ?? 'Something went wrong.')
+      }
+      setB((prev) => ({ ...prev, stage: 'signed', signedAt: new Date().toISOString(), signerName: name.trim() }))
       setState('signed')
     } catch (err) {
       console.error(err); alert('Something went wrong. Please try again.')

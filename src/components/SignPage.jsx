@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { format, parseISO } from 'date-fns'
-import { supabase } from '../lib/supabase.js'
-import { sendEmail, brandShell, bKicker, bH1, bP, bSmall, bBtn, BRAND } from '../lib/sendEmail.js'
+import { format } from 'date-fns'
 import SignatureCanvas from './SignatureCanvas.jsx'
 import ContractTemplate from './ContractTemplate.jsx'
 import { requiresCardOnFile } from '../lib/onboarding.js'
@@ -31,9 +29,9 @@ export default function SignPage({ token }) {
   async function startCardSetup() {
     setCardBusy(true)
     try {
-      const r = await fetch('/api/stripe/setup', {
+      const r = await fetch('/api/sign/card-setup', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenantId: lease?.tenantId, returnTo: window.location.pathname }),
+        body: JSON.stringify({ token, returnTo: window.location.pathname }),
       })
       const d = await r.json().catch(() => ({}))
       if (!r.ok) throw new Error(d.error ?? 'Could not start card setup.')
@@ -47,47 +45,35 @@ export default function SignPage({ token }) {
   useEffect(() => {
     async function load() {
       try {
-        const { data: req, error } = await supabase
-          .from('esign_requests').select('*').eq('token', token).single()
-
-        if (error || !req) { setState('invalid'); return }
+        const r = await fetch('/api/sign/load', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        })
+        if (!r.ok) { setState('invalid'); return }
+        const payload = await r.json()
+        const req = payload.request
+        if (!req) { setState('invalid'); return }
 
         setRequest(req)
         if (req.status === 'fully_signed') { setState('fully_signed'); return }
         if (req.status === 'tenant_signed') {
           // Still load the lease + tenant: the post-sign card-on-file step
           // needs them (e.g. the client signed, then came back to the link).
-          const { data: lRows } = await supabase.from('leases').select('data').eq('id', req.lease_id)
-          const l = lRows?.[0]?.data
-          if (l) {
-            setLease(l)
-            const { data: tRows } = await supabase.from('tenants').select('data').eq('id', l.tenantId)
-            setTenant(tRows?.[0]?.data ?? null)
-          }
+          if (payload.lease) setLease(payload.lease)
+          if (payload.tenant) setTenant(payload.tenant)
           setState('tenant_signed')
           return
         }
 
-        const [{ data: leaseRows }, { data: settRows }] = await Promise.all([
-          supabase.from('leases').select('data').eq('id', req.lease_id),
-          supabase.from('settings').select('data').eq('id', 'global'),
-        ])
-
-        const leaseData = leaseRows?.[0]?.data
+        const leaseData = payload.lease
         if (!leaseData) { setState('invalid'); return }
         setLease(leaseData)
-        setSettings(settRows?.[0]?.data ?? null)
+        setSettings(payload.settings ?? null)
+        setTenant(payload.tenant ?? null)
+        setSpace(payload.space ?? null)
+        if (payload.tenant?.contactName) setSignerName(payload.tenant.contactName)
 
-        const [{ data: tenantRows }, { data: spaceRows }, { data: tmplRows }] = await Promise.all([
-          supabase.from('tenants').select('data').eq('id', leaseData.tenantId),
-          supabase.from('spaces').select('data').eq('id', leaseData.spaceId),
-          supabase.from('templates').select('id,data'),
-        ])
-        setTenant(tenantRows?.[0]?.data ?? null)
-        setSpace(spaceRows?.[0]?.data ?? null)
-        if (tenantRows?.[0]?.data?.contactName) setSignerName(tenantRows[0].data.contactName)
-
-        const allTemplates = (tmplRows ?? []).map((r) => ({ id: r.id, ...r.data }))
+        const allTemplates = payload.templates ?? []
         const contractTerms = leaseData.contractTerms ?? []
         const attached = contractTerms
           .map((ref) => allTemplates.find((t) => t.id === ref) ?? allTemplates.find((t) => `${t.name} - ${t.version}` === ref || t.name === ref))
@@ -121,51 +107,16 @@ export default function SignPage({ token }) {
     setSubmitting(true)
     try {
       const signatureData = sigRef.current.toDataURL()
-      const now = new Date().toISOString()
-
-      // Supabase returns errors instead of throwing — check them, or a failed
-      // write (e.g. schema mismatch) silently loses the signature.
-      const { error: reqError } = await supabase.from('esign_requests').update({
-        status: 'tenant_signed',
-        licensee_signature_data: signatureData,
-        licensee_signer_name: signerName,
-        licensee_signed_at: now,
-        licensee_title: signerTitle,
-        licensee_date: signerDate,
-      }).eq('token', token)
-      if (reqError) throw reqError
-
-      // Update lease to show it's waiting for countersignature
-      const { error: leaseError } = await supabase.from('leases').update({
-        data: { ...lease, signatureStatus: 'out_for_signature', tenantSignedAt: now, tenantSignerName: signerName },
-      }).eq('id', request.lease_id)
-      if (leaseError) throw leaseError
-
-      const companyName = settings?.company?.name ?? 'Hexa Space'
-      const contractNum = lease.contractNumber ?? `CON-${lease.id?.slice(-3).toUpperCase()}`
-      const portalUrl = settings?.portalUrl || `https://portal.hexaspace.com.au`
-
-      // Notify admins to countersign (both eric@ and info@ + any configured address)
-      const adminList = [...new Set(['eric@hexaspace.com.au', 'info@hexaspace.com.au', settings?.emails?.notificationEmail].filter(Boolean).map((e) => e.toLowerCase()))]
-      if (adminList.length) {
-        await sendEmail({
-          to: adminList,
-          subject: `Action required: ${tenant?.businessName ?? 'Tenant'} has signed ${contractNum}`,
-          html: adminCountersignHtml({ tenant, settings, signerName, contractNum, now, portalUrl }),
-          settings,
-        }).catch(() => {})
+      const r = await fetch('/api/sign/submit', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, signerName, signerTitle, signerDate, signatureData }),
+      })
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}))
+        throw new Error(d.error ?? 'Something went wrong.')
       }
-
-      // Confirm to tenant
-      if (tenant?.email) {
-        await sendEmail({
-          to: tenant.email,
-          subject: `Signature received — ${contractNum}`,
-          html: tenantConfirmHtml({ tenant, settings, signerName, contractNum, now, companyName }),
-          settings,
-        }).catch(() => {})
-      }
-
+      // Reflect the countersignature-pending state locally for the card step.
+      setLease((l) => (l ? { ...l, signatureStatus: 'out_for_signature' } : l))
       setState('tenant_signed')
     } catch (err) {
       console.error(err)
@@ -378,26 +329,3 @@ function StatusScreen({ icon, title, subtitle, children }) {
   )
 }
 
-function adminCountersignHtml({ tenant, settings, signerName, contractNum, now, portalUrl }) {
-  const company = settings?.company?.name ?? 'Hexa Space'
-  const website = settings?.company?.website ?? 'hexaspace.com.au'
-  const date = format(parseISO(now), 'dd MMM yyyy, h:mm a')
-  const detail = (l, v) => `<div style="font-family:${BRAND.SANS};font-size:13px;color:#3a3a3a;line-height:1.7"><span style="color:${BRAND.MUTE}">${l}:</span> <strong style="color:${BRAND.INK}">${v}</strong></div>`
-  const panel = `<div style="background:${BRAND.GREIGE};border-radius:8px;padding:16px 18px;margin:0 0 20px">${detail('Signed by', signerName)}${detail('Date', date)}${detail('Contract', contractNum)}</div>`
-  const inner = bKicker('Action Required') +
-    bH1('Countersign contract 🖊') +
-    bP(`<strong style="color:${BRAND.INK}">${tenant?.businessName ?? 'A tenant'}</strong> has signed <strong style="color:${BRAND.INK}">${contractNum}</strong>. Please log in to the portal to review and countersign.`) +
-    panel +
-    bBtn('Open portal to countersign', portalUrl)
-  return brandShell(inner, { company, website })
-}
-
-function tenantConfirmHtml({ tenant, settings, signerName, contractNum, companyName }) {
-  const website = settings?.company?.website ?? 'hexaspace.com.au'
-  const inner = bKicker('Signature Received') +
-    bH1('Signature received ✅') +
-    bP(`Hi ${tenant?.contactName ?? 'there'},`) +
-    bP(`Your signature for <strong style="color:${BRAND.INK}">${contractNum}</strong> has been received. ${companyName} will countersign and send you a fully executed copy shortly.`) +
-    bSmall('If you have any questions, please contact us directly.')
-  return brandShell(inner, { company: companyName, website })
-}
