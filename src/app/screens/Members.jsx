@@ -3,18 +3,26 @@ import { useNavigate } from 'react-router-dom'
 import { Search, MessageCircle, ChevronRight } from 'lucide-react'
 import { useApp } from '../context.js'
 import { Screen, BackHeader, Label, EmptyNote } from '../ui.jsx'
-import { loadMyConversations } from '../lib/memberMessages.js'
+import { loadDirectory, loadMyConversations } from '../lib/memberMessages.js'
 
 const initials = (name) => (name || '?').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('')
 
-// Members directory + member-to-member messaging. Browse the community grouped
-// by company; tap a member to open a private 1:1 chat.
+// Members directory + member-to-member messaging. Browse the community (from the
+// sanitized member_directory view — names + company only, opted-out members
+// excluded) and tap a member to open a private 1:1 chat.
 export default function Members() {
   const { data } = useApp()
-  const { members, companies, member } = data
+  const { member } = data
   const nav = useNavigate()
   const [q, setQ] = useState('')
+  const [people, setPeople] = useState(null) // null = loading
   const [convos, setConvos] = useState([])
+
+  useEffect(() => {
+    let alive = true
+    loadDirectory().then((d) => { if (alive) setPeople(d) }).catch(() => { if (alive) setPeople([]) })
+    return () => { alive = false }
+  }, [])
 
   useEffect(() => {
     if (!member?.email) return
@@ -27,23 +35,25 @@ export default function Members() {
 
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    const active = (companies ?? [])
-      .filter((c) => c.businessName)
-      .sort((a, b) => (a.businessName || '').localeCompare(b.businessName || ''))
-    return active
-      .map((c) => {
-        const people = (members ?? []).filter((m) => m.companyId === c.id && m.portalAccess !== false)
-        return { company: c, people }
-      })
+    const byCompany = new Map()
+    for (const p of people ?? []) {
+      const key = p.company_name || 'Hexa Space'
+      if (!byCompany.has(key)) byCompany.set(key, [])
+      byCompany.get(key).push(p)
+    }
+    return [...byCompany.entries()]
+      .map(([company, list]) => ({
+        company,
+        people: list.sort((a, b) => (a.name || '').localeCompare(b.name || '')),
+      }))
       .filter(({ company, people }) => {
-        if (people.length === 0) return false
         if (!needle) return true
-        return company.businessName.toLowerCase().includes(needle) ||
-          people.some((p) => (p.name || '').toLowerCase().includes(needle))
+        return company.toLowerCase().includes(needle) || people.some((p) => (p.name || '').toLowerCase().includes(needle))
       })
-  }, [members, companies, q])
+      .sort((a, b) => a.company.localeCompare(b.company))
+  }, [people, q])
 
-  const canMessage = (p) => p.id !== member?.id && p.email && p.allowMessages !== false
+  const openChat = (id, name) => nav(`/dm/${id}`, { state: { name } })
 
   return (
     <Screen>
@@ -58,13 +68,13 @@ export default function Members() {
           <Label className="mb-2">Your chats</Label>
           <div className="divide-y divide-ink/5 border-y border-ink/10">
             {convos.map((c) => (
-              <button key={c.convoId} onClick={() => nav(`/dm/${c.other.id}`)}
+              <button key={c.convoId} onClick={() => openChat(c.other.id, c.other.name)}
                 className="w-full flex items-center gap-4 py-3.5 text-left active:opacity-60">
                 <span className="h-10 w-10 shrink-0 bg-stone text-ink/50 font-heading tracking-label text-[11px] flex items-center justify-center">
                   {initials(c.other.name)}
                 </span>
                 <span className="flex-1 min-w-0">
-                  <span className="block font-body text-[14px] text-ink truncate">{c.other.name || c.other.email}</span>
+                  <span className="block font-body text-[14px] text-ink truncate">{c.other.name || 'Member'}</span>
                   <span className="block hx-prose text-[12px] truncate">{c.last?.content || ''}</span>
                 </span>
                 {c.unread > 0 && (
@@ -85,20 +95,21 @@ export default function Members() {
           className="flex-1 bg-transparent font-body text-[14px] text-ink outline-none placeholder:text-portal-muted" />
       </label>
 
-      {groups.length === 0 ? (
+      {people === null ? (
+        <p className="hx-prose text-center py-10">Loading the directory…</p>
+      ) : groups.length === 0 ? (
         <EmptyNote label="No members found." sub={q ? 'Try a different search.' : 'The directory is filling up.'} />
       ) : (
         groups.map(({ company, people }) => (
-          <section key={company.id} className="mb-7">
-            <Label className="mb-2">{company.businessName}</Label>
+          <section key={company} className="mb-7">
+            <Label className="mb-2">{company}</Label>
             <div className="divide-y divide-ink/5 border-y border-ink/10">
               {people.map((p) => {
                 const isSelf = p.id === member?.id
-                const messageable = canMessage(p)
-                const Row = messageable ? 'button' : 'div'
                 return (
-                  <Row key={p.id} {...(messageable ? { onClick: () => nav(`/dm/${p.id}`) } : {})}
-                    className={`w-full flex items-center gap-4 py-3.5 text-left ${messageable ? 'active:opacity-60' : ''}`}>
+                  <button key={p.id} disabled={isSelf}
+                    onClick={() => !isSelf && openChat(p.id, p.name)}
+                    className={`w-full flex items-center gap-4 py-3.5 text-left ${isSelf ? '' : 'active:opacity-60'}`}>
                     <span className="h-10 w-10 shrink-0 bg-stone text-ink/50 font-heading tracking-label text-[11px] flex items-center justify-center">
                       {initials(p.name)}
                     </span>
@@ -106,10 +117,9 @@ export default function Members() {
                       <span className="block font-body text-[14px] text-ink truncate">
                         {p.name}{isSelf && <span className="text-portal-muted"> · You</span>}
                       </span>
-                      {p.email && <span className="block hx-prose text-[12px] truncate">{p.email}</span>}
                     </span>
-                    {messageable && <MessageCircle size={16} className="text-portal-muted shrink-0" />}
-                  </Row>
+                    {!isSelf && <MessageCircle size={16} className="text-portal-muted shrink-0" />}
+                  </button>
                 )
               })}
             </div>
