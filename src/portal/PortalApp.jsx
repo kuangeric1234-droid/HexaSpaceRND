@@ -13,11 +13,20 @@ import PortalMessages from './PortalMessages.jsx'
 import PortalAccount from './PortalAccount.jsx'
 import PortalEvents from './PortalEvents.jsx'
 import PortalGuides from './PortalGuides.jsx'
+import PortalFunctionHome from './PortalFunctionHome.jsx'
 
-// Capture hash before Supabase processes it (saved by main.jsx)
+// Detect a set-password (recovery/invite) link from BOTH sources, because of
+// load order: the LIVE hash — this module evaluates before Supabase's async
+// URL processing clears it — and the copy main.jsx saves to sessionStorage
+// (main.jsx's inline code runs AFTER imported modules like this one, so on the
+// first load only the live hash is visible here; the saved copy covers any
+// later reload). Relying on the saved copy alone missed the flow entirely, and
+// the PASSWORD_RECOVERY auth event fires before this component mounts (RootAuth
+// is still resolving the role), so it can't be the only trigger either.
 const _savedHash = sessionStorage.getItem('_initialHash') ?? ''
 sessionStorage.removeItem('_initialHash')
-const IS_RECOVERY_FLOW = _savedHash.includes('type=recovery') || _savedHash.includes('type=invite')
+const _liveHash = typeof window !== 'undefined' ? window.location.hash : ''
+const IS_RECOVERY_FLOW = [_savedHash, _liveHash].some((h) => h.includes('type=recovery') || h.includes('type=invite'))
 
 /** Brand splash used by loading / error / no-account / set-password screens. */
 function Splash({ children }) {
@@ -256,11 +265,12 @@ export default function PortalApp() {
         <Routes>
           {restricted ? (
             <>
+              <Route path="/"              element={<PortalFunctionHome data={data} />} />
               <Route path="/function-space" element={<PortalFunction spaces={data.spaces} member={data.member} company={data.company} />} />
               <Route path="/billing"       element={<PortalBilling data={data} />} />
               <Route path="/account"       element={<PortalAccount data={data} />} />
               <Route path="/messages"      element={<PortalMessages tenant={company} />} />
-              <Route path="*"              element={<Navigate to="/function-space" replace />} />
+              <Route path="*"              element={<Navigate to="/" replace />} />
             </>
           ) : (
             <>
