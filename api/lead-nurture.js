@@ -1,4 +1,4 @@
-// Vercel cron â€” daily lead nurture. Advances website-enquiry leads through the
+// Vercel cron — daily lead nurture. Advances website-enquiry leads through the
 // follow-up sequence and moves cold ones to the Lost stage. Runs while a lead is
 // still in a "new" stage and hasn't booked a tour; stops the moment the team
 // moves it forward or the lead books/replies.

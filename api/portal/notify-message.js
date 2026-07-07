@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     from: 'Hexa Space Portal <info@hexaspace.com.au>',
     to: ['info@hexaspace.com.au'],
     replyTo: tenantEmail || undefined,
-    subject: `New message from ${tenantName} â€” Hexa Space Portal`,
+    subject: `New message from ${tenantName} — Hexa Space Portal`,
     html,
   })
 

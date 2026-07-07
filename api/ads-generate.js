@@ -1,4 +1,4 @@
-// Vercel serverless function â€” POST /api/ads-generate
+// Vercel serverless function — POST /api/ads-generate
 // Claude-powered ads automation for Meta + Google. Modeled on the claude-ads
 // skill set: market/audience/competitor research and full campaign generation,
 // with paid-media best-practice guardrails baked in.
@@ -28,15 +28,15 @@ const GUARDRAILS = `Apply these paid-media best practices:
 - Be specific and locally relevant (Box Hill / south-east Melbourne, industrial leasing).`
 
 function brandLine(company = {}) {
-  return `${company.name || 'Hexa Space'} (${company.website || 'hexaspace.com.au'}) â€” industrial business hub in Box Hill, Melbourne. Tagline "build locally, scale sustainably". Leases warehouses, storage, offices and pop-up bays.`
+  return `${company.name || 'Hexa Space'} (${company.website || 'hexaspace.com.au'}) — industrial business hub in Box Hill, Melbourne. Tagline "build locally, scale sustainably". Leases warehouses, storage, offices and pop-up bays.`
 }
 
 function unitLine(space) {
-  if (!space) return 'No specific unit â€” general leasing campaign for available spaces.'
+  if (!space) return 'No specific unit — general leasing campaign for available spaces.'
   return [`Unit ${space.unitNumber}`, space.type, space.size, space.address,
     space.monthlyRate ? `$${space.monthlyRate.toLocaleString('en-AU')}/mo` : null,
     space.cars ? `${space.cars} car spaces` : null, space.attributes]
-    .filter(Boolean).join(' Â· ')
+    .filter(Boolean).join(' · ')
 }
 
 const KEYWORDS_SCHEMA = {
@@ -130,14 +130,14 @@ Objective: ${objective}. Platform(s): ${platformLabel}.${monthlyBudget ? ` Month
 
     if (action === 'research') {
       const system = `You are a senior paid-media strategist. ${GUARDRAILS}
-Output clean markdown only â€” no preamble.`
+Output clean markdown only — no preamble.`
       const user = `Produce concise campaign research for ${platformLabel}.
 ${ctx}
 
 Cover, with short headed sections:
 1. Ideal customer & audience segments (who leases this kind of space, triggers, pain points)
 2. ${platform === 'google' || platform === 'both' ? 'Google keyword themes (head + long-tail, local intent) with rough match-type guidance' : ''}${platform === 'meta' || platform === 'both' ? '\n3. Meta audience targeting (interests, behaviours, lookalike/Advantage+ suggestions)' : ''}
-4. 3â€“4 messaging angles that would resonate
+4. 3–4 messaging angles that would resonate
 5. Likely objections and how the ad should pre-empt them
 Keep it practical and specific to this space.`
       const message = await client.messages.create({ model: MODEL, max_tokens: 3000, system, messages: [{ role: 'user', content: user }] })
@@ -163,7 +163,7 @@ ${ctx}`
       return res.status(200).json({ keywords })
     }
 
-    // action === 'campaign' â€” structured JSON
+    // action === 'campaign' — structured JSON
     const system = `You are a senior paid-media strategist building a launch-ready campaign. ${GUARDRAILS}
 Return a complete campaign as JSON matching the schema. For Google, populate keywords per ad group; for Meta, leave keywords empty and rely on audiences. Provide at least 3 distinct ad variations per ad group.`
     const user = `Build a ${platformLabel} campaign.

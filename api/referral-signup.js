@@ -1,4 +1,4 @@
-// Vercel serverless function â€” POST /api/referral-signup
+// Vercel serverless function — POST /api/referral-signup
 // Public, no-auth endpoint that lets anyone self-enrol as a referrer from
 // www.hexaspace.com.au/refer. Idempotent by email: the same email always maps to
 // the same referrer code/token (no duplicates, no admin step). Optionally also
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
   const supabase = createClient(SUPABASE_URL, serviceKey, { auth: { persistSession: false } })
 
   try {
-    // â”€â”€ Idempotent by email â€” reuse an existing referrer if one matches. â”€â”€
+    // ── Idempotent by email — reuse an existing referrer if one matches. ──
     const { data: refRows } = await supabase.from('referrers').select('id, data')
     const existing = (refRows ?? [])
       .map((r) => ({ id: r.id, ...r.data }))
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         phone: String(phone ?? '').trim(),
         code: `${letters}${rand(3)}`,
         token: rand(12),
-        commissionRate: 5,        // internal default â€” set per referrer in the CRM
+        commissionRate: 5,        // internal default — set per referrer in the CRM
         status: 'active',         // auto-active
         selfEnrolled: true,       // surfaced with a badge in the Referrals tab
         notes: 'Self-enrolled via website',
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
       if (error) { console.error('referral-signup referrer error:', error); return res.status(500).json({ error: 'Could not enrol' }) }
     }
 
-    // â”€â”€ Optional: direct referral â€” create a lead attributed to this referrer. â”€â”€
+    // ── Optional: direct referral — create a lead attributed to this referrer. ──
     let directLeadCreated = false
     const fName = String(referral?.name ?? '').trim()
     const fEmail = String(referral?.email ?? '').trim()
@@ -111,7 +111,7 @@ export default async function handler(req, res) {
       else console.error('referral-signup lead error:', error)
     }
 
-    // Best-effort emails â€” never block the response.
+    // Best-effort emails — never block the response.
     emailReferrer(supabase, referrer).catch(() => {})
     notifyAdmin(supabase, referrer, { alreadyEnrolled, directLeadCreated, referralName: fName }).catch(() => {})
 
@@ -151,7 +151,7 @@ async function emailReferrer(supabase, referrer) {
     bP(`Hi ${referrer.name},`) +
     bP(`Thanks for joining the ${fromName} referral program! Here are your links.`) +
     bPanel(
-      `<div style="font-family:${SANS};font-size:11px;color:${MUTE};text-transform:uppercase;letter-spacing:.12em;margin:0 0 7px">Your referral link â€” share this</div>` +
+      `<div style="font-family:${SANS};font-size:11px;color:${MUTE};text-transform:uppercase;letter-spacing:.12em;margin:0 0 7px">Your referral link — share this</div>` +
       `<a href="${shareUrl}" style="font-family:${SANS};font-size:13px;color:${OLIVE};word-break:break-all;text-decoration:none">${shareUrl}</a>`
     ) +
     bPanel(
@@ -159,7 +159,7 @@ async function emailReferrer(supabase, referrer) {
       `<a href="${dashUrl}" style="font-family:${SANS};font-size:13px;color:${OLIVE};word-break:break-all;text-decoration:none">${dashUrl}</a>`
     ) +
     bBtn('Open Your Dashboard', dashUrl) +
-    bSmall(`When someone enquires through your link and a deal closes, you earn a reward. Keep this email â€” your dashboard link is your private access (no password needed).`)
+    bSmall(`When someone enquires through your link and a deal closes, you earn a reward. Keep this email — your dashboard link is your private access (no password needed).`)
   const html = brandFrame(inner, { footerLabel: 'Referral Partners' })
 
   await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to: referrer.email, subject: `Your ${fromName} referral link`, html })
@@ -174,7 +174,7 @@ async function notifyAdmin(supabase, referrer, { alreadyEnrolled, directLeadCrea
   const fromName = settings?.emails?.fromName || settings?.company?.name || 'Hexa Space'
   const fromEmail = settings?.emails?.fromEmail || 'noreply@hexaspace.com.au'
 
-  const headline = alreadyEnrolled ? 'Returning referrer activity' : 'New referrer self-enrolled ðŸŽ‰'
+  const headline = alreadyEnrolled ? 'Returning referrer activity' : 'New referrer self-enrolled 🎉'
   const inner =
     bKicker('Referral Partners') +
     bH1(headline) +
@@ -184,8 +184,8 @@ async function notifyAdmin(supabase, referrer, { alreadyEnrolled, directLeadCrea
       ['Code', referrer.code],
       ...(directLeadCreated ? [['Direct referral submitted', referralName]] : []),
     ]) +
-    bP('Set their commission rate in Marketing â†’ Referrals.')
+    bP('Set their commission rate in Marketing → Referrals.')
   const html = brandFrame(inner, { footerLabel: 'Referral Partners' })
 
-  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `${headline} â€” ${referrer.name}`, html })
+  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `${headline} — ${referrer.name}`, html })
 }

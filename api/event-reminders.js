@@ -1,7 +1,7 @@
 // Event reminders.
-//   GET  (Vercel cron, daily) â†’ email every registrant of an event happening
+//   GET  (Vercel cron, daily) → email every registrant of an event happening
 //        TOMORROW (Melbourne time) who hasn't been reminded yet.
-//   POST {eventSlug?|eventName?, force?} â†’ send reminders for one event now.
+//   POST {eventSlug?|eventName?, force?} → send reminders for one event now.
 // Marks each registration with reminderSentAt so the app shows who got it.
 // Requires env: SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY.
 
@@ -49,9 +49,9 @@ function reminderHtml(reg, ev, links, settings) {
     bP(`${when}<br>Organised by ${company}`) +
     bP(`<strong>Questions about this event?</strong><br><a href="mailto:${settings?.emails?.replyTo || 'info@hexaspace.com.au'}" style="color:${OLIVE}">Contact the organiser</a>`) +
     bP('<strong>About this event</strong>') +
-    bP(`ðŸ—“ ${when}`) +
-    (loc ? bP(`ðŸ“ ${loc}`) : '') +
-    bP(`Add to my calendar:<br>${cal('Google', links.google)} &nbsp;Â·&nbsp; ${cal('Outlook', links.outlook)} &nbsp;Â·&nbsp; ${cal('iCal', links.ical)} &nbsp;Â·&nbsp; ${cal('Yahoo', links.yahoo)}`) +
+    bP(`🗓 ${when}`) +
+    (loc ? bP(`📍 ${loc}`) : '') +
+    bP(`Add to my calendar:<br>${cal('Google', links.google)} &nbsp;·&nbsp; ${cal('Outlook', links.outlook)} &nbsp;·&nbsp; ${cal('iCal', links.ical)} &nbsp;·&nbsp; ${cal('Yahoo', links.yahoo)}`) +
     bSmall(`See you there${reg.name ? `, ${reg.name}` : ''}.`),
     { footerLabel: 'Events' }
   )
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
     ])
     const settings = settRows?.[0]?.data ?? {}
 
-    // â”€â”€ Test / preview: email ONE sample reminder to a chosen address â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Test / preview: email ONE sample reminder to a chosen address ──────────
     if (req.method === 'POST' && req.body?.testEmail) {
       if (!resendKey) return res.status(500).json({ error: 'RESEND_API_KEY not configured' })
       let ev = eventsAll.find((e) => e.slug === req.body.eventSlug)

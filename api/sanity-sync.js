@@ -1,22 +1,22 @@
-// Vercel serverless function â€” POST /api/sanity-sync
-// Pushes a Hexa Space space â†’ the website's Sanity `unit` document.
+// Vercel serverless function — POST /api/sanity-sync
+// Pushes a Hexa Space space → the website's Sanity `unit` document.
 // Requires env var: SANITY_WRITE_TOKEN (Editor permission, project w4zxsbqi).
 //
 // Body: { action: 'sync' | 'delete', space }
-//   sync   â€” createIfNotExists the unit (deterministic _id = `unit.<spaceId>`),
+//   sync   — createIfNotExists the unit (deterministic _id = `unit.<spaceId>`),
 //            then patch ONLY operational fields. Editorial fields curated in
 //            Sanity (photos, description, features, featured, slug) are never
 //            touched, so a price/status change can't wipe them.
-//   delete â€” remove the unit document entirely.
+//   delete — remove the unit document entirely.
 
 const PROJECT_ID = 'w4zxsbqi'
 const DATASET = 'production'
 const API_VER = 'v2021-06-07'
 const MUTATE_URL = `https://${PROJECT_ID}.api.sanity.io/${API_VER}/data/mutate/${DATASET}?returnIds=true`
 
-// space.status â†’ Sanity unit.status
+// space.status → Sanity unit.status
 const STATUS_MAP = { vacant: 'available', occupied: 'leased', reserved: 'under-offer' }
-// space.type â†’ Sanity unit.type (unmapped types fall back to 'warehouse')
+// space.type → Sanity unit.type (unmapped types fall back to 'warehouse')
 const TYPE_MAP = { warehouse: 'warehouse', storage: 'storage', office: 'office' }
 
 function slugify(str) {
@@ -33,7 +33,7 @@ function docId(space) {
   return `unit.${space.id}`
 }
 
-// Plain text â†’ Sanity Portable Text blocks (one block per non-empty line).
+// Plain text → Sanity Portable Text blocks (one block per non-empty line).
 function toPortableText(text) {
   if (!text || !String(text).trim()) return undefined
   return String(text).split(/\n+/).filter((l) => l.trim()).map((line, i) => ({
@@ -45,7 +45,7 @@ function toPortableText(text) {
   }))
 }
 
-// space.photos [{ assetId, alt }] â†’ Sanity image array
+// space.photos [{ assetId, alt }] → Sanity image array
 function toPhotos(photos) {
   if (!Array.isArray(photos) || photos.length === 0) return undefined
   return photos
@@ -58,7 +58,7 @@ function toPhotos(photos) {
     }))
 }
 
-// Operational fields Hexa Space owns â€” these are patched on every sync.
+// Operational fields Hexa Space owns — these are patched on every sync.
 function operationalFields(space) {
   const fields = {
     unitId: space.unitNumber,
@@ -109,7 +109,7 @@ async function mutate(mutations) {
 }
 
 // Find an existing Sanity unit by its unitId (e.g. "O5", "61S"), regardless of
-// its _id â€” so we patch the doc the website already shows (with its curated
+// its _id — so we patch the doc the website already shows (with its curated
 // photos) instead of creating a duplicate.
 async function findExistingUnitId(unitNumber) {
   const token = process.env.SANITY_WRITE_TOKEN
@@ -150,14 +150,14 @@ export default async function handler(req, res) {
     const op = operationalFields(space)
 
     if (existingId) {
-      // Update the unit the website already has â€” operational fields only,
+      // Update the unit the website already has — operational fields only,
       // preserving its photos / description / slug.
       const result = await mutate([{ patch: { id: _id, set: op } }])
       if (!result.ok) return res.status(result.status).json({ error: result.error })
       return res.status(200).json({ success: true, action: 'sync', id: _id, matched: 'unitId' })
     }
 
-    // Genuinely new unit â€” seed a complete, valid doc then patch.
+    // Genuinely new unit — seed a complete, valid doc then patch.
     const title = `${(op.type ?? 'warehouse').replace('-', ' ')} ${space.unitNumber}`.replace(/\b\w/g, (c) => c.toUpperCase())
     const slug = slugify(`${space.unitNumber}-${space.address ?? op.type}`)
     const result = await mutate([

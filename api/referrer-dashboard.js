@@ -1,7 +1,7 @@
-// Vercel serverless function â€” GET /api/referrer-dashboard?token=XXX
+// Vercel serverless function — GET /api/referrer-dashboard?token=XXX
 // Public, no-auth endpoint backing the magic-link referrer dashboard
 // (portal.hexaspace.com.au/refer/<token>). Uses the service-role key to read past
-// RLS, then returns a SANITISED payload â€” referral status + commissions only,
+// RLS, then returns a SANITISED payload — referral status + commissions only,
 // never the leads' email/phone.
 // Requires env var: SUPABASE_SERVICE_ROLE_KEY.
 
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     const stages = (stageRows ?? []).map((r) => r.data)
     const stageOf = (id) => stages.find((s) => s.id === id)
 
-    // Their referred leads â€” status only, no contact details (no email/phone).
+    // Their referred leads — status only, no contact details (no email/phone).
     const leads = (leadRows ?? [])
       .map((r) => r.data)
       .filter((l) => l.referrerId === referrer.id)
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
           id: l.id,
           label: l.businessName || l.name || 'Referral',
           intent: l.referralIntent || 'lease',
-          stageName: st?.name ?? 'â€”',
+          stageName: st?.name ?? '—',
           stageCategory: st?.category ?? 'new',
           dealClosed: !!l.dealClosed,
           createdAt: l.createdAt ?? null,

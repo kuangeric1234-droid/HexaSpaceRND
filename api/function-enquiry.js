@@ -1,4 +1,4 @@
-// Vercel serverless â€” POST /api/function-enquiry  (public, CORS *)
+// Vercel serverless — POST /api/function-enquiry  (public, CORS *)
 // The Function Space Hire form on www.hexaspace.com.au posts here. Creates a
 // function_bookings record in the 'enquiry' stage and notifies the events team,
 // who then quote + send the digital agreement from the admin hub.
@@ -68,17 +68,17 @@ async function notifyAdmin(supabase, b) {
   const fromName = settings?.emails?.fromName || settings?.company?.name || 'Hexa Space'
   const fromEmail = settings?.emails?.fromEmail || 'noreply@hexaspace.com.au'
   const html = brandFrame(
-    bH2('New function space enquiry ðŸŽ‰') +
+    bH2('New function space enquiry 🎉') +
     bTable([
-      ['Name', `${b.name || 'â€”'}${b.organisation ? ` (${b.organisation})` : ''}`],
-      ['Email', b.email || 'â€”'],
-      ['Phone', b.phone || 'â€”'],
-      ['Event', `${b.eventName || 'â€”'}${b.eventType ? ` Â· ${b.eventType}` : ''}`],
-      ['When', `${b.eventDate || 'â€”'} ${b.startTime || ''}â€“${b.endTime || ''}`],
-      ['Guests', b.guests || 'â€”'],
+      ['Name', `${b.name || '—'}${b.organisation ? ` (${b.organisation})` : ''}`],
+      ['Email', b.email || '—'],
+      ['Phone', b.phone || '—'],
+      ['Event', `${b.eventName || '—'}${b.eventType ? ` · ${b.eventType}` : ''}`],
+      ['When', `${b.eventDate || '—'} ${b.startTime || ''}–${b.endTime || ''}`],
+      ['Guests', b.guests || '—'],
     ]) +
     bSmall('Open Function Space Bookings to quote and send the agreement.'),
     { footerLabel: 'Function Space Hire' }
   )
-  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `Function enquiry â€” ${b.name || b.email}`, html })
+  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `Function enquiry — ${b.name || b.email}`, html })
 }

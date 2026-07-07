@@ -21,7 +21,7 @@ function fmtDate(dateStr) {
 }
 
 function extractEvent(body, headers) {
-  // Sanity webhook â€” raw document in body
+  // Sanity webhook — raw document in body
   if (body?._type === 'event') {
     const doc = body
     return {
@@ -30,7 +30,7 @@ function extractEvent(body, headers) {
       time: doc.date
         ? new Date(doc.date).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true })
         : null,
-      location: [doc.location, doc.locationAddress].filter(Boolean).join(' â€” '),
+      location: [doc.location, doc.locationAddress].filter(Boolean).join(' — '),
       description: doc.summary ?? doc.tagline ?? '',
       link: doc.slug?.current
         ? `https://www.hexaspace.com.au/events/${doc.slug.current}`
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
   if (!recipients.length) return res.status(200).json({ sent: 0, reason: 'No active portal members.' })
 
   const eventRows = []
-  if (event.date) eventRows.push(['Date', `${fmtDate(event.date)}${event.time ? ` Â· ${event.time}` : ''}`, true])
+  if (event.date) eventRows.push(['Date', `${fmtDate(event.date)}${event.time ? ` · ${event.time}` : ''}`, true])
   if (event.location) eventRows.push(['Location', event.location])
 
   const html = brandFrame(

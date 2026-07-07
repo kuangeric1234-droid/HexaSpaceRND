@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         (b.email && b.email.toLowerCase() === auth.user.email));
       if (!ownsIt) return res.status(403).json({ error: 'Not your booking.' })
     }
-    // Invoice numbers must be computed over ALL invoices â€” a plain select caps at
+    // Invoice numbers must be computed over ALL invoices — a plain select caps at
     // 1000 rows, which caused duplicate numbers. Page through just the number field.
     const invRows = await (async () => {
       const size = 1000; let from = 0; const all = []
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     const settings = settRows?.[0]?.data ?? {}
     const q = b.quote || {}
 
-    // â”€â”€ Finalise company + member from captured info â”€â”€
+    // ── Finalise company + member from captured info ──
     const ci = b.companyInfo || {}
     const mi = b.memberInfo || {}
     let tenantId = b.companyId
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
     const existingTenant = tenantId ? tenants.find((t) => t.id === tenantId) : null
     if (tenantId) {
       // Trust the companyId set at approve time even if the tenant row hasn't
-      // replicated yet (avoids minting a second tenant â†’ broken billing link).
+      // replicated yet (avoids minting a second tenant → broken billing link).
       const patch = { ...(existingTenant || { id: tenantId, status: 'client', industry: 'Function client', createdAt: now.split('T')[0] }), clientType: 'function' }
       patch.businessName = ci.businessName || existingTenant?.businessName || b.organisation || b.name || 'Function client'
       patch.contactName = ci.contactName || existingTenant?.contactName || b.name || ''
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
       else if (!existingTenant?.phone && b.phone) patch.phone = b.phone
       await supabase.from('tenants').upsert({ id: tenantId, data: patch, updated_at: now })
     } else {
-      // No companyId â€” reuse an existing tenant with this email before creating one.
+      // No companyId — reuse an existing tenant with this email before creating one.
       const email = (b.email || '').toLowerCase()
       const match = email ? tenants.find((t) => (t.email || '').toLowerCase() === email) : null
       if (match) {
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
     const members = (memberRows ?? []).map((r) => r.data)
     let memberId = b.memberId
     const email = (b.email || '').toLowerCase()
-    // Reuse an existing member with this email â€” never create a duplicate person.
+    // Reuse an existing member with this email — never create a duplicate person.
     if (!memberId && email) memberId = members.find((m) => (m.email || '').toLowerCase() === email)?.id
     if (!memberId && (mi.name || b.name)) {
       memberId = `m${Date.now()}`
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
       if (m && m.companyId !== tenantId) await supabase.from('members').upsert({ id: memberId, data: { ...m, companyId: tenantId }, updated_at: now })
     }
 
-    // â”€â”€ Raise deposit (50%, GST) + refundable $300 security (no GST) â”€â”€
+    // ── Raise deposit (50%, GST) + refundable $300 security (no GST) ──
     const invoices = (invRows ?? []).map((r) => r.data)
     const nums = invoices.map((i) => parseInt(String(i.number || '').replace(/\D/g, '') || '0', 10)).filter((n) => !isNaN(n))
     let next = nums.length ? Math.max(...nums) + 1 : 1
@@ -117,16 +117,16 @@ export default async function handler(req, res) {
     // the $300 refundable security deposit (GST-exempt). Due immediately to secure.
     const depId = `inv${Date.now()}${Math.random().toString(36).slice(2, 6)}`
     const depInv = { ...base, id: depId, number: numFor(), invoiceType: 'function_deposit', dueDate: now.split('T')[0], vatEnabled: true, lineItems: [
-      { description: `50% deposit â€” function booking Â· ${b.eventName || 'Function'} (${sessionsLabel(b)})`, revenueAccount: 'Function Space Hire', unitPrice: q.depositHalf ?? 0, qty: 1, discountPct: 0 },
-      { description: `Refundable security deposit Â· ${b.eventName || 'Function'}`, revenueAccount: 'Security Deposit', unitPrice: q.securityDeposit ?? 300, qty: 1, discountPct: 0, vatExempt: true },
+      { description: `50% deposit — function booking · ${b.eventName || 'Function'} (${sessionsLabel(b)})`, revenueAccount: 'Function Space Hire', unitPrice: q.depositHalf ?? 0, qty: 1, discountPct: 0 },
+      { description: `Refundable security deposit · ${b.eventName || 'Function'}`, revenueAccount: 'Security Deposit', unitPrice: q.securityDeposit ?? 300, qty: 1, discountPct: 0, vatExempt: true },
     ] }
     await supabase.from('invoices').upsert([{ id: depId, data: depInv, updated_at: now }])
 
-    // â”€â”€ Update booking â”€â”€
+    // ── Update booking ──
     const updated = { ...b, stage: 'awaiting_deposit', depositRaisedAt: now, tenantId, companyId: tenantId, memberId, depositInvoiceId: depId, read: false, updatedAt: now }
     await supabase.from('function_bookings').upsert({ id: b.id, data: updated, updated_at: now })
 
-    // â”€â”€ Email the deposit-due notice (with the tax-invoice PDF attached) â”€â”€
+    // ── Email the deposit-due notice (with the tax-invoice PDF attached) ──
     emailDeposit(settings, updated, q, depInv).catch(() => {})
     return res.status(200).json({ success: true, dueNow: q.dueNow })
   } catch (err) {
@@ -154,7 +154,7 @@ async function emailDeposit(settings, b, q, depInv) {
       ) : ''
   const inner =
     bKicker('Deposit due to secure your date') +
-    bH1(`Thanks ${b.name || 'there'} â€” one step to secure your booking`) +
+    bH1(`Thanks ${b.name || 'there'} — one step to secure your booking`) +
     bP(`Your details are in. To secure <strong>${b.eventDate || 'your date'}</strong> we just need your deposit. Your date isn't held until the deposit is received.`) +
     bTable([
       ['Total (inc GST)', money(q.total)],
@@ -165,7 +165,7 @@ async function emailDeposit(settings, b, q, depInv) {
     bSmall("Your tax invoice is attached. Deposit includes your 50% venue hire and the $300 refundable security deposit. Once received, we'll confirm and lock in your booking.")
   const html = brandFrame(inner, { footerLabel: 'Function Space Hire' })
 
-  // Attach the deposit tax-invoice PDF (best-effort â€” never block the send).
+  // Attach the deposit tax-invoice PDF (best-effort — never block the send).
   let attachments
   try {
     if (depInv) {
@@ -174,5 +174,5 @@ async function emailDeposit(settings, b, q, depInv) {
     }
   } catch (err) { console.error('invoice pdf failed:', err) }
 
-  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to: b.email, replyTo, subject: `Deposit due to secure your function â€” ${b.ref}`, html, attachments })
+  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to: b.email, replyTo, subject: `Deposit due to secure your function — ${b.ref}`, html, attachments })
 }

@@ -1,4 +1,4 @@
-// Vercel serverless function â€” POST /api/send-email
+// Vercel serverless function — POST /api/send-email
 // Requires env var: RESEND_API_KEY
 // Body: { to, subject, html, replyTo?, cc?, bcc?, from? }
 // All sends go through the central safe-mode guard in _email.js.

@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       const html = brandFrame(
         bKicker('Member Portal') +
         bH2(`You've been added to ${tenant.businessName || 'your company'}`) +
-        bP(`Hi ${name}, you've been given access to the Hexa Space member portal â€” book meeting rooms, view your company's details and message our team.`) +
+        bP(`Hi ${name}, you've been given access to the Hexa Space member portal — book meeting rooms, view your company's details and message our team.`) +
         bBtn('Set up your password', actionLink) +
         bSmall(`This link expires in 24 hours. Questions? <a href="mailto:info@hexaspace.com.au" style="color:${OLIVE};text-decoration:none">info@hexaspace.com.au</a>`),
         { footerLabel: 'Member Portal' }

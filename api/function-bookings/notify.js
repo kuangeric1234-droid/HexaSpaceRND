@@ -1,22 +1,22 @@
 // POST /api/function-bookings/notify
 //
-// mode='agreement'  â€” email the Client their agreement/quote signing link  (body: booking, signUrl)
-// mode='signed'     â€” Client signed â†’ notify the events team               (body: booking)
-// mode='confirmed'  â€” booking confirmed â†’ email the Client their confirmation (body: booking)
-// mode='amend_date' â€” requested date unavailable â†’ ask the Client to re-pick (body: booking)
-// mode='brochure'   â€” send the function rate card / indicative quote        (body: booking)
+// mode='agreement'  — email the Client their agreement/quote signing link  (body: booking, signUrl)
+// mode='signed'     — Client signed → notify the events team               (body: booking)
+// mode='confirmed'  — booking confirmed → email the Client their confirmation (body: booking)
+// mode='amend_date' — requested date unavailable → ask the Client to re-pick (body: booking)
+// mode='brochure'   — send the function rate card / indicative quote        (body: booking)
 //
-// All client-facing copy prefers the saved Templates â†’ Emails entry (pick());
+// All client-facing copy prefers the saved Templates → Emails entry (pick());
 // the built-in fallbacks below are branded to the Hexa Space guidelines
 // (olive / greige / ink + brand fonts with web-safe fallbacks, caps logo,
-// social footer). Kept self-contained â€” no imports from src.
+// social footer). Kept self-contained — no imports from src.
 import { createClient } from '@supabase/supabase-js'
 import { sendResendEmail } from '../_email.js'
 import { fillVars, findEmailTemplate, functionBookLink, functionBrochureAttachment } from '../_leads.js'
 
 const SUPABASE_URL = process.env.SUPABASE_URL
 
-// â”€â”€ Hexa Space branded email kit (self-contained for the serverless runtime) â”€â”€
+// ── Hexa Space branded email kit (self-contained for the serverless runtime) ──
 const OLIVE = '#7F8B2F', GREIGE = '#EFEDF2', INK = '#1a1a1a', MUTE = '#6b6b6b', HAIR = '#e3e1e6'
 const SERIF = "'HexaBig', Georgia, 'Times New Roman', serif"
 const SANS = "'HexaGT', 'Helvetica Neue', Arial, sans-serif"
@@ -27,9 +27,9 @@ const FONTS = `
     @font-face{font-family:'HexaRework';src:url('https://admin.hexaspace.com.au/fonts/ReworkMicro-Semibold.otf') format('opentype');font-weight:600;font-display:swap}`
 const SOCIAL_ROW = `<div style="margin-top:12px">` +
   `<a href="https://www.instagram.com/hexaspace.coworking" style="font-family:${CAPS};font-size:9px;letter-spacing:.2em;color:${MUTE};text-decoration:none;text-transform:uppercase">Instagram</a>` +
-  `<span style="color:${HAIR};font-size:9px">&nbsp;&nbsp;Â·&nbsp;&nbsp;</span>` +
+  `<span style="color:${HAIR};font-size:9px">&nbsp;&nbsp;·&nbsp;&nbsp;</span>` +
   `<a href="https://www.linkedin.com/company/hexa-space/" style="font-family:${CAPS};font-size:9px;letter-spacing:.2em;color:${MUTE};text-decoration:none;text-transform:uppercase">LinkedIn</a>` +
-  `<span style="color:${HAIR};font-size:9px">&nbsp;&nbsp;Â·&nbsp;&nbsp;</span>` +
+  `<span style="color:${HAIR};font-size:9px">&nbsp;&nbsp;·&nbsp;&nbsp;</span>` +
   `<a href="https://www.hexaspace.com.au/" style="font-family:${CAPS};font-size:9px;letter-spacing:.2em;color:${MUTE};text-decoration:none;text-transform:uppercase">Website</a>` +
   `</div>`
 
@@ -55,7 +55,7 @@ function frame(fromName, inner) {
   <div style="max-width:600px;margin:0 auto;padding:30px 16px">
     <div style="text-align:center;padding:6px 0 22px">
       <span style="font-family:${CAPS};font-size:15px;letter-spacing:.34em;color:${INK};text-transform:uppercase">HEXA&nbsp;SPACE</span>
-      <span style="font-family:${SANS};font-size:14px;color:${OLIVE};letter-spacing:.12em">&nbsp;&nbsp;å…­åˆç©ºé—´</span>
+      <span style="font-family:${SANS};font-size:14px;color:${OLIVE};letter-spacing:.12em">&nbsp;&nbsp;六合空间</span>
     </div>
     <div style="background:#ffffff;border:1px solid ${HAIR};border-radius:12px;overflow:hidden">
       <div style="height:3px;background:${OLIVE}"></div>
@@ -64,7 +64,7 @@ function frame(fromName, inner) {
     <div style="text-align:center;padding:22px 8px 6px">
       <div style="font-family:${CAPS};font-size:10px;letter-spacing:.3em;color:${OLIVE};text-transform:uppercase">Function Space Hire</div>
       ${SOCIAL_ROW}
-      <div style="font-family:${SANS};font-size:11px;color:#9a9aa0;margin-top:10px">Hexa Space Â· 402/830 Whitehorse Road, Box Hill VIC 3128 Â· hexaspace.com.au</div>
+      <div style="font-family:${SANS};font-size:11px;color:#9a9aa0;margin-top:10px">Hexa Space · 402/830 Whitehorse Road, Box Hill VIC 3128 · hexaspace.com.au</div>
     </div>
   </div>
 </body></html>`
@@ -77,9 +77,9 @@ function summaryRows(b) {
     <td style="padding:9px 0;font-family:${SANS};font-size:13px;color:${INK};${strong ? 'font-weight:600;' : ''}border-bottom:1px solid ${HAIR}">${v}</td>
   </tr>`
   return `<table style="width:100%;border-collapse:collapse;margin:4px 0 24px">
-    ${row('Event', b.eventName || 'â€”')}
-    ${row('Date', `${b.eventDate || 'â€”'} Â· ${b.startTime || ''}â€“${b.endTime || ''}`)}
-    ${row('Guests', b.guests || 'â€”')}
+    ${row('Event', b.eventName || '—')}
+    ${row('Date', `${b.eventDate || '—'} · ${b.startTime || ''}–${b.endTime || ''}`)}
+    ${row('Guests', b.guests || '—')}
     ${q.discount > 0 ? row('Discount' + (q.discountPct ? ` (${q.discountPct}%)` : '') + (q.discountReason ? ` - ${q.discountReason}` : ''), `-${money(q.discount)}`) : ''}
     ${row('Total (inc GST)', money(q.total), true)}
     ${row('Payable now', `${money(q.dueNow)} <span style="color:${MUTE}">(50% deposit + $300 security)</span>`)}
@@ -111,7 +111,7 @@ export default async function handler(req, res) {
     const adminTo = [...new Set(['eric@hexaspace.com.au', 'info@hexaspace.com.au', settings?.emails?.notificationEmail].filter(Boolean).map((e) => e.toLowerCase()))]
 
     // Load editable templates + build placeholder values. Client-facing emails
-    // (agreement / confirmed / brochure) use the saved Templates â†’ Emails copy
+    // (agreement / confirmed / brochure) use the saved Templates → Emails copy
     // if present, else the built-in branded fallback below.
     const { data: tmplRows } = await supabase.from('templates').select('data')
     const templates = (tmplRows ?? []).map((r) => r.data)
@@ -133,12 +133,12 @@ export default async function handler(req, res) {
     if (mode === 'agreement') {
       if (!b.email || !signUrl) return res.status(400).json({ error: 'Missing email or signUrl.' })
       const inner = bKicker('Function Space Hire Agreement') +
-        bH1(`Hi ${b.name || 'there'} â€” your function quote is ready to review &amp; sign`) +
+        bH1(`Hi ${b.name || 'there'} — your function quote is ready to review &amp; sign`) +
         bP('Please review your event details, add-ons, pricing and our terms, then sign digitally to secure your date.') +
         summaryRows(b) +
         bBtn('Review &amp; sign agreement', signUrl) +
         bSmall(`If the button doesn't work, copy this link:<br><a href="${signUrl}" style="color:${OLIVE};word-break:break-all">${signUrl}</a>`)
-      const { subject, html } = pick('function_agreement', `Your Hexa Space function quote â€” ${b.eventName || 'Function Space Hire'}`, frame(fromName, inner))
+      const { subject, html } = pick('function_agreement', `Your Hexa Space function quote — ${b.eventName || 'Function Space Hire'}`, frame(fromName, inner))
       const ok = await sendMail(resendKey, { from, to: b.email, replyTo, subject, html })
       return res.status(ok ? 200 : 500).json({ sent: ok })
     }
@@ -146,23 +146,23 @@ export default async function handler(req, res) {
     if (mode === 'signed') {
       if (!adminTo.length) return res.status(200).json({ sent: false })
       const inner = bKicker('Agreement Signed') +
-        bH1('Function agreement signed âœ…') +
+        bH1('Function agreement signed ✅') +
         bP(`<strong style="color:${INK}">${b.name || b.email}</strong>${b.organisation ? ` (${b.organisation})` : ''} has signed the function hire agreement.`) +
         summaryRows(b) +
         bP('Open Function Space Bookings to confirm the booking and raise the deposit invoice.')
-      const ok = await sendMail(resendKey, { from, to: adminTo, subject: `Function signed: ${b.name || b.email} â€” ${b.eventName || ''}`, html: frame(fromName, inner) })
+      const ok = await sendMail(resendKey, { from, to: adminTo, subject: `Function signed: ${b.name || b.email} — ${b.eventName || ''}`, html: frame(fromName, inner) })
       return res.status(200).json({ sent: ok })
     }
 
     if (mode === 'confirmed') {
       if (!b.email) return res.status(400).json({ error: 'No client email.' })
-      const win = `${b.startTime || ''}â€“${b.endTime || ''}`
+      const win = `${b.startTime || ''}–${b.endTime || ''}`
       const inner = bKicker('Booking Confirmed') +
-        bH1(`You're booked in, ${b.name || 'there'}! ðŸŽ‰`) +
+        bH1(`You're booked in, ${b.name || 'there'}! 🎉`) +
         bP("Your function at Hexa Space is confirmed. We've reserved your time (plus a 30-minute setup buffer each side). Your deposit and security invoices are on their way; the balance is due 14 days before your event.") +
         summaryRows(b) +
-        bP('Questions? Just reply to this email â€” we can\'t wait to host you.')
-      const { subject, html } = pick('function_confirmed', `Confirmed â€” your function at Hexa Space (${b.eventDate || ''} ${win})`, frame(fromName, inner))
+        bP('Questions? Just reply to this email — we can\'t wait to host you.')
+      const { subject, html } = pick('function_confirmed', `Confirmed — your function at Hexa Space (${b.eventDate || ''} ${win})`, frame(fromName, inner))
       const ok = await sendMail(resendKey, { from, to: b.email, replyTo, subject, html })
       return res.status(ok ? 200 : 500).json({ sent: ok })
     }
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
     if (mode === 'amend_date') {
       if (!b.email) return res.status(400).json({ error: 'No client email.' })
       const inner = bKicker('Function Space Hire') +
-        bH1(`Hi ${b.name || 'there'} â€” that date isn't available`) +
+        bH1(`Hi ${b.name || 'there'} — that date isn't available`) +
         bP(`Thanks for your function request${b.eventDate ? ` for <strong style="color:${INK}">${b.eventDate}</strong>` : ''}. Unfortunately the space is already booked then. Could you pick another date? Just resubmit and we'll get you locked in.`) +
         bBtn('Choose another date', vars.bookLink) +
         bSmall("Or just reply to this email with a couple of dates that suit and we'll check availability for you.")
@@ -190,17 +190,17 @@ export default async function handler(req, res) {
         ${rcRow('Venue hire (weekend)', '$325 + GST / hour')}
         ${rcRow('Cleaning fee', '$200 + GST')}
         ${rcRow('Refundable security deposit', '$300')}
-        ${rcRow('Capacity', '20â€“100 guests')}
+        ${rcRow('Capacity', '20–100 guests')}
       </table>`
       const inner = bKicker('Function Space Hire') +
-        bH1(`Hi ${b.name || 'there'} â€” thanks for your interest in our function space`) +
+        bH1(`Hi ${b.name || 'there'} — thanks for your interest in our function space`) +
         bP(`Our light-filled venue suits launches, dinners, conferences and celebrations. Here's a quick overview${hasQuote ? ' and an indicative quote for your dates' : ''}:`) +
         (hasQuote ? summaryRows(b) : rateCard) +
-        bP("<strong>We've attached our full function brochure</strong> â€” take a look through the space, layouts, what's included and pricing.") +
-        bP("Ready to lock it in? Choose your preferred date and layout â€” we'll review availability and get your booking underway.") +
+        bP("<strong>We've attached our full function brochure</strong> — take a look through the space, layouts, what's included and pricing.") +
+        bP("Ready to lock it in? Choose your preferred date and layout — we'll review availability and get your booking underway.") +
         bBtn('Book a time', vars.bookLink) +
-        bSmall("Questions? Reply any time â€” we'd love to host you.")
-      const { subject, html } = pick('function_brochure', `Hexa Space function space â€” ${b.eventName || 'your enquiry'}`, frame(fromName, inner))
+        bSmall("Questions? Reply any time — we'd love to host you.")
+      const { subject, html } = pick('function_brochure', `Hexa Space function space — ${b.eventName || 'your enquiry'}`, frame(fromName, inner))
       const ok = await sendMail(resendKey, { from, to: b.email, replyTo, subject, html, attachments: functionBrochureAttachment(settings) })
       return res.status(ok ? 200 : 500).json({ sent: ok })
     }

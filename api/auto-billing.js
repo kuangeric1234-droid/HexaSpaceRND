@@ -1,5 +1,5 @@
-// POST /api/auto-billing  â€” manual trigger from admin
-// GET  /api/auto-billing  â€” Vercel cron (runs 1st of each month)
+// POST /api/auto-billing  — manual trigger from admin
+// GET  /api/auto-billing  — Vercel cron (runs 1st of each month)
 //
 // Creates invoices for all active leases that don't have one for the current month,
 // then emails each tenant their invoice.
@@ -59,7 +59,7 @@ function invoiceEmail(invoice, tenant, settings, subtotal, gst, total) {
     bTable(rows) +
     bank +
     bBtn('View in Member Portal', 'https://portal.hexaspace.com.au/billing') +
-    bSmall(`Hexa Space Pty Ltd &nbsp;Â·&nbsp; ABN ${b.abn ?? ''}<br>${b.address ?? '402/830 Whitehorse Road, Box Hill VIC 3128'}`)
+    bSmall(`Hexa Space Pty Ltd &nbsp;·&nbsp; ABN ${b.abn ?? ''}<br>${b.address ?? '402/830 Whitehorse Road, Box Hill VIC 3128'}`)
   return brandFrame(inner, { footerLabel: 'Accounts' })
 }
 
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
       await sendResendEmail({
         from: 'Hexa Space <info@hexaspace.com.au>',
         to: [tenant.email],
-        subject: `Invoice ${invoiceNum} â€” ${monthLabel(periodStart)}`,
+        subject: `Invoice ${invoiceNum} — ${monthLabel(periodStart)}`,
         html,
       }).catch(() => {})
     }
@@ -185,23 +185,23 @@ export default async function handler(req, res) {
 
     const inner =
       bKicker('Auto Bill Run') +
-      bH1(`${periodStart} â†’ ${periodEnd}`) +
-      bH2(`âœ“ ${created.length} Invoice${created.length !== 1 ? 's' : ''} Created &amp; Emailed`) +
-      listPanel(created, i => typeof i === 'string' ? i : `${i.number} â€” ${i.tenant}`) +
-      (skipped.length ? bH2(`â€” ${skipped.length} Skipped`) + listPanel(skipped, i => i) : '') +
-      (errors.length ? bH2(`âœ— ${errors.length} Error${errors.length !== 1 ? 's' : ''}`) + listPanel(errors, e => `${e.tenant ?? e.leaseId}: ${e.reason}`) : '') +
+      bH1(`${periodStart} → ${periodEnd}`) +
+      bH2(`✓ ${created.length} Invoice${created.length !== 1 ? 's' : ''} Created &amp; Emailed`) +
+      listPanel(created, i => typeof i === 'string' ? i : `${i.number} — ${i.tenant}`) +
+      (skipped.length ? bH2(`— ${skipped.length} Skipped`) + listPanel(skipped, i => i) : '') +
+      (errors.length ? bH2(`✗ ${errors.length} Error${errors.length !== 1 ? 's' : ''}`) + listPanel(errors, e => `${e.tenant ?? e.leaseId}: ${e.reason}`) : '') +
       bBtn('View Billing', 'https://portal.hexaspace.com.au/billing')
 
     await sendResendEmail({
         from: 'Hexa Space <info@hexaspace.com.au>',
         to: ['info@hexaspace.com.au'],
-        subject: `Auto Bill Run â€” ${periodStart} â†’ ${periodEnd}`,
+        subject: `Auto Bill Run — ${periodStart} → ${periodEnd}`,
         html: brandFrame(inner, { footerLabel: 'Accounts' }),
     }).catch(() => {})
   }
 
   return res.status(200).json({
-    period: `${periodStart} â†’ ${periodEnd}`,
+    period: `${periodStart} → ${periodEnd}`,
     created,
     skipped,
     errors,

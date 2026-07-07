@@ -1,9 +1,9 @@
-// Vercel serverless function â€” POST /api/popup-booking
+// Vercel serverless function — POST /api/popup-booking
 // Public endpoint for the Lonsdale 369 pop-up booking page on hexaspace.com.au.
 // Creates an `event_bookings` row (status 'draft') so it lands in the Pop-up
 // Bookings admin view, where staff review availability and send the licence to
 // sign (reusing the existing /sign/event/<token> flow). No signing token is
-// issued here â€” that happens when an admin clicks "Send" after reviewing.
+// issued here — that happens when an admin clicks "Send" after reviewing.
 // Requires env vars: SUPABASE_SERVICE_ROLE_KEY, (optional) RESEND_API_KEY.
 //
 // Body: { name, businessName, email, phone, startDate, endDate, days, dailyRate, message, website }
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
     id,
     ref: `PB-${String(Date.now()).slice(-6)}`,
     type: 'popup',
-    status: 'draft',           // staff review â†’ "Send" issues the signing link
+    status: 'draft',           // staff review → "Send" issues the signing link
     source: 'popup-booking',
     // Licensee / customer
     vendorName: String(name).trim(),
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     vendorDescription: String(message ?? '').trim(),
     // Pop-up booking specifics
     venue: VENUE,
-    allocatedSpace: `${VENUE} â€” pop-up space`,
+    allocatedSpace: `${VENUE} — pop-up space`,
     bookingStartDate: startDate,
     bookingEndDate: endDate,
     bookingDays: dayCount,
@@ -88,15 +88,15 @@ async function notifyAdmin(supabase, b) {
   if (!to.length) return
   const fromName = settings?.emails?.fromName || settings?.company?.name || 'Hexa Space'
   const fromEmail = settings?.emails?.fromEmail || 'noreply@hexaspace.com.au'
-  const fee = b.participationFee ? `$${Number(b.participationFee).toLocaleString('en-AU')}` : 'â€”'
+  const fee = b.participationFee ? `$${Number(b.participationFee).toLocaleString('en-AU')}` : '—'
 
   const html = brandFrame(
-    bH2(`New ${b.venue} pop-up booking ðŸ›ï¸`) +
+    bH2(`New ${b.venue} pop-up booking 🛍️`) +
     bTable([
       ['Name', `${b.vendorName}${b.vendorBusiness ? ` (${b.vendorBusiness})` : ''}`],
       ['Email', b.vendorEmail],
-      ['Phone', b.vendorPhone || 'â€”'],
-      ['Dates', `${b.bookingStartDate} â†’ ${b.bookingEndDate} (${b.bookingDays} day${b.bookingDays === 1 ? '' : 's'})`],
+      ['Phone', b.vendorPhone || '—'],
+      ['Dates', `${b.bookingStartDate} → ${b.bookingEndDate} (${b.bookingDays} day${b.bookingDays === 1 ? '' : 's'})`],
       ['Estimated fee', fee, true],
     ]) +
     (b.vendorDescription ? bP(`<strong>Note:</strong><br>${String(b.vendorDescription).replace(/</g, '&lt;')}`) : '') +
@@ -104,5 +104,5 @@ async function notifyAdmin(supabase, b) {
     { footerLabel: 'Hexa Space' }
   )
 
-  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `New ${b.venue} pop-up booking â€” ${b.vendorName}`, html })
+  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `New ${b.venue} pop-up booking — ${b.vendorName}`, html })
 }

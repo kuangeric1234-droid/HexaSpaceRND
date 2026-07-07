@@ -1,6 +1,6 @@
 // Shared server-side helpers for lead-nurture emails (used by form-submit.js and
 // lead-nurture.js). Underscore prefix = not exposed as an API route.
-// NOTE: never import ../src/lib/sendEmail.js here â€” it pulls in the browser
+// NOTE: never import ../src/lib/sendEmail.js here — it pulls in the browser
 // Supabase client (import.meta.env) and breaks in the serverless runtime.
 
 export function fillVars(str, vars) {
@@ -50,8 +50,8 @@ export async function sendResend(resendKey, { fromName, fromEmail, to, subject, 
   return { ok: r.ok, status: r.status ?? (r.ok ? 200 : 500) }
 }
 
-// The portal base (single sign-in domain). Everything â€” members, admin,
-// onboarding and the function "Book a time" page â€” lives here.
+// The portal base (single sign-in domain). Everything — members, admin,
+// onboarding and the function "Book a time" page — lives here.
 export function portalBase(settings) {
   return (settings?.portalUrl || 'https://portal.hexaspace.com.au').replace(/\/+$/, '')
 }
@@ -67,7 +67,7 @@ export function functionBookLink(settings, requestToken) {
 // the client can review the space, inclusions and pricing offline.
 export function functionBrochureAttachment(settings) {
   const path = `${portalBase(settings)}/hexa-space-function-brochure.pdf`
-  return [{ filename: 'Hexa Space â€” Function Space Brochure.pdf', path }]
+  return [{ filename: 'Hexa Space — Function Space Brochure.pdf', path }]
 }
 
 // Vars for the function nurture/brochure emails.

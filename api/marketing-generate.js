@@ -1,4 +1,4 @@
-// Vercel serverless function â€” POST /api/marketing-generate
+// Vercel serverless function — POST /api/marketing-generate
 // Claude-powered marketing copy generator (social posts, ad copy, SEO).
 // Requires env var: ANTHROPIC_API_KEY.
 //
@@ -19,13 +19,13 @@ const MODEL = 'claude-opus-4-8'
 function brandBlock(company = {}) {
   const name = company.name || 'Hexa Space'
   const website = company.website || 'hexaspace.com.au'
-  return `Brand: ${name} (${website}) â€” an industrial business hub in Box Hill, Melbourne, Australia.
+  return `Brand: ${name} (${website}) — an industrial business hub in Box Hill, Melbourne, Australia.
 Tagline: "build locally, scale sustainably". We lease warehouse units, storage, offices and pop-up/retail bays to growing businesses.
 Voice: clean, professional, grounded, Australian. No hype, no emoji spam, no exclamation overload.`
 }
 
 function unitBlock(space) {
-  if (!space) return 'No specific unit â€” write for the brand / general leasing enquiries.'
+  if (!space) return 'No specific unit — write for the brand / general leasing enquiries.'
   const parts = [
     `Unit ${space.unitNumber}`,
     space.type,
@@ -35,7 +35,7 @@ function unitBlock(space) {
     space.cars ? `${space.cars} car spaces` : null,
     space.attributes,
   ].filter(Boolean)
-  return `Unit details: ${parts.join(' Â· ')}.`
+  return `Unit details: ${parts.join(' · ')}.`
 }
 
 function buildPrompts({ kind, platform, tone, count, space, company, notes }) {
@@ -48,7 +48,7 @@ function buildPrompts({ kind, platform, tone, count, space, company, notes }) {
   const system = `You are a senior marketing copywriter for a commercial property brand.
 ${brand}
 Write copy that is specific (use the real unit facts), benefit-led, and locally relevant.
-Output ONLY the requested copy â€” no preamble, no explanations, no notes about your reasoning.`
+Output ONLY the requested copy — no preamble, no explanations, no notes about your reasoning.`
 
   if (kind === 'post') {
     return {
@@ -56,7 +56,7 @@ Output ONLY the requested copy â€” no preamble, no explanations, no notes a
       user: `Write ${n} ${platform || 'social media'} post options to promote this space and attract a tenant.
 ${unit}
 ${toneLine}
-For each option: a scroll-stopping hook, 2â€“3 short lines of body highlighting the best features and who it suits, a clear call to action (enquire / book a tour), and 4â€“6 relevant hashtags.
+For each option: a scroll-stopping hook, 2–3 short lines of body highlighting the best features and who it suits, a clear call to action (enquire / book a tour), and 4–6 relevant hashtags.
 Number each option. ${extra}`.trim(),
     }
   }
@@ -78,7 +78,7 @@ Lead with the strongest benefit. Number each variation. ${extra}`.trim(),
     user: `Produce SEO assets for the listing page for this space, optimised for local search (e.g. "warehouse for lease Box Hill").
 ${unit}
 ${toneLine}
-Provide: 1) an SEO page title (~60 chars), 2) a meta description (~155 chars), 3) 8â€“12 target keywords (mix of head and long-tail, local), 4) 3 H2 heading suggestions, 5) a 60â€“90 word optimised intro paragraph.
+Provide: 1) an SEO page title (~60 chars), 2) a meta description (~155 chars), 3) 8–12 target keywords (mix of head and long-tail, local), 4) 3 H2 heading suggestions, 5) a 60–90 word optimised intro paragraph.
 Label each section. ${extra}`.trim(),
   }
 }

@@ -1,4 +1,4 @@
-// Vercel serverless function â€” POST /api/form-submit
+// Vercel serverless function — POST /api/form-submit
 // Public endpoint that turns a website enquiry into a Hexa Space lead (replaces
 // HubSpot for hexaspace.com.au form capture). Uses the service-role key to write
 // past RLS, like the other server endpoints.
@@ -6,7 +6,7 @@
 //
 // Body (matches the website EnquiryForm fields):
 //   { name, email, phone, businessName, message, unitId, source, website }
-//   `website` is a honeypot â€” if filled, we treat it as a bot and no-op.
+//   `website` is a honeypot — if filled, we treat it as a bot and no-op.
 
 import { createClient } from '@supabase/supabase-js'
 import { leadTypeFor, findEmailTemplate, renderLead, sendResend, sendFunctionBrochure } from './_leads.js'
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
   const { name, email, phone, businessName, message, unitId, source, website, ref, intent } = req.body ?? {}
 
-  // Honeypot â€” pretend success so bots don't retry.
+  // Honeypot — pretend success so bots don't retry.
   if (website) return res.status(200).json({ success: true })
 
   if (!email && !phone) return res.status(400).json({ error: 'Email or phone required' })
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
   const supabase = createClient(SUPABASE_URL, serviceKey, { auth: { persistSession: false } })
 
   // Function-space enquiries belong in the Function Space Bookings funnel
-  // (function_bookings table â†’ CRM "Function Enquiries" tab), not the general
+  // (function_bookings table → CRM "Function Enquiries" tab), not the general
   // lead pipeline.
   if (isFunctionEnquiry(req.body)) {
     return handleFunctionEnquiry(req, res, supabase)
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       enquiryType: req.body?.enquiryType ?? req.body?.interest ?? null,
       createdAt: today,
       stageEnteredAt: today,
-      // Nurture sequence state â€” advanced by the lead-nurture cron.
+      // Nurture sequence state — advanced by the lead-nurture cron.
       nurture: { step: 0, type: leadType, lastAt: today },
     }
 
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Could not save enquiry' })
     }
 
-    // Best-effort admin notification â€” never blocks the response.
+    // Best-effort admin notification — never blocks the response.
     notifyAdmin(supabase, lead, space).catch(() => {})
     // Best-effort brochure email to the enquirer (Day 0 of the nurture flow).
     sendBrochure(lead, space, leadType, templates, settings).catch(() => {})
@@ -163,18 +163,18 @@ async function notifyFunctionAdmin(supabase, b) {
   const fromName = settings?.emails?.fromName || settings?.company?.name || 'Hexa Space'
   const fromEmail = settings?.emails?.fromEmail || 'noreply@hexaspace.com.au'
   const html = brandFrame(
-    bH2('New function space enquiry ðŸŽ‰') +
+    bH2('New function space enquiry 🎉') +
     bTable([
-      ['Name', `${b.name || 'â€”'}${b.organisation ? ` (${b.organisation})` : ''}`],
-      ['Email', b.email || 'â€”'],
-      ['Phone', b.phone || 'â€”'],
-      ...(b.eventDate ? [['When', `${b.eventDate} ${b.startTime || ''}â€“${b.endTime || ''}`]] : []),
+      ['Name', `${b.name || '—'}${b.organisation ? ` (${b.organisation})` : ''}`],
+      ['Email', b.email || '—'],
+      ['Phone', b.phone || '—'],
+      ...(b.eventDate ? [['When', `${b.eventDate} ${b.startTime || ''}–${b.endTime || ''}`]] : []),
     ]) +
     (b.additionalRequirements ? bP(`<strong>Message:</strong><br>${String(b.additionalRequirements).replace(/</g, '&lt;')}`) : '') +
-    bSmall('Added to CRM â†’ Function Enquiries.'),
+    bSmall('Added to CRM → Function Enquiries.'),
     { footerLabel: 'Hexa Space' }
   )
-  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `Function enquiry â€” ${b.name || b.email}`, html })
+  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `Function enquiry — ${b.name || b.email}`, html })
 }
 
 async function notifyAdmin(supabase, lead, space) {
@@ -187,22 +187,22 @@ async function notifyAdmin(supabase, lead, space) {
 
   const fromName = settings?.emails?.fromName || settings?.company?.name || 'Hexa Space'
   const fromEmail = settings?.emails?.fromEmail || 'noreply@hexaspace.com.au'
-  const unit = space ? `${space.unitNumber}${space.address ? ` â€” ${space.address}` : ''}` : 'General enquiry'
+  const unit = space ? `${space.unitNumber}${space.address ? ` — ${space.address}` : ''}` : 'General enquiry'
 
   const html = brandFrame(
-    bH2('New website enquiry ðŸ“©') +
+    bH2('New website enquiry 📩') +
     bTable([
-      ['Name', `${lead.name || 'â€”'}${lead.businessName ? ` (${lead.businessName})` : ''}`],
-      ['Email', lead.email || 'â€”'],
-      ['Phone', lead.phone || 'â€”'],
+      ['Name', `${lead.name || '—'}${lead.businessName ? ` (${lead.businessName})` : ''}`],
+      ['Email', lead.email || '—'],
+      ['Phone', lead.phone || '—'],
       ['Unit', unit],
     ]) +
-    bP(`<strong>Message:</strong><br>${(lead.notes || 'â€”').replace(/</g, '&lt;')}`) +
+    bP(`<strong>Message:</strong><br>${(lead.notes || '—').replace(/</g, '&lt;')}`) +
     bSmall('This enquiry has been added to your Leads pipeline in Hexa Space.'),
     { footerLabel: 'Hexa Space' }
   )
 
-  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `New enquiry â€” ${unit}`, html })
+  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `New enquiry — ${unit}`, html })
 }
 
 // Sends the membership-specific brochure email to the enquirer on Day 0.

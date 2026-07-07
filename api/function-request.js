@@ -1,7 +1,7 @@
-// Vercel serverless â€” POST /api/function-request  (public, CORS *)
+// Vercel serverless — POST /api/function-request  (public, CORS *)
 // The branded "Book a time" page on www.hexaspace.com.au posts here. Moves an
-// existing enquiry (matched by ref = requestToken from the brochure link) â€” or
-// creates a new record â€” to the 'requested' stage for admin review.
+// existing enquiry (matched by ref = requestToken from the brochure link) — or
+// creates a new record — to the 'requested' stage for admin review.
 import { createClient } from '@supabase/supabase-js'
 import { sendResendEmail } from './_email.js'
 import { brandFrame, bH2, bTable, bSmall } from './_brand.js'
@@ -82,16 +82,16 @@ async function notifyAdmin(supabase, b) {
   const fromName = settings?.emails?.fromName || settings?.company?.name || 'Hexa Space'
   const fromEmail = settings?.emails?.fromEmail || 'noreply@hexaspace.com.au'
   const html = brandFrame(
-    bH2('Function booking request â€” review needed ðŸ—“ï¸') +
+    bH2('Function booking request — review needed 🗓️') +
     bTable([
-      ['Name', `${b.name || 'â€”'}${b.organisation ? ` (${b.organisation})` : ''}`],
-      ['Email', b.email || 'â€”'],
-      ['Event', `${b.eventName || 'â€”'}${b.eventType ? ` Â· ${b.eventType}` : ''}`],
-      ['Requested date', `${b.eventDate || 'â€”'} ${b.startTime || ''}${b.endTime ? `â€“${b.endTime}` : ''}`],
-      ['Layout', `${b.layout || 'â€”'} Â· ${b.guests || 'â€”'} guests`],
+      ['Name', `${b.name || '—'}${b.organisation ? ` (${b.organisation})` : ''}`],
+      ['Email', b.email || '—'],
+      ['Event', `${b.eventName || '—'}${b.eventType ? ` · ${b.eventType}` : ''}`],
+      ['Requested date', `${b.eventDate || '—'} ${b.startTime || ''}${b.endTime ? `–${b.endTime}` : ''}`],
+      ['Layout', `${b.layout || '—'} · ${b.guests || '—'} guests`],
     ]) +
-    bSmall('Review in Function Bookings â€” check for clashes, then approve to invite them to the portal.'),
+    bSmall('Review in Function Bookings — check for clashes, then approve to invite them to the portal.'),
     { footerLabel: 'Function Space Hire' }
   )
-  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `Function request â€” ${b.name || b.email} (${b.eventDate || 'no date'})`, html })
+  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `Function request — ${b.name || b.email} (${b.eventDate || 'no date'})`, html })
 }

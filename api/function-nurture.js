@@ -1,4 +1,4 @@
-// Vercel cron â€” daily function-enquiry nurture. Follows up website function
+// Vercel cron — daily function-enquiry nurture. Follows up website function
 // enquiries that haven't yet requested a booking time, then cools off. Stops the
 // moment the enquirer requests a time (stage advances) or the team acts.
 import { createClient } from '@supabase/supabase-js'
@@ -21,10 +21,10 @@ function fallback(type, vars) {
     bKicker('Function Space Hire') +
     bH1(final ? `Here whenever you need us, ${vars.name}.` : `Still thinking about your event, ${vars.name}?`) +
     bP(final
-      ? "We haven't heard back, so we'll leave things here for now. If your event is still on the horizon, our function space is ready when you are â€” just pick a time and we'll take care of the rest."
+      ? "We haven't heard back, so we'll leave things here for now. If your event is still on the horizon, our function space is ready when you are — just pick a time and we'll take care of the rest."
       : "Just following up on your function space enquiry. Whenever you're ready, pick a preferred date and layout and we'll check availability and get your booking underway.") +
     bBtn('Book a time', vars.bookLink) +
-    bSmall('Reply to this email any time â€” happy to help with dates, catering or a walkthrough.')
+    bSmall('Reply to this email any time — happy to help with dates, catering or a walkthrough.')
   return {
     subject: final ? 'One last note about your Hexa Space function' : `Still planning ${vars.eventName}? Book your Hexa Space time`,
     html: brandFrame(inner, { footerLabel: 'Function Space Hire' }),

@@ -1,5 +1,5 @@
-// POST /api/google-ads/push â€” pushes a saved Hexa Space campaign into a Google Ads
-// account as a PAUSED Search campaign (budget â†’ campaign â†’ ad groups â†’ keywords â†’
+// POST /api/google-ads/push — pushes a saved Hexa Space campaign into a Google Ads
+// account as a PAUSED Search campaign (budget → campaign → ad groups → keywords →
 // responsive search ads). Nothing spends until the user enables it in Google Ads.
 //
 // Requires env: GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET,
@@ -60,7 +60,7 @@ function makeMutate(accessToken, customerId, loginCustomerId) {
   }
 }
 
-// Build one Responsive Search Ad from a group's ads (RSA needs â‰¥3 headlines, â‰¥2 descriptions).
+// Build one Responsive Search Ad from a group's ads (RSA needs ≥3 headlines, ≥2 descriptions).
 function buildRsa(group, finalUrl) {
   let headlines = uniq([
     ...group.ads.map((a) => a.headline),

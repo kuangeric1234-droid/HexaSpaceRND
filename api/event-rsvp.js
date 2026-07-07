@@ -1,4 +1,4 @@
-// Vercel serverless function â€” POST /api/event-rsvp
+// Vercel serverless function — POST /api/event-rsvp
 // Public endpoint that saves a website event RSVP/registration into the Hexa Space
 // CRM (replaces the HubSpot event form). One row per registration, grouped by
 // event in the app. Uses the service-role key to write past RLS.
@@ -79,12 +79,12 @@ async function notifyAdmin(supabase, reg) {
   const fromEmail = settings?.emails?.fromEmail || 'noreply@hexaspace.com.au'
 
   const html = brandFrame(
-    bH2('New event registration ðŸŽŸï¸') +
+    bH2('New event registration 🎟️') +
     bPanel(
       bP(`<strong>Event:</strong> ${reg.eventName || reg.eventSlug}`) +
-      bP(`<strong>Name:</strong> ${reg.name || 'â€”'}${reg.businessName ? ` (${reg.businessName})` : ''}`) +
-      bP(`<strong>Email:</strong> ${reg.email || 'â€”'}`) +
-      bP(`<strong>Phone:</strong> ${reg.phone || 'â€”'}`) +
+      bP(`<strong>Name:</strong> ${reg.name || '—'}${reg.businessName ? ` (${reg.businessName})` : ''}`) +
+      bP(`<strong>Email:</strong> ${reg.email || '—'}`) +
+      bP(`<strong>Phone:</strong> ${reg.phone || '—'}`) +
       bP(`<strong>Guests:</strong> ${reg.guests}`) +
       (reg.message ? bP(`<strong>Message:</strong><br>${reg.message.replace(/</g, '&lt;')}`) : '')
     ) +
@@ -92,5 +92,5 @@ async function notifyAdmin(supabase, reg) {
     { footerLabel: 'Events' }
   )
 
-  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `New RSVP â€” ${reg.eventName || reg.eventSlug}`, html })
+  await sendResendEmail({ from: `${fromName} <${fromEmail}>`, to, subject: `New RSVP — ${reg.eventName || reg.eventSlug}`, html })
 }
