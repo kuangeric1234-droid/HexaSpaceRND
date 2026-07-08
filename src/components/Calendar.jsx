@@ -2,15 +2,10 @@ import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, X, Users, Clock } from 'lucide-react'
 import { format, addDays } from 'date-fns'
-import { bookingFeeName } from '../lib/credits.js'
+import { bookingFeeName, afterHoursConfig } from '../lib/credits.js'
 
-const DAY_START = 9
-const DAY_END = 17
 const HOUR_H = 52
 const CREDIT_VALUE = 40 // $40 per credit
-const HOURS = Array.from({ length: DAY_END - DAY_START }, (_, i) => DAY_START + i)
-// Gridline labels — one per line including the closing hour (so 5pm shows).
-const LABEL_HOURS = Array.from({ length: DAY_END - DAY_START + 1 }, (_, i) => DAY_START + i)
 const RESOURCE_TYPES = [
   { label: 'Meeting Rooms', type: 'meeting' },
   { label: 'Media Studios', type: 'studio' },
@@ -25,7 +20,14 @@ const round2 = (n) => Math.round(n * 100) / 100
 const ROOM_COLORS = ['#7c8b2f', '#10b981', '#7c3aed', '#b45309', '#1d4ed8', '#d97706', '#374151', '#9d174d']
 
 export default function Calendar() {
-  const { bookings = [], spaces = [], members = [], tenants = [], addBooking, updateBooking, deleteBooking, updateMember, addMember, updateTenant, addFee, deleteFee } = useOutletContext()
+  const { bookings = [], spaces = [], members = [], tenants = [], settings = {}, addBooking, updateBooking, deleteBooking, updateMember, addMember, updateTenant, addFee, deleteFee } = useOutletContext()
+  // Grid spans the extended (after-hours) window so after-hours bookings are
+  // visible to staff. Admins can create bookings at any time — no gating here.
+  const ahCfg = afterHoursConfig(settings)
+  const DAY_START = ahCfg.extendedStart
+  const DAY_END = ahCfg.extendedEnd
+  const HOURS = Array.from({ length: DAY_END - DAY_START }, (_, i) => DAY_START + i)
+  const LABEL_HOURS = Array.from({ length: DAY_END - DAY_START + 1 }, (_, i) => DAY_START + i)
   const [day, setDay] = useState(new Date())
   const [resType, setResType] = useState('meeting')
   const [modal, setModal] = useState(null) // { mode:'new'|'edit', ...booking/slot }

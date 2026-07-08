@@ -4,7 +4,7 @@ import { useOutletContext } from 'react-router-dom'
 import { Plus, Trash2, Check } from 'lucide-react'
 import { XERO_ACCOUNTS, DEFAULT_XERO_ACCOUNTS } from './spaces/shared.jsx'
 import { xeroStatus, connectXero, disconnectXero, xeroSync } from '../lib/xero.js'
-import { PERK_TIER_DEFAULTS, PERK_TIER_ORDER } from '../lib/credits.js'
+import { PERK_TIER_DEFAULTS, PERK_TIER_ORDER, AFTER_HOURS_DEFAULTS } from '../lib/credits.js'
 
 const MENU = [
   {
@@ -20,6 +20,7 @@ const MENU = [
     items: [
       { key: 'contracts', label: 'Contracts' },
       { key: 'room-perks', label: 'Room Perks' },
+      { key: 'after-hours', label: 'After-hours' },
       { key: 'email-templates', label: 'Email Templates' },
     ],
   },
@@ -959,6 +960,81 @@ function RoomPerksSection({ settings, updateSettings }) {
   )
 }
 
+// ── After-hours booking (Operations) ──────────────────────────────────────────
+// Everyone can book the business-hours band; only the chosen memberships (those
+// with 24/7 building access) can reach the wider window. Same pricing as daytime.
+function AfterHoursSection({ settings, updateSettings }) {
+  const d = AFTER_HOURS_DEFAULTS
+  const cur = settings.afterHours ?? {}
+  const [form, setForm] = useState({
+    coreStart: cur.coreStart ?? d.coreStart,
+    coreEnd: cur.coreEnd ?? d.coreEnd,
+    extendedStart: cur.extendedStart ?? d.extendedStart,
+    extendedEnd: cur.extendedEnd ?? d.extendedEnd,
+    eligibleTiers: cur.eligibleTiers ?? d.eligibleTiers,
+  })
+  const [saved, setSaved] = useState(false)
+  const set = (k) => (v) => setForm((p) => ({ ...p, [k]: v }))
+  const toggleTier = (t) => setForm((p) => ({
+    ...p,
+    eligibleTiers: p.eligibleTiers.includes(t) ? p.eligibleTiers.filter((x) => x !== t) : [...p.eligibleTiers, t],
+  }))
+  const clampHour = (v, fb) => Math.max(0, Math.min(24, Number(v) || fb))
+  const label12 = (h) => `${(h % 12) || 12}${h >= 12 ? 'pm' : 'am'}`
+
+  function save() {
+    updateSettings({ afterHours: {
+      coreStart: clampHour(form.coreStart, d.coreStart),
+      coreEnd: clampHour(form.coreEnd, d.coreEnd),
+      extendedStart: clampHour(form.extendedStart, d.extendedStart),
+      extendedEnd: clampHour(form.extendedEnd, d.extendedEnd),
+      eligibleTiers: form.eligibleTiers,
+    } })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  const HourInput = ({ k }) => (
+    <div className="flex items-center gap-2">
+      <input type="number" min={0} max={24} step={1} value={form[k]}
+        onChange={(e) => set(k)(e.target.value)}
+        className="w-20 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center" />
+      <span className="text-xs text-muted-foreground">{label12(clampHour(form[k], 0))}</span>
+    </div>
+  )
+
+  return (
+    <div>
+      <h1 className="text-xl font-bold text-foreground mb-1">After-hours booking</h1>
+      <p className="text-sm text-muted-foreground mb-6">Any member can book meeting rooms during business hours. Members whose membership includes 24/7 access can also book the wider after-hours window (evenings &amp; early mornings) — at the same price as daytime. Hours are 24-hour, Melbourne local. Applies to the member portal and app.</p>
+
+      <div className="mb-6 border border-border rounded-md p-4">
+        <div className="text-sm font-semibold text-foreground mb-3">Business hours (everyone)</div>
+        <FormRow label="Open from" description="Earliest any member can book"><HourInput k="coreStart" /></FormRow>
+        <FormRow label="Open until" description="Latest any member can book"><HourInput k="coreEnd" /></FormRow>
+      </div>
+
+      <div className="mb-6 border border-border rounded-md p-4">
+        <div className="text-sm font-semibold text-foreground mb-3">After-hours window (24/7 members)</div>
+        <FormRow label="Extended from" description="Earliest a 24/7 member can book"><HourInput k="extendedStart" /></FormRow>
+        <FormRow label="Extended until" description="Latest a 24/7 member can book"><HourInput k="extendedEnd" /></FormRow>
+        <FormRow label="24/7 memberships" description="Which memberships may book after hours (they already have 24/7 building access)">
+          <div className="space-y-2">
+            {PERK_TIER_ORDER.map((t) => (
+              <label key={t} className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                <input type="checkbox" checked={form.eligibleTiers.includes(t)} onChange={() => toggleTier(t)} className="accent-blue-600" />
+                {t}
+              </label>
+            ))}
+          </div>
+        </FormRow>
+      </div>
+
+      <SaveButton onClick={save} saved={saved} />
+    </div>
+  )
+}
+
 // ── Invoicing ─────────────────────────────────────────────────────────────────
 function InvoicingSection({ settings, updateSettings }) {
   const [form, setForm] = useState(() => ({ ...settings.invoicing }))
@@ -1642,6 +1718,7 @@ export default function Settings() {
     'emails': <EmailsSection settings={settings} updateSettings={updateSettings} />,
     'contracts': <ContractsSection settings={settings} updateSettings={updateSettings} />,
     'room-perks': <RoomPerksSection settings={settings} updateSettings={updateSettings} />,
+    'after-hours': <AfterHoursSection settings={settings} updateSettings={updateSettings} />,
     'billing-rules': <BillingRulesSection settings={settings} updateSettings={updateSettings} />,
     'invoicing': <InvoicingSection settings={settings} updateSettings={updateSettings} />,
     'email-templates': <EmailTemplatesSection settings={settings} updateSettings={updateSettings} />,

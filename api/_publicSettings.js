@@ -56,5 +56,8 @@ export function publicSettings(settings = {}) {
     // Which rooms are free for private-office (suite) members + the usage caps.
     // Public so the portal/app can enforce them; not sensitive.
     officePerks: s.officePerks ?? null,
+    // After-hours booking window + which memberships may reach it. Public so the
+    // portal/app can draw/gate the extended hours; not sensitive.
+    afterHours: s.afterHours ?? null,
   };
 }

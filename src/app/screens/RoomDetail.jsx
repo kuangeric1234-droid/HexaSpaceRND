@@ -4,16 +4,15 @@ import { Check, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useApp } from '../context.js'
 import { Screen, BackHeader, Label, Rule, Chip, Sheet, BigButton, RoomPhoto, fmt, to12, money0 } from '../ui.jsx'
 import { toDec, fromDec, isFree, creditBalance, createBooking, CREDIT_VALUE } from '../lib/bookingActions.js'
-import { isPerkRoom, perkHoursUsed, companyPerk, round2 } from '../../lib/credits.js'
+import { isPerkRoom, perkHoursUsed, companyPerk, round2, companyCanAfterHours, bookingWindow, afterHoursConfig } from '../../lib/credits.js'
 
 // Single-room day calendar — the app's version of the website's booking grid:
-// scrollable date strip on top, a 9am–5pm column below with existing bookings
-// blocked out, tap any open half-hour to book from there.
+// scrollable date strip on top, an hour column below with existing bookings
+// blocked out, tap any open half-hour to book from there. The grid spans the
+// extended (after-hours) window; slots outside a member's band are disabled.
 
-const DAY_START = 9, DAY_END = 17
 const HOUR_H = 60 // px per hour → 30px per half-hour cell
-const GRID_H = (DAY_END - DAY_START) * HOUR_H
-const LABEL_PAD = 22 // room under the last gridline so the 5pm label isn't clipped
+const LABEL_PAD = 22 // room under the last gridline so the last label isn't clipped
 const DURATIONS = [
   { min: 30, label: '30 mins' },
   { min: 60, label: '1 hour' },
@@ -24,6 +23,14 @@ const DURATIONS = [
 export default function RoomDetail({ room, onBack }) {
   const { data, patch } = useApp()
   const { allBookings, member, company, leases, spaces, settings } = data
+
+  // Grid spans the extended window; the member's own band (win) gates slots.
+  const ahCfg = afterHoursConfig(settings)
+  const DAY_START = ahCfg.extendedStart
+  const DAY_END = ahCfg.extendedEnd
+  const GRID_H = (DAY_END - DAY_START) * HOUR_H
+  const canAfterHours = companyCanAfterHours(company?.id, leases, spaces, settings)
+  const win = bookingWindow(canAfterHours, settings)
 
   const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [slot, setSlot] = useState(null) // "HH:mm" start tapped
@@ -41,11 +48,13 @@ export default function RoomDetail({ room, onBack }) {
   const rate = room.hourlyRate ?? room.rate ?? 0
   const balance = creditBalance(company)
 
-  // Half-hour cells 9:00 → 16:30
+  // Half-hour cells across the grid window
   const cells = []
   for (let d = DAY_START; d < DAY_END; d += 0.5) cells.push(d)
   const cellBooked = (d) => dayBookings.some((b) => toDec(b.startTime) < d + 0.5 && d < toDec(b.endTime))
   const cellPast = (d) => date === todayStr && d <= nowDec
+  // Outside the member's bookable band → after-hours (needs 24/7 access).
+  const cellAfterHours = (d) => d < win.start || d >= win.end
 
   return (
     <Screen>
@@ -90,15 +99,16 @@ export default function RoomDetail({ room, onBack }) {
           {cells.map((d) => {
             const booked = cellBooked(d)
             const past = cellPast(d)
-            const open = !booked && !past
+            const afterHours = cellAfterHours(d)
+            const open = !booked && !past && !afterHours
             return (
               <button key={d} disabled={!open}
                 onClick={() => setSlot(fromDec(d))}
                 style={{ top: (d - DAY_START) * HOUR_H, height: HOUR_H / 2 }}
                 className={`absolute inset-x-0 border-b ${Number.isInteger(d) ? 'border-ink/10' : 'border-ink/5'} ${
-                  past ? 'bg-bone/70' : open ? 'active:bg-hexa-green/10' : ''
+                  past || afterHours ? 'bg-bone/70' : open ? 'active:bg-hexa-green/10' : ''
                 }`}
-                aria-label={open ? `Book from ${to12(fromDec(d))}` : undefined}
+                aria-label={open ? `Book from ${to12(fromDec(d))}` : afterHours ? 'After-hours — needs 24/7 access' : undefined}
               />
             )
           })}
@@ -119,7 +129,9 @@ export default function RoomDetail({ room, onBack }) {
         </div>
       </div>
       <p className="hx-prose text-[11px] mt-3">
-        Open 9am–5pm · requests are confirmed by our team, usually within the hour.
+        Open {to12(fromDec(win.start))} – {to12(fromDec(win.end))} · {canAfterHours
+          ? 'after-hours booking is on for your membership.'
+          : 'after-hours is included with Private Office & Dedicated Desk memberships.'} Requests confirmed usually within the hour.
       </p>
 
       {slot && (
@@ -204,10 +216,12 @@ function SlotSheet({ room, date, start, member, company, allBookings, balance, l
   const perk = companyPerk(company?.id, leases, spaces, settings)
   const isPerk = isPerkRoom(room, perk)
   const perkUsedToday = isPerk ? perkHoursUsed({ companyId: company?.id, date, bookings: allBookings, perk, spaces }) : 0
+  const canAfterHours = companyCanAfterHours(company?.id, leases, spaces, settings)
+  const win = bookingWindow(canAfterHours, settings)
 
   const fits = (min) => {
     const end = toDec(start) + min / 60
-    if (end > DAY_END || !isFree(allBookings, room.id, date, start, fromDec(end))) return false
+    if (toDec(start) < win.start || end > win.end || !isFree(allBookings, room.id, date, start, fromDec(end))) return false
     if (isPerk && (min / 60 > perk.maxHoursPerBooking || perkUsedToday + min / 60 > perk.maxHoursPerDay)) return false
     return true
   }

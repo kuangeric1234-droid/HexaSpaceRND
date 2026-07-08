@@ -129,6 +129,50 @@ function hoursBetween(start, end) {
   return dec(end) - dec(start)
 }
 
+// ── After-hours bookings ─────────────────────────────────────────────────────
+// Everyone can book the CORE hours (business day). Only members whose membership
+// grants 24/7 building access (eligibleTiers) can book the wider EXTENDED window
+// (early mornings / evenings). Pricing is identical to daytime — the only gate is
+// who can book when. All hours are 24h decimals, Melbourne-local. Overridable via
+// settings.afterHours.
+export const AFTER_HOURS_DEFAULTS = {
+  coreStart: 9,        // business-hours band any member can book
+  coreEnd: 17,
+  extendedStart: 7,    // widest window a 24/7 member can reach
+  extendedEnd: 22,
+  eligibleTiers: ['Private Office', 'Dedicated Desk'], // the "24/7 access" memberships
+}
+
+export function afterHoursConfig(settings) {
+  const c = settings?.afterHours ?? {}
+  const d = AFTER_HOURS_DEFAULTS
+  return {
+    coreStart: Number(c.coreStart ?? d.coreStart),
+    coreEnd: Number(c.coreEnd ?? d.coreEnd),
+    extendedStart: Number(c.extendedStart ?? d.extendedStart),
+    extendedEnd: Number(c.extendedEnd ?? d.extendedEnd),
+    eligibleTiers: Array.isArray(c.eligibleTiers) ? c.eligibleTiers : d.eligibleTiers,
+  }
+}
+
+// Does the company hold an active membership in an after-hours-eligible tier?
+export function companyCanAfterHours(companyId, leases, spaces, settings) {
+  if (!companyId) return false
+  const set = new Set(afterHoursConfig(settings).eligibleTiers)
+  return (leases ?? []).some((l) =>
+    l.tenantId === companyId && l.status === 'active'
+    && set.has(classifyMembership(l, (spaces ?? []).find((s) => s.id === l.spaceId))))
+}
+
+// Bookable window [start, end) in decimal hours: the extended window for a 24/7
+// company, else core hours. Pass the result of companyCanAfterHours.
+export function bookingWindow(canAfterHours, settings) {
+  const c = afterHoursConfig(settings)
+  return canAfterHours
+    ? { start: c.extendedStart, end: c.extendedEnd }
+    : { start: c.coreStart, end: c.coreEnd }
+}
+
 // Where to email a company: its own email, else the member flagged Billing
 // Person, else the Contact Person, else any member with an email. Used by
 // EVERY company-facing send (invoices, reminders, mail alerts, renewals) so

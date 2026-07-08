@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase.js'
-import { bookingFeeName, isPerkRoom, perkHoursUsed, companyPerk, round2 } from '../../lib/credits.js'
+import { bookingFeeName, isPerkRoom, perkHoursUsed, companyPerk, round2, companyCanAfterHours, bookingWindow } from '../../lib/credits.js'
 
 // Booking writes for the app — mirrors the portal's PortalCalendar confirm()
 // exactly (same bookings/fees/tenants writes, same credit model) so the two
@@ -41,6 +41,17 @@ export async function createBooking({ room, date, startTime, endTime, title, mem
   }
 
   const hrs = Math.max(0, toDec(endTime) - toDec(startTime))
+
+  // Booking window: everyone gets core hours; only 24/7 memberships reach the
+  // extended (after-hours) window. Reject anything outside the company's band.
+  const canAfterHours = companyCanAfterHours(company?.id, leases, spaces, settings)
+  const win = bookingWindow(canAfterHours, settings)
+  const hLabel = (h) => `${(h % 12) || 12}${h >= 12 ? 'pm' : 'am'}`
+  if (toDec(startTime) < win.start || toDec(endTime) > win.end) {
+    throw new Error(canAfterHours
+      ? `Bookings are available from ${hLabel(win.start)} to ${hLabel(win.end)}.`
+      : `That's outside business hours (${hLabel(win.start)}–${hLabel(win.end)}). After-hours booking is included with Private Office & Dedicated Desk memberships.`)
+  }
 
   // Office perk: private-office (suite) companies book Sky/Earth/Sun/Moon free,
   // capped per booking + per company per day.
