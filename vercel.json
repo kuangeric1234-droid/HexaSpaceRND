@@ -6,6 +6,12 @@
         { "key": "Content-Type", "value": "application/x-apple-aspen-config" },
         { "key": "Content-Disposition", "value": "attachment; filename=\"hexa-printer.mobileconfig\"" }
       ]
+    },
+    {
+      "source": "/tv.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
     }
   ],
   "rewrites": [

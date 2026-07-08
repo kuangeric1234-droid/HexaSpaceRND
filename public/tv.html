@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Hexa Space Directory</title>
 <!--
   Standalone lobby-TV directory board. Deliberately dependency-free and written
@@ -32,32 +35,32 @@
       repeating-linear-gradient(135deg, rgba(255,255,255,0.016) 0px, rgba(255,255,255,0.016) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 9px),
       radial-gradient(125% 115% at 50% 26%, #1e2126 0%, #14151a 45%, #0a0a0c 100%);
   }
-  #wrap { position: relative; z-index: 1; width: 1100px; max-width: 100%; margin: 0 auto; padding: 48px 56px; transform-origin: top center; }
+  #wrap { position: relative; z-index: 1; width: 1100px; max-width: 100%; margin: 0 auto; padding: 26px 52px 22px; transform-origin: top center; }
   .addr { text-align: center; font-size: 12px; letter-spacing: 0.5em; color: #8a8a92; text-transform: uppercase; }
-  .head { display: flex; align-items: flex-start; justify-content: space-between; margin-top: 34px; }
-  .title { line-height: 0.92; }
-  .title .lv { display: block; font-size: 60px; font-weight: 300; letter-spacing: 0.12em; }
-  .title .dr { display: block; font-size: 60px; font-weight: 700; letter-spacing: 0.06em; }
-  .brand { text-align: right; padding-top: 4px; white-space: nowrap; }
-  .brand .n { font-size: 38px; font-weight: 300; letter-spacing: 0.18em; }
-  .brand .cn { margin-top: 6px; font-size: 20px; letter-spacing: 0.6em; color: #a7a7ae; }
-  .cols { display: flex; margin-top: 40px; padding-bottom: 12px; padding-left: 20px;
+  .head { display: flex; align-items: flex-start; justify-content: space-between; margin-top: 18px; }
+  .title { line-height: 0.9; }
+  .title .lv { display: block; font-size: 50px; font-weight: 300; letter-spacing: 0.12em; }
+  .title .dr { display: block; font-size: 50px; font-weight: 700; letter-spacing: 0.06em; }
+  .brand { text-align: right; padding-top: 2px; white-space: nowrap; }
+  .brand .n { font-size: 34px; font-weight: 300; letter-spacing: 0.18em; }
+  .brand .cn { margin-top: 5px; font-size: 18px; letter-spacing: 0.6em; color: #a7a7ae; }
+  .cols { display: flex; margin-top: 22px; padding-bottom: 10px; padding-left: 20px;
           border-bottom: 1px solid rgba(255,255,255,0.10);
           font-size: 12px; letter-spacing: 0.35em; color: #8a8a92; text-transform: uppercase; }
   .cols .c1 { width: 150px; }
-  .list { margin-top: 8px; border-left: 1px solid rgba(255,255,255,0.10); }
-  .row { display: flex; align-items: flex-start; padding: 16px 0 16px 20px; }
-  .row .s { width: 150px; flex: 0 0 150px; font-size: 26px; font-weight: 300; color: #a7a7ae; }
-  .row .b { font-size: 26px; font-weight: 300; line-height: 1.25; }
-  .row .b .l2 { font-size: 21px; color: #c9c9d0; }
-  .comm { margin-top: 56px; }
-  .comm .h { text-align: center; font-size: 30px; letter-spacing: 0.35em; text-transform: uppercase; }
-  .comm .sh { text-align: center; margin-top: 10px; font-size: 14px; letter-spacing: 0.4em; color: #8a8a92; }
-  .comm .grid { margin-top: 32px; -webkit-column-count: 3; -moz-column-count: 3; column-count: 3; -webkit-column-gap: 32px; column-gap: 32px; }
-  .comm .item { -webkit-column-break-inside: avoid; break-inside: avoid; font-size: 16px; font-weight: 300;
-                color: #c9c9d0; line-height: 1.3; padding-bottom: 12px; margin-bottom: 12px;
+  .list { margin-top: 6px; border-left: 1px solid rgba(255,255,255,0.10); }
+  .row { display: flex; align-items: flex-start; padding: 9px 0 9px 20px; }
+  .row .s { width: 150px; flex: 0 0 150px; font-size: 23px; font-weight: 300; color: #a7a7ae; }
+  .row .b { font-size: 23px; font-weight: 300; line-height: 1.2; }
+  .row .b .l2 { font-size: 18px; color: #c9c9d0; }
+  .comm { margin-top: 26px; }
+  .comm .h { text-align: center; font-size: 25px; letter-spacing: 0.35em; text-transform: uppercase; }
+  .comm .sh { text-align: center; margin-top: 7px; font-size: 13px; letter-spacing: 0.4em; color: #8a8a92; }
+  .comm .grid { margin-top: 18px; -webkit-column-count: 3; -moz-column-count: 3; column-count: 3; -webkit-column-gap: 30px; column-gap: 30px; }
+  .comm .item { -webkit-column-break-inside: avoid; break-inside: avoid; font-size: 15px; font-weight: 300;
+                color: #c9c9d0; line-height: 1.25; padding-bottom: 7px; margin-bottom: 7px;
                 border-bottom: 1px solid rgba(255,255,255,0.06); }
-  .foot { margin-top: 64px; text-align: center; font-size: 11px; letter-spacing: 0.4em; color: #55555c; text-transform: uppercase; }
+  .foot { margin-top: 26px; text-align: center; font-size: 11px; letter-spacing: 0.4em; color: #55555c; text-transform: uppercase; }
   .msg { position: relative; z-index: 1; text-align: center; padding-top: 40vh; color: #8a8a92; letter-spacing: 0.3em; }
 </style>
 </head>
@@ -154,7 +157,7 @@
   function load() {
     try {
       var xhr = new XMLHttpRequest();
-      var url = SUPABASE_URL + "/rest/v1/directory_boards?id=eq." + level + "&select=data";
+      var url = SUPABASE_URL + "/rest/v1/directory_boards?id=eq." + level + "&select=data&_=" + (new Date()).getTime();
       xhr.open("GET", url, true);
       xhr.setRequestHeader("apikey", ANON_KEY);
       xhr.setRequestHeader("Authorization", "Bearer " + ANON_KEY);
