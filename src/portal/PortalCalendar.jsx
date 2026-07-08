@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, X, Repeat, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, Repeat, Check, User } from 'lucide-react'
 import { format, addDays, addMonths } from 'date-fns'
 import { supabase } from '../lib/supabase.js'
 import { bookingFeeName } from '../lib/credits.js'
@@ -18,6 +18,13 @@ const to12 = (t) => { if (!t) return ''; let [h, m] = t.split(':').map(Number); 
 const toDec = (t) => { const [h, m] = (t || '0:0').split(':').map(Number); return h + m / 60 }
 const fromDec = (d) => `${String(Math.floor(d)).padStart(2, '0')}:${String(Math.round((d % 1) * 60)).padStart(2, '0')}`
 const overlaps = (aS, aE, bS, bE) => toDec(aS) < toDec(bE) && toDec(bS) < toDec(aE)
+// Room capacity as a number — prefers the numeric `capacity`, else the first
+// number in a legacy size string like "Up to 4".
+const capacityOf = (room) => {
+  if (Number.isFinite(room?.capacity) && room.capacity > 0) return room.capacity
+  const m = String(room?.size ?? '').match(/\d+/)
+  return m ? Number(m[0]) : null
+}
 
 export default function PortalCalendar({ resources, allBookings, member, company }) {
   const [day, setDay] = useState(new Date())
@@ -72,11 +79,19 @@ export default function PortalCalendar({ resources, allBookings, member, company
           {resources.map((room) => {
             const roomBookings = dayBookings.filter((b) => b.resourceId === room.id)
             const rate = room.hourlyRate ?? room.rate
+            const cap = capacityOf(room)
             return (
               <div key={room.id} className="flex-1 min-w-0 border-r border-ink/10 last:border-r-0">
                 <div className="h-16 border-b border-ink/10 px-3 py-2 border-t-2 border-t-hexa-green bg-bone">
                   <div className="font-heading uppercase tracking-nav text-[11px] text-ink truncate">{room.unitNumber}</div>
-                  <div className="hx-prose text-[11px] truncate">{rate ? `A$${rate}/hr` : '—'}{room.size ? ` · ${room.size}` : ''}</div>
+                  <div className="hx-prose text-[11px] flex items-center gap-2">
+                    <span className="truncate">{rate ? `A$${rate}/hr` : '—'}</span>
+                    {cap != null && (
+                      <span className="inline-flex items-center gap-0.5 text-portal-muted shrink-0" title={`Seats up to ${cap}`}>
+                        <User size={11} strokeWidth={2} />{cap}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="relative" style={{ height: (HOURS.length + 1) * HOUR_H }}>
                   {HOURS.map((h) => (
