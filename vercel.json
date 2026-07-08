@@ -19,6 +19,10 @@
       "schedule": "0 */6 * * *"
     },
     {
+      "path": "/api/salto/room-access",
+      "schedule": "15 * * * *"
+    },
+    {
       "path": "/api/reconcile",
       "schedule": "30 20 * * *"
     },
