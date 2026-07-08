@@ -157,10 +157,13 @@
   function load() {
     try {
       var xhr = new XMLHttpRequest();
-      var url = SUPABASE_URL + "/rest/v1/directory_boards?id=eq." + level + "&select=data&_=" + (new Date()).getTime();
+      var url = SUPABASE_URL + "/rest/v1/directory_boards?id=eq." + level + "&select=data";
       xhr.open("GET", url, true);
       xhr.setRequestHeader("apikey", ANON_KEY);
       xhr.setRequestHeader("Authorization", "Bearer " + ANON_KEY);
+      // Bust caches without polluting the query (PostgREST reads stray params as
+      // column filters) — a request header is safe.
+      xhr.setRequestHeader("Cache-Control", "no-cache");
       xhr.onreadystatechange = function () {
         if (xhr.readyState !== 4) return;
         if (xhr.status >= 200 && xhr.status < 300) {
