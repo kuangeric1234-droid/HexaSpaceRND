@@ -86,8 +86,15 @@ export default async function handler(req, res) {
           accessGroupId: groupIds[accessGroup] ?? null,
           roomName: room?.unitNumber ?? '',
           bookingRef: b.reference ?? b.id,
+          // Full datetimes for Zapier "Delay Until"…
           accessFrom: new Date(from).toISOString(),
           accessUntil: new Date(until).toISOString(),
+          // …and split date/time fields straight from the booking, for any
+          // KS field that wants them separately (Melbourne local).
+          startDate: b.date,
+          endDate: b.date,
+          startTime: b.startTime,
+          endTime: b.endTime,
           source: 'hexaspace-platform',
         }),
       }).catch(() => {})
