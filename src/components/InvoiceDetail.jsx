@@ -384,8 +384,11 @@ export default function InvoiceDetail({
   }
 
   function submitPayment() {
-    if (!payForm.amount) return
-    onAddPayment(invoice.id, { ...payForm, amount: Number(payForm.amount) })
+    // Fall back to the outstanding balance if the field was left on its
+    // placeholder — otherwise Record silently no-ops on an empty amount.
+    const amount = Number(payForm.amount) || totals.amountDue
+    if (!amount || amount <= 0) return
+    onAddPayment(invoice.id, { ...payForm, amount })
     setShowPaymentForm(false)
     setPayForm({ amount: '', date: format(new Date(), 'yyyy-MM-dd'), method: 'Bank Transfer', note: '' })
   }
@@ -624,7 +627,12 @@ export default function InvoiceDetail({
               <div className="flex items-center justify-between px-5 py-3 border-b border-border">
                 <span className="font-semibold text-foreground">Payments</span>
                 <button
-                  onClick={() => setShowPaymentForm(!showPaymentForm)}
+                  onClick={() => {
+                    // Pre-fill the amount with the balance owing so Record works
+                    // straight away (the field is otherwise blank behind a placeholder).
+                    if (!showPaymentForm) setPayForm((p) => ({ ...p, amount: totals.amountDue > 0 ? totals.amountDue.toFixed(2) : '' }))
+                    setShowPaymentForm((v) => !v)
+                  }}
                   className="flex items-center gap-1.5 text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 font-medium"
                 >
                   <Plus size={12} /> Add manual payment
