@@ -1767,12 +1767,20 @@ export function useStore() {
     })
 
     // Revoke Salto access for every member of the company, on every freed door.
+    // If the company still holds another live space (office move / downsizing),
+    // strip ONLY the vacated space's access group; a full departure deletes the
+    // KS user entirely.
+    const keepsAnotherSpace = leasesRef.current.some((l) =>
+      l.id !== lease.id && l.tenantId === lease.tenantId &&
+      ['active', 'pending'].includes(l.status) && !l.offboardedAt &&
+      !isParkingLease(l, spacesRef.current))
+    const revokeMode = keepsAnotherSpace ? 'remove_from_group' : 'remove_user'
     const doorSpaces = [...spaceIds].map((id) => spacesRef.current.find((s) => s.id === id)).filter(Boolean)
     membersRef.current
       .filter((m) => m.companyId === lease.tenantId && m.saltoAccess)
       .forEach((m) => {
-        doorSpaces.forEach((space) => revokeSaltoAccess({ member: m, space }).catch((e) => console.error('Salto revoke failed:', e)))
-        updateMember(m.id, { saltoAccess: false })
+        doorSpaces.forEach((space) => revokeSaltoAccess({ member: m, space, mode: revokeMode }).catch((e) => console.error('Salto revoke failed:', e)))
+        if (!keepsAnotherSpace) updateMember(m.id, { saltoAccess: false })
       })
 
     // Clause 13(b): auto-enrol a departing Private Office member in a 3-month

@@ -150,7 +150,9 @@ export async function provisionSaltoAccess({ member, space, lease }) {
   return res.json()
 }
 
-export async function revokeSaltoAccess({ member, space }) {
+// mode 'remove_user' (default) deletes the KS user; 'remove_from_group'
+// strips only this space's access group (company keeps other space(s)).
+export async function revokeSaltoAccess({ member, space, mode = 'remove_user' }) {
   const res = await fetch('/api/salto/revoke', {
     method: 'POST',
     headers: await authHeaders(),
@@ -158,6 +160,9 @@ export async function revokeSaltoAccess({ member, space }) {
       memberEmail: member?.email ?? null,
       saltoUserId: member?.saltoUserId ?? null,
       doorId: space?.saltoDoors ?? space?.saltoDoorId ?? null,
+      spaceLabel: space?.unitNumber ?? null,
+      membershipType: space?.type ?? null,
+      mode,
     }),
   })
   if (!res.ok) {

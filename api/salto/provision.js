@@ -18,20 +18,7 @@ import { sendResendEmail } from '../_email.js'
 import { brandFrame, bKicker, bH1, bP, bSmall, bTable } from '../_brand.js'
 import { requireAdmin } from '../_auth.js'
 
-// Resolve the KS access-group name from what the platform knows about the
-// member's space. KS groups are per-space ("Office 15", "Suite 12") plus
-// functional groups for desk/flex/VO members — names verified against the
-// live KS group list (7 Jul 2026). A space's explicit saltoDoors field wins.
-function resolveAccessGroup(doorId, spaceLabel, membershipType) {
-  if (doorId) return doorId
-  const label = `${spaceLabel ?? ''} ${membershipType ?? ''}`
-  const m = label.match(/(office|suite)\s*0?(\d+)/i)
-  if (m) return `${m[1][0].toUpperCase() + m[1].slice(1).toLowerCase()} ${Number(m[2])}`
-  if (/dedicated/i.test(label)) return 'Dedicated Desk'
-  if (/virtual|\bvo\b/i.test(label)) return 'Virtual Office'
-  if (/flex|desk|coworking/i.test(label)) return 'Flexible Access'
-  return 'Flexible Access' // safest general-member default (KS has no "Members" group)
-}
+import { resolveAccessGroup } from './_groups.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })

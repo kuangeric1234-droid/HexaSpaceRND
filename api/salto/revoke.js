@@ -1,13 +1,18 @@
 // POST /api/salto/revoke — removes a member's door access on lease
 // termination/expiry or portal team removal.
-// Body: { memberEmail, memberName?, saltoUserId?, doorId? }
+// Body: { memberEmail, memberName?, saltoUserId?, doorId?, spaceLabel?,
+//         membershipType?, mode? }
 //
-// Same two modes as provision.js: Zapier Catch Hook (zap: Find User by Email →
-// Remove User) when SALTO_REVOKE_WEBHOOK is set, otherwise an ops-task email.
+// mode 'remove_from_group' — the company keeps other space(s): strip only the
+//   vacated space's access group (SALTO_GROUP_REMOVE_WEBHOOK zap).
+// mode 'remove_user' (default) — full departure: delete the KS user entirely
+//   (SALTO_REVOKE_WEBHOOK zap). Falls back to an ops-task email when the
+//   relevant hook isn't configured.
 
 import { sendResendEmail } from '../_email.js'
 import { brandFrame, bKicker, bH1, bP, bSmall, bTable } from '../_brand.js'
 import { requireAdmin } from '../_auth.js'
+import { resolveAccessGroup } from './_groups.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -16,20 +21,36 @@ export default async function handler(req, res) {
   const auth = await requireAdmin(req)
   if (auth.error) return res.status(auth.status).json({ error: auth.error })
 
-  const { memberEmail, memberName, saltoUserId, doorId } = req.body ?? {}
+  const { memberEmail, memberName, saltoUserId, doorId, spaceLabel, membershipType, mode } = req.body ?? {}
   if (!memberEmail && !saltoUserId) {
     return res.status(400).json({ error: 'memberEmail or saltoUserId is required.' })
   }
 
-  const webhook = process.env.SALTO_REVOKE_WEBHOOK
+  const groupOnly = mode === 'remove_from_group'
+  const webhook = groupOnly ? process.env.SALTO_GROUP_REMOVE_WEBHOOK : process.env.SALTO_REVOKE_WEBHOOK
 
   // ── ZAPIER MODE ────────────────────────────────────────────────────────────
   if (webhook) {
     try {
+      const accessGroup = resolveAccessGroup(doorId, spaceLabel, membershipType)
+      let accessGroupId = null
+      if (groupOnly) {
+        try {
+          const { data: settRow } = await auth.sb.from('settings').select('data').eq('id', 'global').single()
+          accessGroupId = settRow?.data?.salto?.accessGroupIds?.[accessGroup] ?? null
+        } catch { /* map optional */ }
+      }
       const r = await fetch(webhook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify(groupOnly ? {
+          action: 'remove_from_group',
+          email: memberEmail ?? null,
+          memberName: memberName ?? '',
+          accessGroup,
+          accessGroupId,
+          source: 'hexaspace-platform',
+        } : {
           action: 'remove_user',
           email: memberEmail ?? null,
           saltoUserId: saltoUserId ?? null,
@@ -37,10 +58,10 @@ export default async function handler(req, res) {
         }),
       })
       if (!r.ok) throw new Error(`Zapier hook returned ${r.status}`)
-      return res.status(200).json({ zapier: true, queued: true, revoked: true })
+      return res.status(200).json({ zapier: true, queued: true, revoked: !groupOnly, groupRemoved: groupOnly ? accessGroup : undefined })
     } catch (err) {
       console.error('Salto Zapier revoke failed:', err)
-      return res.status(502).json({ error: 'Salto revoke webhook failed — remove the member manually in the KS portal.' })
+      return res.status(502).json({ error: 'Salto revoke webhook failed — update the member manually in the KS portal.' })
     }
   }
 
