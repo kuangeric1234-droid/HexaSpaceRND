@@ -12,14 +12,18 @@ import { stepMonthly } from './leasePricing.js'
 // Returns { rows, totals, gstRate } where each row is
 //   { key, label, office, services, total, incGst, free }
 export function buildPaymentSchedule(lease, settings) {
-  if (!lease?.startDate || !lease?.endDate) return null
+  if (!lease?.startDate) return null
   const start = parseISO(lease.startDate)
-  const end = parseISO(lease.endDate)
+  // No end date = month-to-month, open-ended. Schedule out ~13 months past
+  // today so the current billing month always has a row without rendering a
+  // decade-long table on the agreement.
+  const openEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 14, 0)
+  const end = lease.endDate ? parseISO(lease.endDate) : openEnd
   if (!(start < end)) return null
 
   const items = lease.items?.length ? lease.items : [{
     spaceId: lease.spaceId,
-    steps: [{ startDate: lease.startDate, endDate: lease.endDate, listPrice: lease.monthlyRent ?? 0, qty: 1 }],
+    steps: [{ startDate: lease.startDate, endDate: lease.endDate, listPrice: lease.listPrice ?? lease.monthlyRent ?? 0, discount: lease.discount ?? '', qty: 1 }],
   }]
 
   const prorate = settings?.billingRules?.prorate ?? true
@@ -39,9 +43,10 @@ export function buildPaymentSchedule(lease, settings) {
     let services = 0
     for (const item of items) {
       for (const step of item.steps ?? []) {
-        if (!step.startDate || !step.endDate) continue
+        if (!step.startDate) continue
         const s = parseISO(step.startDate)
-        const e = parseISO(step.endDate)
+        // A step without an end date runs for the life of the contract.
+        const e = step.endDate ? parseISO(step.endDate) : end
         const from = s > monthStart ? s : monthStart
         const to = e < monthEnd ? e : monthEnd
         if (to < from) continue

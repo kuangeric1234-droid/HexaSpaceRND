@@ -12,7 +12,10 @@ import { buildPaymentSchedule } from './paymentSchedule.js'
 // 'prepaid' | 'rent-free' | 'zero-amount'. The caller assigns id + number
 // (numbering schemes differ per engine) and may override source/sentStatus.
 export function buildMonthlyInvoiceForLease(lease, monthStart, { invoices = [], spaces = [], settings = {}, source = 'bill-run' } = {}) {
-  if (!lease?.startDate || !lease?.endDate) return { invoice: null, reason: 'no-dates' }
+  if (!lease?.startDate) return { invoice: null, reason: 'no-dates' }
+  // No end date = month-to-month, open-ended: bills every month until a
+  // notice/termination caps it.
+  const OPEN_ENDED = '9999-12-31'
   const month = monthStart instanceof Date ? monthStart : parseISO(String(monthStart))
   const mStart = new Date(month.getFullYear(), month.getMonth(), 1)
   const mEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0)
@@ -27,7 +30,7 @@ export function buildMonthlyInvoiceForLease(lease, monthStart, { invoices = [], 
     lease.endDate,
     lease.noticeGiven ? lease.vacateDate : null,
     lease.terminationScheduledFor,
-  ].filter(Boolean).sort()[0]
+  ].filter(Boolean).sort()[0] ?? OPEN_ENDED
   const end = parseISO(capISO)
   if (start > mEnd) return { invoice: null, reason: 'not-started' }
   if (end < mStart) return { invoice: null, reason: 'ended' }
@@ -61,7 +64,7 @@ export function buildMonthlyInvoiceForLease(lease, monthStart, { invoices = [], 
   // cancellation. (Math.round day counts — DST months have a 23/25h day.)
   const round2 = (n) => Math.round(n * 100) / 100
   const dayCount = (a, b) => Math.round((b - a) / 86400000) + 1
-  const contractEnd = parseISO(lease.endDate)
+  const contractEnd = parseISO(lease.endDate || OPEN_ENDED)
   const schedTo = contractEnd < mEnd ? contractEnd : mEnd
   let officeAmt = row.office
   let servicesAmt = row.services
@@ -74,7 +77,10 @@ export function buildMonthlyInvoiceForLease(lease, monthStart, { invoices = [], 
   const dayMon = (d, withYear) => d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}) })
   const periodLabel = `${dayMon(periodStart)} – ${dayMon(periodEnd, true)}${isProrated ? ' (prorated)' : ''}`
 
-  const discountPct = parseFloat(lease.discount ?? lease.items?.[0]?.steps?.[0]?.discount ?? '') || 0
+  // The payment schedule already nets off step discounts (stepMonthly in
+  // leasePricing.js), so the invoice line must NOT apply a discount again —
+  // unitPrice below is the final charged amount.
+  const discountPct = 0
   const spaceById = Object.fromEntries((spaces ?? []).map((s) => [s.id, s]))
   const itemIds = (lease.items?.length ? lease.items : [{ spaceId: lease.spaceId }]).map((it) => it.spaceId)
   const isParking = (id) => /_park_|parking/i.test(String(id ?? ''))

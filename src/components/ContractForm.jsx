@@ -228,7 +228,14 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
 
   function handleSpaceSelect(itemIdx, spaceId) {
     const space = spaces.find((s) => s.id === spaceId)
-    setForm((f) => ({
+    setForm((f) => {
+      // Month-to-month terms: no bond; virtual offices default to $150/mo
+      // when the space record carries no rate.
+      const mtm = f.contractType === 'Month-to-month'
+      const defaultPrice = space
+        ? (space.type === 'virtual' ? (Number(space.monthlyRate) || 150) : space.monthlyRate)
+        : null
+      return {
       ...f,
       items: f.items.map((item, i) =>
         i !== itemIdx
@@ -236,13 +243,13 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
           : {
               ...item,
               spaceId,
-              deposit: space ? space.monthlyRate * 2 : item.deposit,
+              deposit: space ? (mtm ? 0 : space.monthlyRate * 2) : item.deposit,
               steps: item.steps.map((step, si) =>
-                si === 0 ? { ...step, listPrice: space ? space.monthlyRate : step.listPrice } : step
+                si === 0 ? { ...step, listPrice: space ? defaultPrice : step.listPrice } : step
               ),
             }
       ),
-    }))
+    }})
   }
 
   function updateItem(idx, updates) {
@@ -333,7 +340,9 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
     const errs = {}
     if (!form.tenantId) errs.tenantId = 'Company is required'
     if (!form.startDate) errs.startDate = 'Start date is required'
-    if (!form.endDate) errs.endDate = 'End date is required'
+    // Month-to-month contracts may leave the end date blank — they run until
+    // notice is given (billing treats no end date as open-ended).
+    if (!form.endDate && form.contractType !== 'Month-to-month') errs.endDate = 'End date is required'
     if (form.items.some((item) => !item.spaceId)) errs.items = 'All items need a space selected'
     setErrors(errs)
     return Object.keys(errs).length === 0
@@ -517,14 +526,18 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                   value={form.startDate}
                   onChange={(e) => {
                     const startDate = e.target.value
-                    // Auto-fill a 1-year term when the start date is set/changed.
-                    setForm((f) => ({ ...f, startDate, endDate: startDate ? oneYearTerm(startDate) : f.endDate }))
+                    // Auto-fill a 1-year term when the start date is set/changed —
+                    // except month-to-month, which runs open-ended by default.
+                    setForm((f) => ({
+                      ...f, startDate,
+                      endDate: startDate && f.contractType !== 'Month-to-month' ? oneYearTerm(startDate) : f.endDate,
+                    }))
                   }}
                   className={inputCls(errors.startDate)}
                 />
               </Field>
 
-              <Field label="End Date" required error={errors.endDate}>
+              <Field label="End Date" required={form.contractType !== 'Month-to-month'} error={errors.endDate}>
                 <input
                   type="date"
                   value={form.endDate}
@@ -532,11 +545,15 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                   onChange={(e) => setForm({ ...form, endDate: e.target.value })}
                   className={inputCls(errors.endDate)}
                 />
-                {form.endDate && (
+                {form.endDate ? (
                   <p className="text-xs text-muted-foreground mt-1">
                     Earliest leave date for the tenant company
                   </p>
-                )}
+                ) : form.contractType === 'Month-to-month' ? (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leave blank — runs month-to-month until notice is given
+                  </p>
+                ) : null}
               </Field>
 
               <Field label="Notice Period" required>

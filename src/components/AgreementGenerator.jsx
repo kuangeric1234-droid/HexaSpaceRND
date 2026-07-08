@@ -144,7 +144,7 @@ export default function AgreementGenerator() {
     // --- Term ---
     sectionTitle('3. Term & Rent')
     row('Commencement Date', format(parseISO(selectedLease.startDate), 'dd MMMM yyyy'))
-    row('Expiry Date', format(parseISO(selectedLease.endDate), 'dd MMMM yyyy'))
+    row('Expiry Date', selectedLease.endDate ? format(parseISO(selectedLease.endDate), 'dd MMMM yyyy') : 'Month-to-month (until notice is given)')
     row('Monthly Licence Fee', `AUD $${Number(selectedLease.monthlyRent).toLocaleString('en-AU')} (incl. GST)${
       discountPct(selectedLease.discount) > 0 && Number(selectedLease.listPrice) > Number(selectedLease.monthlyRent)
         ? ` — incl. ${selectedLease.discount} discount off list AUD $${Number(selectedLease.listPrice).toLocaleString('en-AU')}`
@@ -359,7 +359,7 @@ export default function AgreementGenerator() {
                 <option key={l.id} value={l.id}>
                   {t?.businessName ?? '?'} — {s?.unitNumber ?? '?'} (
                   {format(parseISO(l.startDate), 'dd/MM/yyyy')} to{' '}
-                  {format(parseISO(l.endDate), 'dd/MM/yyyy')})
+                  {l.endDate ? format(parseISO(l.endDate), 'dd/MM/yyyy') : 'ongoing'})
                 </option>
               )
             })}
@@ -389,7 +389,7 @@ export default function AgreementGenerator() {
               <span className="text-gray-400">Term</span>
               <span>
                 {format(parseISO(selectedLease.startDate), 'dd/MM/yyyy')} →{' '}
-                {format(parseISO(selectedLease.endDate), 'dd/MM/yyyy')}
+                {selectedLease.endDate ? format(parseISO(selectedLease.endDate), 'dd/MM/yyyy') : 'month-to-month'}
               </span>
               <span className="text-gray-400">Monthly Rent</span>
               <span className="font-semibold">
