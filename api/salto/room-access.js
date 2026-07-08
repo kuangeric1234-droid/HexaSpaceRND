@@ -26,6 +26,17 @@ function melOffset(dateStr) {
   return '+10:00'
 }
 
+// Render a UTC ms timestamp as Melbourne-local date + time strings, using the
+// booking date's fixed offset (melOffset above).
+function melLocal(ms, offset) {
+  const hours = Number(offset.slice(1, 3))
+  const local = new Date(ms + hours * 3600 * 1000)
+  return {
+    date: local.toISOString().slice(0, 10),
+    time: local.toISOString().slice(11, 16),
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).end()
   const { requireCronOrAdmin } = await import('../_auth.js')
@@ -91,6 +102,14 @@ export default async function handler(req, res) {
           // works from 2:45); it ends exactly at the booking end.
           accessFrom: new Date(from - 15 * 60 * 1000).toISOString(),
           accessUntil: new Date(until).toISOString(),
+          // MELBOURNE-LOCAL fields for the KS time schedule. Map THESE into the
+          // schedule step, never the ISO fields above: those are UTC, and a
+          // morning booking crosses UTC midnight, giving KS end_time < start_time
+          // ("Validation failed" zap errors). Includes the 15-min early open.
+          accessFromDate: melLocal(from - 15 * 60 * 1000, off).date,
+          accessFromTime: melLocal(from - 15 * 60 * 1000, off).time,
+          accessUntilDate: melLocal(until, off).date,
+          accessUntilTime: melLocal(until, off).time,
           // …and split date/time fields straight from the booking, for any
           // KS field that wants them separately (Melbourne local).
           startDate: b.date,
