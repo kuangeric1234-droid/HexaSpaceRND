@@ -18,12 +18,13 @@ const to12 = (t) => { if (!t) return ''; let [h, m] = t.split(':').map(Number); 
 const toDec = (t) => { const [h, m] = (t || '0:0').split(':').map(Number); return h + m / 60 }
 const fromDec = (d) => `${String(Math.floor(d)).padStart(2, '0')}:${String(Math.round((d % 1) * 60)).padStart(2, '0')}`
 const overlaps = (aS, aE, bS, bE) => toDec(aS) < toDec(bE) && toDec(bS) < toDec(aE)
-// Room capacity as a number — prefers the numeric `capacity`, else the first
-// number in a legacy size string like "Up to 4".
+// Room people-capacity as a number — prefers the numeric `capacity`, else a
+// legacy size string that clearly counts people ("Up to 8", "4 seats").
+// Area strings like "90 m²" (studios) are NOT a capacity → returns null.
 const capacityOf = (room) => {
   if (Number.isFinite(room?.capacity) && room.capacity > 0) return room.capacity
-  const m = String(room?.size ?? '').match(/\d+/)
-  return m ? Number(m[0]) : null
+  const m = String(room?.size ?? '').match(/up to\s*(\d+)|(\d+)\s*(?:pax|people|seats?|guests?)/i)
+  return m ? Number(m[1] ?? m[2]) : null
 }
 
 export default function PortalCalendar({ resources, allBookings, member, company }) {
