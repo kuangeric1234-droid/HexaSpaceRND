@@ -234,6 +234,7 @@ export default function Leases() {
         lease={lease}
         tenant={tenant}
         space={space}
+        members={members}
         templates={templates}
         allLeases={leases}
         settings={settings}

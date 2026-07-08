@@ -1,6 +1,7 @@
 import { format, parseISO } from 'date-fns'
 import { buildPaymentSchedule, scheduleAmount } from '../lib/paymentSchedule.js'
 import { stepMonthly, discountPct } from '../lib/leasePricing.js'
+import { resolvePrimaryContact } from '../lib/leaseContact.js'
 import { requiresCardOnFile } from '../lib/onboarding.js'
 
 const DEFAULT_BUSINESS = {
@@ -36,7 +37,8 @@ function SigBlock({ party, name }) {
   )
 }
 
-export default function ContractTemplate({ lease, tenant, space, settings }) {
+export default function ContractTemplate({ lease, tenant, space, settings, members = [] }) {
+  const contact = resolvePrimaryContact(lease, tenant, members)
   const BUSINESS_ADDRESS = getBusinessAddress(settings)
   const contractNum = lease.contractNumber ?? `CON-${lease.id?.slice(-3).toUpperCase()}`
   const today = format(new Date(), 'dd/MM/yyyy')
@@ -94,9 +96,9 @@ export default function ContractTemplate({ lease, tenant, space, settings }) {
         <div>
           <h2 className="font-bold uppercase text-gray-900 mb-4 tracking-wide">PRIMARY CONTACT</h2>
           <div className="space-y-1.5 text-sm text-gray-700">
-            <p>Name: <span className="font-medium">{tenant?.contactName ?? '—'}</span></p>
-            <p>Number: {tenant?.phone ?? ''}</p>
-            <p>Email: {tenant?.email ?? ''}</p>
+            <p>Name: <span className="font-medium">{contact.name || '—'}</span></p>
+            <p>Number: {contact.phone}</p>
+            <p>Email: {contact.email}</p>
           </div>
         </div>
       </div>

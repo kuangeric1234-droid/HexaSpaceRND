@@ -11,6 +11,7 @@ import DocumentsPanel from './DocumentsPanel.jsx'
 import { logAudit } from '../lib/audit.js'
 import { buildPaymentSchedule, scheduleAmount } from '../lib/paymentSchedule.js'
 import { stepMonthly } from '../lib/leasePricing.js'
+import { resolvePrimaryContact } from '../lib/leaseContact.js'
 import { sendLeaseForSigning } from '../lib/esign.js'
 import { requiresCardOnFile } from '../lib/onboarding.js'
 
@@ -41,9 +42,10 @@ function getStageBadges(lease) {
 }
 
 export default function ContractDetail({
-  lease, tenant, space, templates = [], allLeases = [], settings,
+  lease, tenant, space, templates = [], allLeases = [], settings, members = [],
   onEdit, onBack, onRenew, onDelete, onUpdateLease,
 }) {
+  const primaryContact = resolvePrimaryContact(lease, tenant, members)
   const navigate = useNavigate()
   const [showMenu, setShowMenu] = useState(false)
   const [showSignMenu, setShowSignMenu] = useState(false)
@@ -236,9 +238,9 @@ export default function ContractDetail({
         `ABN: ${tenant?.abn ?? ''}`,
       ]
       const rightLines = [
-        `Name: ${tenant?.contactName ?? '—'}`,
-        `Number: ${tenant?.phone ?? ''}`,
-        `Email: ${tenant?.email ?? ''}`,
+        `Name: ${primaryContact.name || '—'}`,
+        `Number: ${primaryContact.phone}`,
+        `Email: ${primaryContact.email}`,
       ]
       const maxRows = Math.max(leftLines.length, rightLines.length)
       for (let i = 0; i < maxRows; i++) {
@@ -988,7 +990,7 @@ export default function ContractDetail({
           {/* ── Template View ── */}
           {view === 'template' && (
             <div className="overflow-auto bg-muted flex-1">
-              <ContractTemplate lease={lease} tenant={tenant} space={space} templates={templates} settings={settings} />
+              <ContractTemplate lease={lease} tenant={tenant} space={space} templates={templates} settings={settings} members={members} />
               {contractDocs.map((tmpl) => (
                 <div key={tmpl.id} className="bg-card max-w-4xl mx-auto mb-6 px-12 py-10 text-sm text-foreground font-sans shadow-sm">
                   <h2 className="text-base font-bold uppercase tracking-widest text-foreground mb-3">{tmpl.name}</h2>

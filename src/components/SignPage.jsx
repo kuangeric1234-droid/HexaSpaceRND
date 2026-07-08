@@ -9,6 +9,7 @@ export default function SignPage({ token }) {
   const [request, setRequest] = useState(null)
   const [lease, setLease] = useState(null)
   const [tenant, setTenant] = useState(null)
+  const [members, setMembers] = useState([])
   const [space, setSpace] = useState(null)
   const [settings, setSettings] = useState(null)
   const [attachedTemplates, setAttachedTemplates] = useState([])
@@ -70,6 +71,7 @@ export default function SignPage({ token }) {
         setLease(leaseData)
         setSettings(payload.settings ?? null)
         setTenant(payload.tenant ?? null)
+        setMembers(payload.members ?? [])
         setSpace(payload.space ?? null)
         if (payload.tenant?.contactName) setSignerName(payload.tenant.contactName)
 
@@ -225,7 +227,7 @@ export default function SignPage({ token }) {
       {view === 'contract' && (
         <div className="max-w-4xl mx-auto my-6 px-4">
           <div className="bg-paper border border-ink/10 shadow-sm overflow-hidden">
-            <ContractTemplate lease={lease} tenant={tenant} space={space} settings={settings} />
+            <ContractTemplate lease={lease} tenant={tenant} space={space} settings={settings} members={members} />
           </div>
           <div className="mt-6 flex justify-end">
             <button onClick={() => goTo(curIdx + 1)} className="hx-btn">

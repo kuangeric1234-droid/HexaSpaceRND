@@ -41,8 +41,18 @@ export default async function handler(req, res) {
     // Minimal tenant fields the page renders/needs (card-on-file decision).
     const tenant = {
       id: t.id, businessName: t.businessName, contactName: t.contactName, email: t.email,
+      phone: t.phone ?? null, abn: t.abn ?? null,
       stripePaymentMethodId: t.stripePaymentMethodId ?? null,
     };
+
+    // The agreement's PRIMARY CONTACT falls back to the company's members
+    // (billing/contact person) when the tenant record has no name/number.
+    // Minimal fields only — this is a public (token-gated) page.
+    const { data: mRows } = await supabase.from('members').select('data').eq('data->>companyId', lease.tenantId);
+    const members = (mRows ?? []).map((r) => r.data).map((m) => ({
+      companyId: m.companyId, name: m.name ?? null, phone: m.phone ?? null, email: m.email ?? null,
+      billingPerson: !!m.billingPerson, contactPerson: !!m.contactPerson,
+    }));
 
     if (request.status === 'tenant_signed') {
       return res.status(200).json({ request: reqOut, lease, tenant });
@@ -60,6 +70,7 @@ export default async function handler(req, res) {
       request: reqOut,
       lease,
       tenant,
+      members,
       space: sRows?.[0]?.data ?? null,
       settings: publicSettings(settRows?.[0]?.data),
       templates,

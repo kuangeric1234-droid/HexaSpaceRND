@@ -58,7 +58,10 @@ function generateContractNumber(leases) {
   const nums = leases
     .map((l) => l.contractNumber)
     .filter(Boolean)
-    .map((n) => parseInt(String(n).replace(/\D/g, ''), 10))
+    // Only clean sequential numbers count (CON-262). Concatenating ALL digits
+    // (the old approach) read compound imports like CON-140-OFFICE11 as 14011
+    // and blew the sequence out; letter/compound numbers don't advance it.
+    .map((n) => parseInt(String(n).match(/^[A-Za-z]*-?(\d+)$/)?.[1], 10))
     // ignore blanks and any implausibly large value (e.g. a stray timestamp)
     .filter((n) => !isNaN(n) && n > 0 && n < 100000)
   const max = nums.length > 0 ? Math.max(...nums) : 0
