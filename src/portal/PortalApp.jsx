@@ -13,6 +13,7 @@ import PortalMessages from './PortalMessages.jsx'
 import PortalAccount from './PortalAccount.jsx'
 import PortalEvents from './PortalEvents.jsx'
 import PortalGuides from './PortalGuides.jsx'
+import PortalPrinting from './PortalPrinting.jsx'
 import PortalFunctionHome from './PortalFunctionHome.jsx'
 
 // Detect a set-password (recovery/invite) link from BOTH sources, because of
@@ -284,6 +285,7 @@ export default function PortalApp() {
               <Route path="/account"       element={<PortalAccount data={data} />} />
               <Route path="/messages"      element={<PortalMessages tenant={company} />} />
               <Route path="/events"        element={<PortalEvents />} />
+              <Route path="/printing"      element={<PortalPrinting member={data.member} />} />
               <Route path="/guides"        element={<PortalGuides member={data.member} />} />
               <Route path="*"              element={<Navigate to="/" replace />} />
             </>

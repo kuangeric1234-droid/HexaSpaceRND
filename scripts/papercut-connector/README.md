@@ -46,6 +46,11 @@ time to be folded onto the month-end invoices.
 - **sync-pins.mjs** — reads each user's card number + personal balance back into Hexa
   (`member_pins`) so members see their own print PIN and printing balance in the app/portal.
   Schedule daily-ish to keep the balance fresh.
+- **sync-print-jobs.mjs** — parses PaperCut's daily CSV job logs
+  (`[app-path]\server\logs\csv\daily`, override with `PAPERCUT_CSV_DIR`) and pushes each
+  member's print jobs to `/api/papercut/jobs` → the portal's **Printing** tab (job history +
+  per-job cost against their balance). Idempotent; schedule daily alongside sync-pins.
+  Extra env: `HEXA_JOBS_URL` (default `…/api/papercut/jobs`), `PAPERCUT_JOB_DAYS` (default 35).
 - **auth-provider.mjs / hexa-auth.cmd** — PaperCut **custom authentication program**: lets
   members sign in to print (Mobility Print first-run, the `:9191` user portal) with their
   **Hexa portal email + password** instead of OfficeRnD credentials. See below.

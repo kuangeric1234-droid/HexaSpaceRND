@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarClock, Clapperboard, PartyPopper, Receipt,
-  MessageSquare, User, CalendarDays, BookOpen, LogOut, Menu, X,
+  MessageSquare, User, CalendarDays, BookOpen, LogOut, Menu, X, Printer,
 } from 'lucide-react'
 
 const nav = [
@@ -12,6 +12,7 @@ const nav = [
   { to: '/studios',       label: 'Studios',        icon: Clapperboard },
   { to: '/function-space',label: 'Function Space', icon: PartyPopper },
   { to: '/billing',       label: 'Billing',        icon: Receipt },
+  { to: '/printing',      label: 'Printing',       icon: Printer },
   { to: '/account',       label: 'Account',        icon: User },
   { to: '/events',        label: 'Events',         icon: CalendarDays },
   { to: '/messages',      label: 'Messages',       icon: MessageSquare },
