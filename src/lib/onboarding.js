@@ -175,13 +175,11 @@ export async function revokeSaltoAccess({ member, space, mode = 'remove_user' })
 // ── Onboarding email (editable template + fixed structure) ──────────────────────
 
 // Placeholders the onboarding subject/intro support in Settings → Email Templates.
+// Replace EVERY {{placeholder}} — known keys get their value, unknown keys
+// become '' so raw braces can never leak into a client's inbox (an early
+// hardcoded five-key version of this let {{portalUrl}}/{{saltoBlock}} through).
 function fillVars(str, vars) {
-  return String(str ?? '')
-    .replace(/\{\{company\}\}/g, vars.company ?? '')
-    .replace(/\{\{unit\}\}/g, vars.unit ?? '')
-    .replace(/\{\{startDate\}\}/g, vars.startDate ?? '')
-    .replace(/\{\{contract\}\}/g, vars.contract ?? '')
-    .replace(/\{\{tenantName\}\}/g, vars.tenantName ?? '')
+  return String(str ?? '').replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => String(vars?.[k] ?? ''))
 }
 
 export function onboardingVars({ lease, tenant, space, settings }) {
@@ -287,15 +285,17 @@ export const DEFAULT_ONBOARDING_EMAIL_HTML = oShell(
   _p("Your agreement for {{unit}} is signed and settled — welcome aboard. Here's everything you need to get started from {{startDate}}.") +
   _box('Your member portal', `<p style="font-family:${_SANS};font-size:13px;color:#3a3a3a;line-height:1.6;margin:0 0 12px">Log in to view invoices, manage your team, book meeting rooms and message our team. You'll receive a separate email to set your password.</p>${_btn('Log in to the portal', '{{portalUrl}}')}`) +
   '{{saltoBlock}}' +
-  _box('Getting connected', `<ul style="margin:0;padding-left:18px;font-family:${_SANS};color:#3a3a3a;font-size:13px;line-height:1.9"><li><strong>Wi-Fi</strong> — network “Hexa Space”; password available at reception or in the portal</li><li><strong>Printing</strong> — reception will set up your print account ($30/mo · $0.30 B&amp;W · $0.60 colour)</li><li><strong>Business address &amp; mail</strong> — your registered address is active; collect mail from reception</li></ul>`) +
+  _box('Getting connected', `<ul style="margin:0;padding-left:18px;font-family:${_SANS};color:#3a3a3a;font-size:13px;line-height:1.9"><li><strong>Wi-Fi</strong> — network “Hexa Spaces”; password available at reception or in the portal</li><li><strong>Printing</strong> — reception will set up your print account ($30/mo · $0.30 B&amp;W · $0.60 colour)</li><li><strong>Business address &amp; mail</strong> — your registered address is active; collect mail from reception</li></ul>`) +
   _box('Your space &amp; amenities', `<ul style="margin:0;padding-left:18px;font-family:${_SANS};color:#3a3a3a;font-size:13px;line-height:1.9"><li>Book meeting &amp; consulting rooms from the portal — your plan includes monthly credits</li><li>Barista coffee, tea &amp; filtered water in the lounge</li><li>End-of-trip facilities (showers, bike storage) · onsite &amp; Box Hill Central parking</li><li>24/7 secure access from your commencement date</li></ul>`) +
   _box('Who to contact', `<ul style="margin:0;padding-left:18px;font-family:${_SANS};color:#3a3a3a;font-size:13px;line-height:1.9"><li>Community &amp; support — info@hexaspace.com.au</li><li>Billing &amp; accounts — info@hexaspace.com.au</li><li>Keep an eye out for community event invitations</li></ul>`) +
   _startList +
   _small('{{address}}'))
 
 export function saltoBlockHtml(unit, saltoLink) {
-  if (!saltoLink) return ''
-  return _box('Door access', `<p style="font-family:${_SANS};font-size:13px;color:#3a3a3a;line-height:1.6;margin:0 0 12px">Set up your mobile key for ${unit} with Salto. Access is valid from your commencement date.</p>${_btn('Activate door access', saltoLink)}`)
+  // No personal provisioning link yet → point at Salto KS itself, where the
+  // member's mobile key lives once access is granted.
+  const link = saltoLink || 'https://app.saltoks.com/'
+  return _box('Door access', `<p style="font-family:${_SANS};font-size:13px;color:#3a3a3a;line-height:1.6;margin:0 0 12px">Set up your mobile key for ${unit} with Salto. Access is valid from your commencement date.</p>${_btn('Activate door access', link)}`)
 }
 
 // Fill an editable email template (subject + full-HTML body) with live values.

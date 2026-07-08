@@ -1,4 +1,5 @@
 import { Printer, CalendarClock, Receipt, Wifi, KeyRound, Coffee, Laptop, Smartphone, Download, ExternalLink } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { usePrintPin } from './usePrintPin.js'
 import { Page, PageHeader, Card, Eyebrow } from './ui.jsx'
 
@@ -6,11 +7,23 @@ const GUIDES = [
   { icon: CalendarClock, title: 'Book a meeting room', body: 'Browse rooms under Meeting Rooms, request your time, and our team confirms availability — usually within the hour.' },
   { icon: Receipt, title: 'View & download invoices', body: 'Every invoice lives under Billing → Invoices. Download a PDF any time, and check your next bill under Membership.' },
   { icon: KeyRound, title: '24/7 access', body: 'Your access pass works around the clock. Lost your pass? Submit a ticket and reception will reissue one.' },
-  { icon: Wifi, title: 'Wi-Fi & printing', body: 'Connect to “Hexa Space” with the password at reception. Set up printing on any device below.' },
+  { icon: Wifi, title: 'Wi-Fi & printing', body: 'WIFI_BODY_PLACEHOLDER' },
   { icon: Coffee, title: 'Lounge & amenities', body: 'Barista-style coffee, filtered water and end-of-trip facilities are included with every membership.' },
 ]
 
 export default function PortalGuides() {
+  // Live Wi-Fi credentials from the public settings subset.
+  const [wifi, setWifi] = useState({})
+  useEffect(() => {
+    fetch('/api/portal/settings').then((r) => r.json())
+      .then((d) => setWifi(d?.settings?.wifi ?? {})).catch(() => {})
+  }, [])
+  const guideBody = (g) => g.body === 'WIFI_BODY_PLACEHOLDER'
+    ? (wifi.password
+        ? <>Network <strong className="text-ink">{wifi.ssid || 'Hexa Spaces'}</strong> · password <span className="font-mono text-ink text-[13px]">{wifi.password}</span>. Set up printing on any device below.</>
+        : <>Connect to “{wifi.ssid || 'Hexa Spaces'}” — password at reception. Set up printing on any device below.</>)
+    : g.body
+
   return (
     <Page>
       <PageHeader kicker="Help · Box Hill" title="How-To Guides">
@@ -22,7 +35,7 @@ export default function PortalGuides() {
           <Card key={i} className="p-7">
             <g.icon size={20} strokeWidth={1.4} className="text-hexa-green" />
             <h3 className="font-heading uppercase tracking-nav text-[12px] mt-5">{g.title}</h3>
-            <p className="hx-prose text-[14px] mt-2">{g.body}</p>
+            <p className="hx-prose text-[14px] mt-2">{guideBody(g)}</p>
           </Card>
         ))}
       </div>
@@ -38,7 +51,7 @@ export default function PortalGuides() {
             <a href="/downloads/hexa-printer-mac.dmg" download className="hx-btn-ghost inline-flex items-center gap-2"><Download size={13} /> Mac installer</a>
           </div>
           <Steps items={[
-            'Connect to the “Hexa Space” Wi-Fi network.',
+            'Connect to the “Hexa Spaces” Wi-Fi network.',
             'Download and run the installer above, then follow the prompts.',
             'The “Hexa-Secure” printer is added automatically — print to it like any other printer.',
             'The first time you print, sign in with your Hexa Space email and password (just once).',
@@ -52,14 +65,14 @@ export default function PortalGuides() {
           <a href="/downloads/hexa-printer-ios.mobileconfig" download className="hx-btn inline-flex items-center gap-2 mb-4"><Download size={13} /> iPhone / iPad printer profile</a>
           <Steps items={[
             'On your iPhone/iPad, download and install the printer profile above (Settings will ask you to confirm).',
-            'On the “Hexa Space” Wi-Fi, open a document → Share → Print → choose “Hexa-Secure”.',
+            'On the “Hexa Spaces” Wi-Fi, open a document → Share → Print → choose “Hexa-Secure”.',
             'First time only: enter your Hexa Space email and password.',
             'Release at any printer with your access pass or PIN.',
           ]} />
           <p className="hx-eyebrow mb-2 mt-6">Android</p>
           <a href="https://play.google.com/store/apps/details?id=com.papercut.projectbanksia&referrer=server=172.16.200.14" target="_blank" rel="noreferrer" className="hx-btn inline-flex items-center gap-2 mb-4"><ExternalLink size={13} /> Get the Android print app</a>
           <Steps items={[
-            'Install the app above (it comes pre-set to our print server), then connect to the “Hexa Space” Wi-Fi.',
+            'Install the app above (it comes pre-set to our print server), then connect to the “Hexa Spaces” Wi-Fi.',
             'Print as usual and pick the “Hexa-Secure” printer.',
             'Tap the sign-in prompt and enter your Hexa Space email and password.',
             'Release at any printer with your access pass or PIN.',

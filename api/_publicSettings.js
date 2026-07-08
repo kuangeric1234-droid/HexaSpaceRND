@@ -38,6 +38,12 @@ export function publicSettings(settings = {}) {
     },
     portalUrl: s.portalUrl ?? 'https://portal.hexaspace.com.au',
     functionBookingUrl: s.functionBookingUrl ?? '',
+    // Shared building Wi-Fi — handed to every member at reception anyway;
+    // showing it in the portal/app guides is the whole point of storing it.
+    wifi: {
+      ssid: s.wifi?.ssid ?? 'Hexa Spaces',
+      password: s.wifi?.password ?? '',
+    },
     // Function-space pricing defaults appear on every quote a client sees —
     // public to the authenticated member, not secret.
     functionSpace: {
