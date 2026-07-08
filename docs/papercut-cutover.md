@@ -21,8 +21,12 @@ server — never here.
 1. **Overdraft enabled globally** before anyone is set restricted (else restricting blocks at $0).
 2. **Members have portal passwords** before the auth switch (Phase 5) — anyone without one can't
    print after it. Depends on the portal migration.
-3. **Elevated shell** for `server.properties`, the config ACL tighten, service changes, and the
-   admin-console settings.
+3. **Elevated / admin session** for: `server.properties`, the `config.json` ACL tighten, service
+   changes, and **Phase 3A overdraft config**. Confirmed on this box: `server-command.exe` needs
+   elevation (even reads are access-denied) and the Config Editor needs an admin browser.
+   `api.getConfigValue` works headless, but config *writes* (`api.setConfigValue`) are
+   unverified/likely restricted — so plan the window with admin access. All other XML-RPC calls
+   (incl. Phase 3B) are token-auth and headless.
 4. **Stop the OfficeRnD prune (Phase 1) before any live provision** — its nightly ~21:32
    `deleteExistingUser` removes non-OfficeRnD users, so provisioned accounts vanish within hours.
 
@@ -51,19 +55,40 @@ server — never here.
 - Schedule a nightly Task running `provision-members.mjs` so new signups get accounts.
 
 ## Phase 3 — restricted + overdraft + $30 quota (no cap) — GATED
-Hard pre-steps (verify first):
-1. **Enable overdraft** globally (Options → General → restricted-user overdraft) with a
-   high/effectively-unlimited limit. Confirm it's set (default is currently empty = off).
-2. **Confirm A3 b/w page cost = $0.60** in the admin console (A4 $0.30/$0.60 + A3 colour $1.20
-   verified from print logs; A3 b/w inferred).
-3. Confirm `index.mjs` is the pulled version with the reset; `PAPERCUT_DRY_RUN=1 node index.mjs`
-   runs clean.
+Split by requirement: **3A needs an admin/elevated session; 3B is headless.**
 
-Test 2 members: set `restricted=TRUE` (overdraft on) → confirm they hold ~$30 and a forced
-negative is allowed (not blocked). **Pause for sign-off.**
+### 3A — enable overdraft globally  (ADMIN SESSION)
+So restricted ≠ blocked. Both confirmed write routes need elevation/admin:
+- `server-command.exe set-config <key> <value>` (`server\bin\win\` — requires elevation; even
+  `get-config` is access-denied non-elevated), or
+- Config Editor UI (Options → Actions → Config Editor — admin browser login).
 
-Bulk (after go): set active members restricted + in the $30 quota group; ensure each holds the
-current month's $30. Verify sample balances = $30, not capped; run `sync-pins.mjs`.
+1. **Identify the canonical overdraft config key** via Config Editor "search overdraft" (or
+   PaperCut docs). `system.default-user-overdraft` was a guess and read back `""` — ambiguous,
+   since `getConfigValue` also returns `""` for unknown keys. Confirm the real key and whether it
+   applies to existing default-mode users or new ones only.
+2. Set it to a high limit (e.g. `100000` = effectively unlimited) and apply.
+3. Optional headless fast-path: a single `api.setConfigValue(<key>, <value>)` attempt. Succeeds →
+   3A is headless after all; faults (not found / not permitted) → use server-command / Config
+   Editor under elevation. This is a WRITE — only under "go phase 3".
+
+**VERIFY (the real pass/fail — not a balance write):** read demo's effective overdraft
+(`api.getUserOverdraftMode` + limit) — it must reflect the global you set. A negative balance via
+`adjustUserAccountBalance` proves nothing (admin adjustments always succeed); the effective
+overdraft limit is what stops a restricted user being blocked at release.
+
+### 3B — 2-member restricted test  (HEADLESS; token-auth API, no elevation)
+For 2 TEST accounts (not real members):
+`api.setUserProperty(user, 'restricted', 'TRUE')` → read back `restricted` (TRUE), `balance`
+(~30), and the effective overdraft limit (from 3A). Confirm restricted + $30 + overdraft in
+effect. **Pause for sign-off.**
+
+### Bulk (after go)
+Set active members restricted + in the $30 quota group; ensure each holds the current month's $30.
+Verify sample balances = $30, not capped; run `sync-pins.mjs`.
+Also confirm **A3 b/w page cost = $0.60** (A4 $0.30/$0.60 + A3 colour $1.20 verified from print
+logs; A3 b/w inferred) and that `index.mjs` is the pulled version with the $30 reset
+(`PAPERCUT_DRY_RUN=1 node index.mjs` runs clean).
 
 ## Phase 4 — schedule the syncs
 Windows Task Scheduler:
