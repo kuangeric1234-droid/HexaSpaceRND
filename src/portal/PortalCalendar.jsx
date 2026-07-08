@@ -86,10 +86,19 @@ export default function PortalCalendar({ resources, allBookings, member, company
                   {roomBookings.map((b) => {
                     const top = (toDec(b.startTime) - DAY_START) * HOUR_H
                     const height = Math.max(20, (toDec(b.endTime) - toDec(b.startTime)) * HOUR_H)
-                    const mine = b.companyId === company?.id
+                    // Yours (you booked it) → bright green; a teammate's (same company)
+                    // → soft green; anyone else's → charcoal "Booked".
+                    const mine = !!b.memberId && b.memberId === member?.id
+                    const team = !mine && !!b.companyId && b.companyId === company?.id
+                    const cls = mine ? 'bg-hexa-green text-paper'
+                      : team ? 'bg-hexa-green/20 text-ink ring-1 ring-inset ring-hexa-green/50'
+                      : 'bg-charcoal text-paper/90'
+                    const label = mine ? (b.title || 'Your booking')
+                      : team ? (b.title || 'Team booking')
+                      : 'Booked'
                     return (
-                      <div key={b.id} className={`absolute left-1 right-1 px-2 py-1 text-[10px] overflow-hidden ${mine ? 'bg-hexa-green text-paper' : 'bg-charcoal text-paper/90'}`} style={{ top, height }}>
-                        <div className="font-heading uppercase tracking-nav text-[9px] truncate">{mine ? (b.title || 'Your booking') : 'Booked'}</div>
+                      <div key={b.id} className={`absolute left-1 right-1 px-2 py-1 text-[10px] overflow-hidden ${cls}`} style={{ top, height }}>
+                        <div className="font-heading uppercase tracking-nav text-[9px] truncate">{label}</div>
                         <div className="truncate opacity-80">{to12(b.startTime)}</div>
                       </div>
                     )
@@ -100,7 +109,12 @@ export default function PortalCalendar({ resources, allBookings, member, company
           })}
         </div>
       </Card>
-      <p className="hx-prose text-[12px] mt-3">Click any open slot to request a booking. Credits = A${CREDIT_VALUE} each · our team confirms portal requests.</p>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3">
+        <span className="inline-flex items-center gap-1.5 hx-prose text-[11px]"><span className="h-2.5 w-2.5 bg-hexa-green inline-block" /> Your booking</span>
+        <span className="inline-flex items-center gap-1.5 hx-prose text-[11px]"><span className="h-2.5 w-2.5 bg-hexa-green/20 ring-1 ring-inset ring-hexa-green/50 inline-block" /> Your team</span>
+        <span className="inline-flex items-center gap-1.5 hx-prose text-[11px]"><span className="h-2.5 w-2.5 bg-charcoal inline-block" /> Booked</span>
+      </div>
+      <p className="hx-prose text-[12px] mt-2">Click any open slot to request a booking. Credits = A${CREDIT_VALUE} each · our team confirms portal requests.</p>
 
       {modal && (
         <BookingModal
