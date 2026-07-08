@@ -4,7 +4,7 @@ import { useOutletContext } from 'react-router-dom'
 import { Plus, Trash2, Check } from 'lucide-react'
 import { XERO_ACCOUNTS, DEFAULT_XERO_ACCOUNTS } from './spaces/shared.jsx'
 import { xeroStatus, connectXero, disconnectXero, xeroSync } from '../lib/xero.js'
-import { OFFICE_PERK_DEFAULTS } from '../lib/credits.js'
+import { PERK_TIER_DEFAULTS, PERK_TIER_ORDER } from '../lib/credits.js'
 
 const MENU = [
   {
@@ -879,20 +879,36 @@ function BillingRulesSection({ settings, updateSettings }) {
 
 // ── Room Perks ────────────────────────────────────────────────────────────────
 function RoomPerksSection({ settings, updateSettings }) {
-  const cur = settings.officePerks ?? {}
-  const [form, setForm] = useState({
-    freeRooms: (cur.freeRooms ?? OFFICE_PERK_DEFAULTS.freeRooms).join(', '),
-    maxHoursPerBooking: cur.maxHoursPerBooking ?? OFFICE_PERK_DEFAULTS.maxHoursPerBooking,
-    maxHoursPerDay: cur.maxHoursPerDay ?? OFFICE_PERK_DEFAULTS.maxHoursPerDay,
+  const cur = settings.officePerks?.tiers ?? {}
+  const [form, setForm] = useState(() => {
+    const f = {}
+    for (const type of PERK_TIER_ORDER) {
+      const t = cur[type] ?? PERK_TIER_DEFAULTS[type]
+      f[type] = {
+        rooms: (t.rooms ?? PERK_TIER_DEFAULTS[type].rooms).join(', '),
+        maxHoursPerBooking: t.maxHoursPerBooking ?? PERK_TIER_DEFAULTS[type].maxHoursPerBooking,
+        maxHoursPerDay: t.maxHoursPerDay ?? PERK_TIER_DEFAULTS[type].maxHoursPerDay,
+      }
+    }
+    return f
   })
   const [saved, setSaved] = useState(false)
 
+  function setTier(type, key, val) {
+    setForm((p) => ({ ...p, [type]: { ...p[type], [key]: val } }))
+  }
+
   function save() {
-    updateSettings({ officePerks: {
-      freeRooms: form.freeRooms.split(',').map((s) => s.trim()).filter(Boolean),
-      maxHoursPerBooking: Math.max(0.5, Number(form.maxHoursPerBooking) || OFFICE_PERK_DEFAULTS.maxHoursPerBooking),
-      maxHoursPerDay: Math.max(0.5, Number(form.maxHoursPerDay) || OFFICE_PERK_DEFAULTS.maxHoursPerDay),
-    } })
+    const tiers = {}
+    for (const type of PERK_TIER_ORDER) {
+      const t = form[type]
+      tiers[type] = {
+        rooms: String(t.rooms).split(',').map((s) => s.trim()).filter(Boolean),
+        maxHoursPerBooking: Math.max(0.5, Number(t.maxHoursPerBooking) || PERK_TIER_DEFAULTS[type].maxHoursPerBooking),
+        maxHoursPerDay: Math.max(0.5, Number(t.maxHoursPerDay) || PERK_TIER_DEFAULTS[type].maxHoursPerDay),
+      }
+    }
+    updateSettings({ officePerks: { tiers } })
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
@@ -900,38 +916,43 @@ function RoomPerksSection({ settings, updateSettings }) {
   return (
     <div>
       <h1 className="text-xl font-bold text-foreground mb-1">Room Perks</h1>
-      <p className="text-sm text-muted-foreground mb-6">Rooms that are free for private-office (suite) members — no credits — with caps so no one books all day. Applies to the member portal and app.</p>
+      <p className="text-sm text-muted-foreground mb-6">Free meeting rooms by membership — no credits — with caps so no one books all day. Caps are per company (shared by the team). Applies to the member portal and app. Leave a tier's rooms blank to give it no free rooms.</p>
 
-      <FormRow label="Free rooms for suite members" description="Comma-separated room names (must match the room's name exactly). Free for any company with an active Private Office lease.">
-        <input
-          value={form.freeRooms}
-          onChange={(e) => setForm((p) => ({ ...p, freeRooms: e.target.value }))}
-          placeholder="Sky, Earth, Sun, Moon"
-          className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </FormRow>
-      <FormRow label="Max hours per booking" description="Longest single booking a suite member can make in these rooms">
-        <div className="flex items-center gap-2">
-          <input
-            type="number" min={0.5} max={8} step={0.5}
-            value={form.maxHoursPerBooking}
-            onChange={(e) => setForm((p) => ({ ...p, maxHoursPerBooking: e.target.value }))}
-            className="w-20 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-          />
-          <span className="text-xs text-muted-foreground">hours</span>
+      {PERK_TIER_ORDER.map((type) => (
+        <div key={type} className="mb-6 border border-border rounded-md p-4">
+          <div className="text-sm font-semibold text-foreground mb-3">{type}</div>
+          <FormRow label="Free rooms" description="Comma-separated room names (must match the room's name exactly).">
+            <input
+              value={form[type].rooms}
+              onChange={(e) => setTier(type, 'rooms', e.target.value)}
+              placeholder="Sky, Earth"
+              className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </FormRow>
+          <FormRow label="Max hours per booking" description="Longest single booking in these rooms">
+            <div className="flex items-center gap-2">
+              <input
+                type="number" min={0.5} max={8} step={0.5}
+                value={form[type].maxHoursPerBooking}
+                onChange={(e) => setTier(type, 'maxHoursPerBooking', e.target.value)}
+                className="w-20 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+              />
+              <span className="text-xs text-muted-foreground">hours</span>
+            </div>
+          </FormRow>
+          <FormRow label="Max hours per day (per company)" description="Total free hours a company can book across these rooms each day">
+            <div className="flex items-center gap-2">
+              <input
+                type="number" min={0.5} max={12} step={0.5}
+                value={form[type].maxHoursPerDay}
+                onChange={(e) => setTier(type, 'maxHoursPerDay', e.target.value)}
+                className="w-20 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+              />
+              <span className="text-xs text-muted-foreground">hours / day</span>
+            </div>
+          </FormRow>
         </div>
-      </FormRow>
-      <FormRow label="Max hours per day (per company)" description="Total free hours a company can book across these rooms each day">
-        <div className="flex items-center gap-2">
-          <input
-            type="number" min={0.5} max={12} step={0.5}
-            value={form.maxHoursPerDay}
-            onChange={(e) => setForm((p) => ({ ...p, maxHoursPerDay: e.target.value }))}
-            className="w-20 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-          />
-          <span className="text-xs text-muted-foreground">hours / day</span>
-        </div>
-      </FormRow>
+      ))}
 
       <SaveButton onClick={save} saved={saved} />
     </div>

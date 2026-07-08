@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronRight, X, Repeat, Check, User } from 'lucide-react'
 import { format, addDays, addMonths } from 'date-fns'
 import { supabase } from '../lib/supabase.js'
-import { bookingFeeName, isPerkRoom, hasPrivateOffice, perkHoursUsed, officePerkConfig } from '../lib/credits.js'
+import { bookingFeeName, isPerkRoom, perkHoursUsed, companyPerk } from '../lib/credits.js'
 import { Card } from './ui.jsx'
 
 // Mirrors the admin Calendar so the portal reads/writes the SAME bookings table.
@@ -202,10 +202,10 @@ function BookingModal({ slot, resources, bookings, member, company, remaining, l
   const hrs = Math.max(0, toDec(f.endTime) - toDec(f.startTime))
   // Office perk: private-office (suite) companies get Sky/Earth/Sun/Moon free,
   // capped per booking + per company per day. When it applies, no credits/fee.
-  const perkCfg = officePerkConfig(settings)
-  const isPerk = isPerkRoom(room, settings) && hasPrivateOffice(company?.id, leases, allSpaces ?? resources)
-  const perkHoursToday = isPerk ? perkHoursUsed({ companyId: company?.id, date: f.date, bookings, spaces: allSpaces ?? resources, settings }) : 0
-  const perkLeftToday = Math.max(0, perkCfg.maxHoursPerDay - perkHoursToday)
+  const perk = companyPerk(company?.id, leases, allSpaces ?? resources, settings)
+  const isPerk = isPerkRoom(room, perk)
+  const perkHoursToday = isPerk ? perkHoursUsed({ companyId: company?.id, date: f.date, bookings, perk, spaces: allSpaces ?? resources }) : 0
+  const perkLeftToday = isPerk ? Math.max(0, perk.maxHoursPerDay - perkHoursToday) : 0
   const perCost = isPerk ? 0 : hrs * rate
   const count = f.repeat === 'none' ? 1 : Math.max(1, Math.min(12, Number(f.occurrences) || 1))
   const totalCost = perCost * count
@@ -230,8 +230,8 @@ function BookingModal({ slot, resources, bookings, member, company, remaining, l
     setError('')
     if (hrs <= 0) return setError('End time must be after start time.')
     // Office-perk cap: max hours PER BOOKING (checked once — same length for a series).
-    if (isPerk && hrs > perkCfg.maxHoursPerBooking) {
-      return setError(`${room?.unitNumber || 'This room'} is included with your office — up to ${perkCfg.maxHoursPerBooking}h per booking. Please shorten or split it.`)
+    if (isPerk && hrs > perk.maxHoursPerBooking) {
+      return setError(`${room?.unitNumber || 'This room'} is included with your membership — up to ${perk.maxHoursPerBooking}h per booking. Please shorten or split it.`)
     }
     const dates = occurrenceDates()
     const created = []
@@ -243,8 +243,8 @@ function BookingModal({ slot, resources, bookings, member, company, remaining, l
       if (clash) { skipped.push(date); continue }
       // Office-perk cap: max hours PER DAY per company across the free rooms.
       if (isPerk) {
-        const used = perkHoursUsed({ companyId: company?.id, date, bookings, spaces: allSpaces ?? resources, settings }) + (perkAddedByDate[date] || 0)
-        if (used + hrs > perkCfg.maxHoursPerDay) { dayCapped.push(date); continue }
+        const used = perkHoursUsed({ companyId: company?.id, date, bookings, perk, spaces: allSpaces ?? resources }) + (perkAddedByDate[date] || 0)
+        if (used + hrs > perk.maxHoursPerDay) { dayCapped.push(date); continue }
         perkAddedByDate[date] = (perkAddedByDate[date] || 0) + hrs
       }
       created.push({
@@ -260,7 +260,7 @@ function BookingModal({ slot, resources, bookings, member, company, remaining, l
     }
     if (created.length === 0) {
       if (dayCapped.length && !skipped.length) {
-        return setError(`Your office includes up to ${perkCfg.maxHoursPerDay}h/day in the small rooms — you've reached that day's limit.`)
+        return setError(`Your membership includes up to ${perk.maxHoursPerDay}h/day in these rooms — you've reached that day's limit.`)
       }
       return setError('Those times are already booked. Please choose another slot.')
     }
@@ -377,9 +377,9 @@ function BookingModal({ slot, resources, bookings, member, company, remaining, l
             <div className="bg-hexa-green/5 border border-hexa-green/30 p-4 text-[13px] space-y-1">
               <div className="flex justify-between">
                 <span className="hx-prose text-[13px]">{count > 1 ? `${count} bookings × ${hrs}h` : `${hrs} hour${hrs !== 1 ? 's' : ''}`}</span>
-                <span className="font-heading uppercase tracking-nav text-[11px] text-hexa-green">Included with your office</span>
+                <span className="font-heading uppercase tracking-nav text-[11px] text-hexa-green">Included with your membership</span>
               </div>
-              <p className="hx-prose text-[12px] text-portal-muted">{room?.unitNumber} is free for suite members — up to {perkCfg.maxHoursPerBooking}h per booking, {perkCfg.maxHoursPerDay}h/day per company. You have {perkLeftToday}h left today.</p>
+              <p className="hx-prose text-[12px] text-portal-muted">{room?.unitNumber} is free with your membership — up to {perk.maxHoursPerBooking}h per booking, {perk.maxHoursPerDay}h/day per company. You have {perkLeftToday}h left today.</p>
             </div>
           ) : (
             <div className="bg-bone border border-ink/10 p-4 text-[13px] space-y-1.5">
@@ -418,8 +418,8 @@ function AmendModal({ booking, resources, bookings, company, remaining, leases, 
   const room = resources.find((r) => r.id === b.resourceId)
   const rate = room?.hourlyRate ?? room?.rate ?? 0
   const round2c = (n) => Math.round(n * 100) / 100
-  const perkCfg = officePerkConfig(settings)
-  const isPerk = isPerkRoom(room, settings) && hasPrivateOffice(company?.id, leases, allSpaces ?? resources)
+  const perk = companyPerk(company?.id, leases, allSpaces ?? resources, settings)
+  const isPerk = isPerkRoom(room, perk)
 
   const oldHrs = Math.max(0, toDec(b.endTime) - toDec(b.startTime))
   const oldNeed = round2c(oldHrs * rate / CREDIT_VALUE)
@@ -448,17 +448,17 @@ function AmendModal({ booking, resources, bookings, company, remaining, leases, 
   async function saveChanges() {
     setError('')
     if (newHrs <= 0) return setError('End time must be after start time.')
-    if (isPerk && newHrs > perkCfg.maxHoursPerBooking) {
-      return setError(`${room?.unitNumber || 'This room'} is included with your office — up to ${perkCfg.maxHoursPerBooking}h per booking.`)
+    if (isPerk && newHrs > perk.maxHoursPerBooking) {
+      return setError(`${room?.unitNumber || 'This room'} is included with your membership — up to ${perk.maxHoursPerBooking}h per booking.`)
     }
     const clash = bookings.some((x) => x.id !== b.id && x.resourceId === b.resourceId && x.date === f.date &&
       x.status !== 'Cancelled' && overlaps(f.startTime, f.endTime, x.startTime, x.endTime))
     if (clash) return setError('That time is already booked — pick another slot.')
     if (isPerk) {
-      const usedElsewhere = perkHoursUsed({ companyId: company?.id, date: f.date, bookings, spaces: allSpaces ?? resources, settings, excludeIds: [b.id] })
-      if (usedElsewhere + newHrs > perkCfg.maxHoursPerDay) {
-        const left = round2c(Math.max(0, perkCfg.maxHoursPerDay - usedElsewhere))
-        return setError(`Your office includes up to ${perkCfg.maxHoursPerDay}h/day in the small rooms — you have ${left}h left that day.`)
+      const usedElsewhere = perkHoursUsed({ companyId: company?.id, date: f.date, bookings, perk, spaces: allSpaces ?? resources, excludeIds: [b.id] })
+      if (usedElsewhere + newHrs > perk.maxHoursPerDay) {
+        const left = round2c(Math.max(0, perk.maxHoursPerDay - usedElsewhere))
+        return setError(`Your membership includes up to ${perk.maxHoursPerDay}h/day in these rooms — you have ${left}h left that day.`)
       }
     }
     setSaving(true)
@@ -527,9 +527,9 @@ function AmendModal({ booking, resources, bookings, company, remaining, leases, 
             <div className="bg-hexa-green/5 border border-hexa-green/30 p-4 text-[13px]">
               <div className="flex justify-between">
                 <span className="hx-prose text-[13px]">{newHrs} hour{newHrs !== 1 ? 's' : ''}</span>
-                <span className="font-heading uppercase tracking-nav text-[11px] text-hexa-green">Included with your office</span>
+                <span className="font-heading uppercase tracking-nav text-[11px] text-hexa-green">Included with your membership</span>
               </div>
-              <p className="hx-prose text-[12px] text-portal-muted mt-1">Free for suite members — up to {perkCfg.maxHoursPerBooking}h per booking, {perkCfg.maxHoursPerDay}h/day per company.</p>
+              <p className="hx-prose text-[12px] text-portal-muted mt-1">Free with your membership — up to {perk.maxHoursPerBooking}h per booking, {perk.maxHoursPerDay}h/day per company.</p>
             </div>
           ) : (
             <div className="bg-bone border border-ink/10 p-4 text-[13px] space-y-1.5">

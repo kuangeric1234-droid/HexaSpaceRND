@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase.js'
-import { bookingFeeName, isPerkRoom, hasPrivateOffice, perkHoursUsed, officePerkConfig, round2 } from '../../lib/credits.js'
+import { bookingFeeName, isPerkRoom, perkHoursUsed, companyPerk, round2 } from '../../lib/credits.js'
 
 // Booking writes for the app — mirrors the portal's PortalCalendar confirm()
 // exactly (same bookings/fees/tenants writes, same credit model) so the two
@@ -44,13 +44,13 @@ export async function createBooking({ room, date, startTime, endTime, title, mem
 
   // Office perk: private-office (suite) companies book Sky/Earth/Sun/Moon free,
   // capped per booking + per company per day.
-  const cfg = officePerkConfig(settings)
-  const isPerk = isPerkRoom(room, settings) && hasPrivateOffice(company?.id, leases, spaces)
+  const perk = companyPerk(company?.id, leases, spaces, settings)
+  const isPerk = isPerkRoom(room, perk)
   if (isPerk) {
-    if (hrs > cfg.maxHoursPerBooking) throw new Error(`${room.unitNumber} is included with your office — up to ${cfg.maxHoursPerBooking}h per booking.`)
-    const usedToday = perkHoursUsed({ companyId: company?.id, date, bookings: allBookings, spaces, settings })
-    if (usedToday + hrs > cfg.maxHoursPerDay) {
-      throw new Error(`Your office includes up to ${cfg.maxHoursPerDay}h/day in the small rooms — you have ${round2(Math.max(0, cfg.maxHoursPerDay - usedToday))}h left today.`)
+    if (hrs > perk.maxHoursPerBooking) throw new Error(`${room.unitNumber} is included with your membership — up to ${perk.maxHoursPerBooking}h per booking.`)
+    const usedToday = perkHoursUsed({ companyId: company?.id, date, bookings: allBookings, perk, spaces })
+    if (usedToday + hrs > perk.maxHoursPerDay) {
+      throw new Error(`Your membership includes up to ${perk.maxHoursPerDay}h/day in these rooms — you have ${round2(Math.max(0, perk.maxHoursPerDay - usedToday))}h left today.`)
     }
   }
 
