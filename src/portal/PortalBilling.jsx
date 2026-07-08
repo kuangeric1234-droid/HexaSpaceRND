@@ -17,62 +17,114 @@ function calcTotals(invoice) {
   return { subtotal: taxable + exempt, gst, total: taxable + exempt + gst }
 }
 
-function downloadPDF(invoice, company) {
+// Clean, Xero-style TAX INVOICE (no black banner) with our bank details in the
+// footer. Reads company + bank details from the public settings subset.
+function downloadPDF(invoice, company, settings = {}) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-  const { subtotal, gst, total } = calcTotals(invoice)
-  const W = 210, M = 20
-  doc.setFillColor(0, 0, 0); doc.rect(0, 0, W, 28, 'F')
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(255, 255, 255)
-  doc.text('HEXA SPACE', M, 12)
-  doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(180, 180, 180)
-  doc.text('Hexa Space Pty Ltd  ·  402/830 Whitehorse Road, Box Hill VIC 3128', M, 19)
-  doc.text('info@hexaspace.com.au  ·  hexaspace.com.au', M, 24)
-  doc.setFontSize(20); doc.setFont('helvetica', 'bold'); doc.setTextColor(20, 20, 20)
-  doc.text('INVOICE', M, 46)
-  doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 100, 100)
-  doc.text(invoice.number ?? '', M, 54)
-  let y = 66
-  doc.setFontSize(8); doc.setTextColor(120, 120, 120)
-  ;[['Issue Date', fmt(invoice.issueDate)], ['Due Date', fmt(invoice.dueDate)], ['Status', (invoice.status ?? '').toUpperCase()]]
-    .forEach(([label, val]) => { doc.text(label, M, y); doc.setTextColor(20, 20, 20); doc.text(val, M + 28, y); doc.setTextColor(120, 120, 120); y += 6 })
-  y = 66
-  doc.text('Bill To', 120, y)
-  doc.setTextColor(20, 20, 20); doc.setFont('helvetica', 'bold')
-  doc.text(company.businessName ?? '', 120, y + 6)
-  doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 60, 60)
-  if (company.contactName) doc.text(company.contactName, 120, y + 12)
-  if (company.email) doc.text(company.email, 120, y + 18)
-  y = 100
-  doc.setFillColor(20, 20, 20); doc.rect(M, y, W - M * 2, 7, 'F')
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(255, 255, 255)
-  doc.text('Description', M + 3, y + 5); doc.text('Amount', W - M - 3, y + 5, { align: 'right' })
+  const W = 210, M = 18, right = W - M
+  const b = settings.billing || {}
+  const businessName = b.businessName || settings.company?.name || 'Hexa Space Pty Ltd'
+  const addressParts = String(b.address || '402/830 Whitehorse Road, Box Hill VIC 3128')
+    .split(',').map((s) => s.trim()).filter(Boolean)
+  const taxRate = Number(settings.billingRules?.taxRate ?? 10)
+  const aud = (v) => `${(Number(v) || 0).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} AUD`
+  const INK = [26, 26, 26], MUTE = [110, 110, 110], HAIR = [205, 205, 205]
+
+  // Totals (self-contained so "Taxable Amount" can be shown alongside subtotal).
+  let taxable = 0, exempt = 0
+  for (const li of invoice.lineItems ?? []) {
+    const gross = (li.unitPrice ?? 0) * (li.qty ?? 1)
+    const net = gross - gross * ((li.discountPct ?? 0) / 100)
+    if (li.vatExempt) exempt += net; else taxable += net
+  }
+  const gst = invoice.vatEnabled ? taxable * (taxRate / 100) : 0
+  const subtotal = taxable + exempt
+  const total = subtotal + gst
+  const amountDue = /paid/i.test(invoice.status ?? '') ? 0 : total
+
+  // Header — TAX INVOICE + client (left), company + address (right).
+  doc.setFont('helvetica', 'bold').setFontSize(26).setTextColor(...INK)
+  doc.text('TAX INVOICE', M, 26)
+  doc.setFont('helvetica', 'normal').setFontSize(12).setTextColor(...MUTE)
+  doc.text(company?.businessName || invoice.clientName || '', M, 34)
+
+  doc.setFont('helvetica', 'bold').setFontSize(13).setTextColor(...INK)
+  doc.text(businessName.toUpperCase(), right, 22, { align: 'right' })
+  doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(...MUTE)
+  let hy = 28
+  ;[businessName, ...addressParts].forEach((line) => { doc.text(line, right, hy, { align: 'right' }); hy += 5 })
+
+  // Invoice meta (right column).
+  let my = 52
+  ;[['Invoice Date', fmt(invoice.issueDate)], ['Due Date', fmt(invoice.dueDate)], ['Invoice Number', invoice.number ?? '']]
+    .forEach(([label, val]) => {
+      doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(...INK)
+      doc.text(label, 150, my, { align: 'right' })
+      doc.setFont('helvetica', 'normal').setTextColor(...INK)
+      doc.text(String(val ?? ''), right, my, { align: 'right' })
+      my += 6
+    })
+
+  // Line-items table.
+  const cQty = 120, cUnit = 150, cGst = 168, cAmt = right
+  let y = 82
+  doc.setDrawColor(...HAIR).setLineWidth(0.3).line(M, y - 5, right, y - 5)
+  doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(...INK)
+  doc.text('Description', M, y)
+  doc.text('Qty', cQty, y, { align: 'right' })
+  doc.text('Unit Price', cUnit, y, { align: 'right' })
+  doc.text('GST', cGst, y, { align: 'right' })
+  doc.text('Amount AUD', cAmt, y, { align: 'right' })
+  y += 3
+  doc.setDrawColor(...HAIR).setLineWidth(0.3).line(M, y, right, y)
   y += 7
-  ;(invoice.lineItems ?? []).forEach((li, idx) => {
-    const price = (li.unitPrice ?? 0) * (li.qty ?? 1)
-    const net = price - price * ((li.discountPct ?? 0) / 100)
-    doc.setFillColor(idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 250 : 255)
-    doc.rect(M, y, W - M * 2, 8, 'F'); doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 30, 30)
-    const desc = doc.splitTextToSize(li.description ?? '', W - M * 2 - 30)[0]
-    doc.text(desc, M + 3, y + 5.5)
-    doc.text(`A$${net.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`, W - M - 3, y + 5.5, { align: 'right' })
-    y += 8
+
+  doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(...INK)
+  ;(invoice.lineItems ?? []).forEach((li) => {
+    const gross = (li.unitPrice ?? 0) * (li.qty ?? 1)
+    const net = gross - gross * ((li.discountPct ?? 0) / 100)
+    const desc = doc.splitTextToSize(li.description ?? '', 96)
+    doc.text(desc, M, y)
+    doc.text(String(li.qty ?? 1), cQty, y, { align: 'right' })
+    doc.text(aud(li.unitPrice ?? 0), cUnit, y, { align: 'right' })
+    doc.text(li.vatExempt ? '—' : String(taxRate), cGst, y, { align: 'right' })
+    doc.text(aud(net), cAmt, y, { align: 'right' })
+    y += Math.max(7, desc.length * 4.5 + 3)
   })
-  y += 4
-  const tx = W - M - 70
-  doc.setFontSize(8); doc.setTextColor(80, 80, 80)
-  ;[['Subtotal', subtotal], ['GST (10%)', gst]].forEach(([label, val]) => {
-    doc.text(label, tx, y); doc.text(`A$${val.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`, W - M - 3, y, { align: 'right' }); y += 6
-  })
-  doc.setFillColor(0, 0, 0); doc.rect(tx - 2, y, W - M - tx + 2, 8, 'F')
-  doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255)
-  doc.text('Total', tx + 1, y + 5.5)
-  doc.text(`A$${total.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`, W - M - 3, y + 5.5, { align: 'right' })
+  doc.setDrawColor(...HAIR).setLineWidth(0.3).line(M, y - 3, right, y - 3)
+
+  // Totals (right-aligned block).
+  y += 6
+  const totRow = (label, val, strong) => {
+    doc.setFont('helvetica', strong ? 'bold' : 'normal').setFontSize(strong ? 10.5 : 9)
+    doc.setTextColor(...(strong ? INK : MUTE))
+    doc.text(label, 150, y, { align: 'right' })
+    doc.setTextColor(...INK)
+    doc.text(aud(val), cAmt, y, { align: 'right' })
+    y += strong ? 7 : 6
+  }
+  totRow('Subtotal', subtotal)
+  totRow('Taxable Amount', taxable)
+  if (invoice.vatEnabled) totRow(`Total GST ${taxRate.toFixed(2)} %`, gst)
+  y += 1; doc.setDrawColor(...INK).setLineWidth(0.4).line(110, y - 3, right, y - 3); y += 2
+  totRow('TOTAL AUD', total, true)
+  totRow('Amount Due AUD', amountDue, true)
+
+  // Payment details footer.
+  let py = Math.max(y + 16, 248)
+  doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(...INK)
+  doc.text(`Please make payments to ${businessName}`, M, py); py += 7
+  doc.setFont('helvetica', 'normal').setTextColor(...MUTE)
+  ;[`Account Name: ${businessName}`, b.bsb ? `BSB: ${b.bsb}` : '', b.acc ? `ACC: ${b.acc}` : '']
+    .filter(Boolean)
+    .forEach((line) => { doc.text(line, M, py); py += 6 })
+
   doc.save(`${invoice.number ?? 'invoice'}.pdf`)
 }
 
 const FILTERS = ['all', 'pending', 'paid', 'overdue']
 
-function InvoicesTab({ invoices, company }) {
+function InvoicesTab({ invoices, company, settings }) {
   const [filter, setFilter] = useState('all')
   const [payingId, setPayingId] = useState(null)
   // Stripe Checkout redirects back with ?paid=<invoice number>. The webhook
@@ -146,7 +198,7 @@ function InvoicesTab({ invoices, company }) {
                               <span className="font-heading uppercase tracking-nav text-[10px]">{payingId === inv.id ? 'Opening…' : 'Pay'}</span>
                             </button>
                           )}
-                          <button onClick={() => downloadPDF(inv, company)} className="inline-flex items-center gap-1.5 text-portal-muted hover:text-ink transition-colors">
+                          <button onClick={() => downloadPDF(inv, company, settings)} className="inline-flex items-center gap-1.5 text-portal-muted hover:text-ink transition-colors">
                             <Download size={13} /><span className="font-heading uppercase tracking-nav text-[10px]">PDF</span>
                           </button>
                         </div>
@@ -317,7 +369,7 @@ export default function PortalBilling({ data }) {
         active={tab}
         onChange={setTab}
       />
-      {tab === 'invoices' && <InvoicesTab invoices={invoices} company={company} />}
+      {tab === 'invoices' && <InvoicesTab invoices={invoices} company={company} settings={data.settings} />}
       {tab === 'payment' && <PaymentTab company={company} />}
       {tab === 'membership' && <MembershipTab leases={leases} invoices={invoices} spaces={spaces} />}
       {tab === 'fees' && <FeesTab fees={fees} />}
