@@ -36,6 +36,7 @@ const MENU = [
       { key: 'xero', label: 'Xero' },
       { key: 'stripe', label: 'Stripe' },
       { key: 'papercut', label: 'PaperCut' },
+      { key: 'door-access', label: 'Door Access' },
     ],
   },
 ]
@@ -1536,8 +1537,78 @@ function Stat({ label, value, ok, sub }) {
 }
 
 // ── Main Settings ─────────────────────────────────────────────────────────────
+// ── Remote unlock (own office door, member app) ──────────────────────────────
+// Members may remote-open ONLY the door of the space their company actively
+// leases, and only for spaces mapped to a Salto KS lock here. Front door /
+// reception / common doors are never mapped — those stay on fob + Salto app.
+function RemoteUnlockSection({ settings, updateSettings, spaces }) {
+  const cur = settings.salto?.remoteOpen ?? {}
+  const [enabled, setEnabled] = useState(cur.enabled === true)
+  const [dailyLimit, setDailyLimit] = useState(cur.dailyLimit ?? 10)
+  const [rows, setRows] = useState(() =>
+    Object.entries(cur.locks ?? {}).map(([spaceId, lockId]) => ({ spaceId, lockId: String(lockId) })))
+  const [saved, setSaved] = useState(false)
+
+  const lockable = [...spaces].sort((a, b) => (a.unitNumber || '').localeCompare(b.unitNumber || ''))
+  const upd = (i, patch) => setRows((r) => r.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
+
+  function save() {
+    const locks = {}
+    for (const r of rows) if (r.spaceId && r.lockId.trim()) locks[r.spaceId] = r.lockId.trim()
+    updateSettings({
+      salto: { ...(settings.salto ?? {}), remoteOpen: { enabled, dailyLimit: Number(dailyLimit) || 10, locks } },
+    })
+    setSaved(true); setTimeout(() => setSaved(false), 2000)
+  }
+
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-foreground mb-1">Door Access — remote unlock</h3>
+      <p className="text-sm text-muted-foreground mb-6">
+        Lets members unlock their <strong>own office door</strong> from the Hexa app. A member can only open
+        doors of spaces their company holds an active contract on, and only spaces mapped to a Salto KS lock
+        below — the front door, reception and common areas are never openable this way. Every unlock is
+        audit-logged and rate-limited. Requires the <code>SALTO_REMOTE_OPEN_WEBHOOK</code> zap (mock until set).
+      </p>
+
+      <FormRow label="Enable remote unlock" description="Master switch for the app's Unlock button">
+        <Toggle checked={enabled} onChange={setEnabled} />
+      </FormRow>
+      <FormRow label="Daily limit" description="Unlocks per member per day before they must use their fob">
+        <input type="number" min={1} max={50} value={dailyLimit}
+          onChange={(e) => setDailyLimit(e.target.value)}
+          className="w-20 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center" />
+      </FormRow>
+
+      <div className="mt-6 mb-2 text-sm font-medium text-foreground">Space → Salto lock mapping</div>
+      <p className="text-xs text-muted-foreground mb-3">
+        Only mapped spaces get an Unlock button. Find the lock ID in the Salto KS portal (Locks → the door on that suite).
+      </p>
+      <div className="space-y-2">
+        {rows.map((r, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <select value={r.spaceId} onChange={(e) => upd(i, { spaceId: e.target.value })}
+              className="border border-input rounded-md px-2 py-2 text-sm bg-card flex-1">
+              <option value="">Select space…</option>
+              {lockable.map((s) => <option key={s.id} value={s.id}>{s.unitNumber}</option>)}
+            </select>
+            <input value={r.lockId} onChange={(e) => upd(i, { lockId: e.target.value })}
+              placeholder="Salto lock ID" className="border border-input rounded-md px-3 py-2 text-sm flex-1" />
+            <button type="button" onClick={() => setRows((rows2) => rows2.filter((_, idx) => idx !== i))}
+              className="text-muted-foreground hover:text-red-500 text-sm px-1">✕</button>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={() => setRows((r) => [...r, { spaceId: '', lockId: '' }])}
+        className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium">+ Add mapping</button>
+
+      <SaveButton onClick={save} saved={saved} />
+    </div>
+  )
+}
+
 export default function Settings() {
-  const { settings, updateSettings } = useOutletContext()
+  const { settings, updateSettings, spaces = [] } = useOutletContext()
   // ?section=xero deep-links here (used by the Xero OAuth callback redirect)
   const [selectedKey, setSelectedKey] = useState(() => {
     const section = new URLSearchParams(window.location.search).get('section')
@@ -1556,6 +1627,7 @@ export default function Settings() {
     'xero': <XeroSection settings={settings} updateSettings={updateSettings} />,
     'stripe': <StripeSection settings={settings} updateSettings={updateSettings} />,
     'papercut': <PaperCutSection />,
+    'door-access': <RemoteUnlockSection settings={settings} updateSettings={updateSettings} spaces={spaces} />,
   }
 
   return (

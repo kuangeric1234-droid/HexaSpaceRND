@@ -11,6 +11,8 @@ import { useApp } from '../context.js'
 import { Screen, Label, Display, Rule, Card, Chip, Sheet, fmt, to12, money, bookingName } from '../ui.jsx'
 import { invoiceTotal, unpaidInvoices } from '../lib/invoiceTotal.js'
 import { accessSummary, saltoWebUrl } from '../lib/doorAccess.js'
+import { apiUrl } from '../lib/native.js'
+import { authHeaders } from '../../lib/apiFetch.js'
 import { buildNotifications } from '../lib/notifications.js'
 import PaySheet from '../screens/PaySheet.jsx'
 
@@ -63,7 +65,41 @@ export default function Home() {
   const doorActive = accessSummary(data).status === 'active'
   const notifications = buildNotifications(data)
 
-  const openKey = () => window.open(saltoWebUrl(data.settings), '_blank', 'noopener')
+  // "My key" sheet: remote-unlock the member's OWN office door (when the
+  // admin has enabled it and mapped their suite's lock), plus the Salto app
+  // for everything else (front door, common areas — BLE key lives there).
+  const [showKey, setShowKey] = useState(false)
+  const [keyInfo, setKeyInfo] = useState(null) // { enabled, doors, remaining }
+  const [unlocking, setUnlocking] = useState(false)
+  const [unlockMsg, setUnlockMsg] = useState(null)
+  const openKey = () => { setShowKey(true); setUnlockMsg(null) }
+  useEffect(() => {
+    if (!showKey || keyInfo) return
+    let alive = true
+    ;(async () => {
+      try {
+        const r = await fetch(apiUrl('/api/salto/open'), { headers: await authHeaders() })
+        const d = r.ok ? await r.json() : null
+        if (alive && d) setKeyInfo(d)
+      } catch { if (alive) setKeyInfo({ enabled: false, doors: [] }) }
+    })()
+    return () => { alive = false }
+  }, [showKey, keyInfo])
+
+  async function unlockDoor(door) {
+    setUnlocking(true); setUnlockMsg(null)
+    try {
+      const r = await fetch(apiUrl('/api/salto/open'), {
+        method: 'POST', headers: await authHeaders(),
+        body: JSON.stringify({ spaceId: door.spaceId }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(d.error || 'Could not unlock — try the Salto app.')
+      setUnlockMsg({ type: 'ok', text: `${door.label} unlocked — give it a few seconds.` })
+    } catch (e) {
+      setUnlockMsg({ type: 'err', text: e.message })
+    } finally { setUnlocking(false) }
+  }
 
   return (
     <Screen>
@@ -207,6 +243,34 @@ export default function Home() {
       <p className="hx-prose text-[12px] text-center">
         Hexa Space · 402/830 Whitehorse Road, Box Hill · build locally, scale sustainably
       </p>
+
+      {/* My key — own-door remote unlock + Salto app */}
+      <Sheet open={showKey} onClose={() => setShowKey(false)} title="My key">
+        {keyInfo?.enabled && keyInfo.doors?.length > 0 && (
+          <div className="space-y-3 mb-6">
+            {keyInfo.doors.map((d) => (
+              <button key={d.spaceId} onClick={() => unlockDoor(d)} disabled={unlocking}
+                className="w-full min-h-[52px] bg-ink text-paper font-heading uppercase tracking-nav text-[12px] flex items-center justify-center gap-2 active:bg-charcoal disabled:opacity-50">
+                <KeyRound size={15} /> {unlocking ? 'Unlocking…' : `Unlock ${d.label}`}
+              </button>
+            ))}
+            {unlockMsg && (
+              <p className={`hx-prose text-[13px] text-center ${unlockMsg.type === 'ok' ? 'text-hexa-green' : 'text-red-700'}`}>{unlockMsg.text}</p>
+            )}
+            <p className="hx-prose text-[11px] text-center">Unlocks your own office only. Front door and common areas use your fob or the Salto app.</p>
+          </div>
+        )}
+        {keyInfo && (!keyInfo.enabled || keyInfo.doors?.length === 0) && (
+          <p className="hx-prose text-[13px] text-center mb-6">
+            Your digital key lives in the Salto app — tap below to open it.
+          </p>
+        )}
+        {!keyInfo && <p className="hx-prose text-[13px] text-center py-4 mb-2">Checking your access…</p>}
+        <button onClick={() => window.open(saltoWebUrl(data.settings), '_blank', 'noopener')}
+          className="w-full min-h-[48px] border border-ink/15 font-heading uppercase tracking-nav text-[11px] text-ink flex items-center justify-center gap-2 active:bg-bone">
+          <ArrowUpRight size={14} /> Open the Salto app
+        </button>
+      </Sheet>
 
       {/* Notifications */}
       <Sheet open={showNotifications} onClose={() => setShowNotifications(false)} title="Notifications">
