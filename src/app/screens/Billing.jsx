@@ -42,7 +42,7 @@ export default function Billing() {
     try {
       if (needsAuthority) {
         const consented = { ...company, ...cardAuthorityFields(data.member?.email || company.email) }
-        await supabase.from('tenants').upsert({ id: company.id, data: consented, updated_at: new Date().toISOString() })
+        await supabase.from('tenants').update({ data: consented, updated_at: new Date().toISOString() }).eq('id', company.id)
         patch((prev) => ({ ...prev, company: consented }))
       }
       const r = await fetch(apiUrl('/api/stripe/setup'), {

@@ -68,7 +68,8 @@ export async function createBooking({ room, date, startTime, endTime, title, mem
 
   const writes = [supabase.from('bookings').upsert({ id: booking.id, data: booking, updated_at: nowIso })]
   if (company?.id) {
-    writes.push(supabase.from('tenants').upsert({ id: company.id, data: updatedCompany, updated_at: nowIso }))
+    // update, not upsert: members have UPDATE-only RLS on tenants.
+    writes.push(supabase.from('tenants').update({ data: updatedCompany, updated_at: nowIso }).eq('id', company.id))
   }
 
   let fee = null

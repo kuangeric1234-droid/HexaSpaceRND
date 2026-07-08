@@ -84,8 +84,14 @@ export default function PortalCalendar({ resources, allBookings, member, company
                   ))}
                   <div style={{ height: HOUR_H }} className="border-b border-ink/5" />
                   {roomBookings.map((b) => {
-                    const top = (toDec(b.startTime) - DAY_START) * HOUR_H
-                    const height = Math.max(20, (toDec(b.endTime) - toDec(b.startTime)) * HOUR_H)
+                    // Clamp to the visible 9–5 window: imported all-day hires
+                    // (08:00–19:00) otherwise start above the grid and blanket
+                    // the whole column, header included.
+                    const s = Math.max(toDec(b.startTime), DAY_START)
+                    const e = Math.min(toDec(b.endTime), DAY_END)
+                    if (e <= s) return null
+                    const top = (s - DAY_START) * HOUR_H
+                    const height = Math.max(20, (e - s) * HOUR_H)
                     // Yours (you booked it) → bright green; a teammate's (same company)
                     // → soft green; anyone else's → charcoal "Booked".
                     const mine = !!b.memberId && b.memberId === member?.id
@@ -196,7 +202,9 @@ function BookingModal({ slot, resources, bookings, member, company, remaining, o
     ]
     if (company?.id) {
       const mk = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
-      writes.push(supabase.from('tenants').upsert({ id: company.id, data: { ...company, creditsRemaining: bal, creditsPeriod: mk }, updated_at: nowIso }))
+      // update, not upsert: members have UPDATE-only RLS on tenants (an upsert
+      // is checked as an INSERT first and gets rejected).
+      writes.push(supabase.from('tenants').update({ data: { ...company, creditsRemaining: bal, creditsPeriod: mk }, updated_at: nowIso }).eq('id', company.id))
     }
     if (shortfallCredits > 0 && company?.id) {
       const feeId = `f_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
