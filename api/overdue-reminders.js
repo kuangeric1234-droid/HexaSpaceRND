@@ -193,7 +193,18 @@ export default async function handler(req, res) {
       return res.status(200).json({ marked: nowOverdue.length, reminded: 0, charged: charged.length, chargeFailed, blocked, unblocked })
     }
 
-    // 4. Send reminder emails (one per tenant, listing all overdue invoices)
+    // 4. Send reminder emails (one per tenant, listing all overdue invoices).
+    // Throttled: an invoice triggers a reminder the day it goes overdue, then
+    // every REMIND_EVERY_DAYS, and never more than MAX_REMINDERS times — so
+    // nobody gets dunned daily forever. A newly-overdue invoice restarts the
+    // cycle for its company; the email still lists ALL their overdue invoices.
+    const REMIND_EVERY_DAYS = 3
+    const MAX_REMINDERS = 6
+    const remindCutoff = (() => { const d = new Date(`${todayStr}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - REMIND_EVERY_DAYS); return d.toISOString().split('T')[0] })()
+    const dueForReminder = (inv) =>
+      (inv.remindersSent ?? 0) < MAX_REMINDERS &&
+      (!inv.lastReminderAt || inv.lastReminderAt <= remindCutoff)
+
     const byTenant = {}
     for (const inv of allOverdue) {
       if (!byTenant[inv.tenantId]) byTenant[inv.tenantId] = []
@@ -202,6 +213,7 @@ export default async function handler(req, res) {
 
     let reminded = 0
     for (const [tenantId, invs] of Object.entries(byTenant)) {
+      if (!invs.some(dueForReminder)) continue
       const tenant = tenants.find((t) => t.id === tenantId)
       const reminderEmail = billingEmailFor(tenant, members)
       if (!reminderEmail) continue
@@ -235,6 +247,13 @@ export default async function handler(req, res) {
         html,
       })
       reminded++
+      // Stamp every invoice the email listed so the whole set shares one
+      // reminder cycle (and each invoice's cap counts down together).
+      for (const inv of invs) {
+        await supabase.from('invoices').update({
+          data: { ...inv, lastReminderAt: todayStr, remindersSent: (inv.remindersSent ?? 0) + 1 },
+        }).eq('id', inv.id)
+      }
     }
 
     return res.status(200).json({ marked: nowOverdue.length, reminded, charged: charged.length, chargeFailed, blocked, unblocked })
