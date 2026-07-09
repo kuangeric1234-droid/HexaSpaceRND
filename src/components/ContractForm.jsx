@@ -75,6 +75,8 @@ function initForm(editLease, leases) {
       memberName: editLease.memberName ?? '',
       contractType: editLease.contractType ?? 'New',
       documentType: editLease.documentType ?? 'License Agreement',
+      requireCardOnFile: editLease.requireCardOnFile, // undefined = follow document type
+
       signatureStatus: editLease.signatureStatus ?? 'not_signed',
       contractNumber: editLease.contractNumber ?? generateContractNumber(leases),
       startDate: editLease.startDate ?? '',
@@ -372,6 +374,10 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
       contractNumber: form.contractNumber,
       contractType: form.contractType,
       documentType: form.documentType,
+      // Explicit card decision: default follows the document type (VO/desk
+      // require it) but stores whatever the tick-box shows so the agreement,
+      // signing page and onboarding gate all agree.
+      requireCardOnFile: form.requireCardOnFile ?? /virtual|desk/i.test(form.documentType),
       signatureStatus: form.signatureStatus,
       memberName: form.memberName,
       noticePeriodMonths: form.noticePeriodMonths,
@@ -486,6 +492,18 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
+                <label className="flex items-start gap-2 mt-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.requireCardOnFile ?? /virtual|desk/i.test(form.documentType)}
+                    onChange={(e) => setForm({ ...form, requireCardOnFile: e.target.checked })}
+                    className="mt-0.5 h-3.5 w-3.5"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Require payment card on file</span> — the client must
+                    verify a card with Stripe right after signing (payment authority applies). Untick for trusted payers.
+                  </span>
+                </label>
               </Field>
 
               <Field label="Contract Type" required>

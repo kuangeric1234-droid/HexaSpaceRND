@@ -119,6 +119,13 @@ export function exitVirtualOfficeTerm(officeEndDate, todayISO) {
 // bill monthly with no office bond behind them, so overdue amounts are
 // recovered by charging the stored card per the agreement's payment authority.
 export function requiresCardOnFile(lease) {
+  // Explicit per-contract choice wins (the "Require payment card on file"
+  // tick-box on the contract form) — admins can waive it for known reliable
+  // payers, or demand it on contracts that wouldn't normally need it.
+  if (lease?.requireCardOnFile === true) return true
+  if (lease?.requireCardOnFile === false) return false
+  // Legacy default by membership type: Virtual Office / desks require a card
+  // (monthly billing, no office bond behind them); Private Office never does.
   const label = `${lease?.membershipType ?? ''} ${lease?.documentType ?? ''}`
   return /virtual|desk/i.test(label)
 }
