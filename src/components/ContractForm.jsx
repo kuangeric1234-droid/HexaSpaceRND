@@ -749,20 +749,38 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                               </span>
                             </div>
 
-                            <select
-                              value={step.discount}
-                              onChange={(e) =>
-                                updateStep(itemIdx, stepIdx, { discount: e.target.value })
-                              }
-                              className="border border-input rounded px-2 py-1.5 text-sm bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 w-full"
-                            >
-                              <option value="">Select Discount</option>
-                              {DISCOUNT_OPTIONS.map((d) => (
-                                <option key={d} value={d}>
-                                  {d}
-                                </option>
-                              ))}
-                            </select>
+                            {(() => {
+                              // Discount as '10%' (percentage) or '$200' ($ off/month).
+                              const dStr = String(step.discount ?? '')
+                              const mode = dStr.endsWith('%') ? '%' : dStr ? '$' : ''
+                              const dVal = dStr.replace(/[%$,\s]/g, '')
+                              const setD = (m, v) =>
+                                updateStep(itemIdx, stepIdx, { discount: !m || !v ? '' : m === '%' ? `${v}%` : `$${v}` })
+                              return (
+                                <div className="flex items-center gap-1">
+                                  <select
+                                    value={mode}
+                                    onChange={(e) => setD(e.target.value, e.target.value ? (dVal || (e.target.value === '%' ? '10' : '100')) : '')}
+                                    className="border border-input rounded px-1.5 py-1.5 text-sm bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 shrink-0"
+                                  >
+                                    <option value="">No disc.</option>
+                                    <option value="%">%</option>
+                                    <option value="$">$</option>
+                                  </select>
+                                  {mode && (
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max={mode === '%' ? 100 : undefined}
+                                      value={dVal}
+                                      onChange={(e) => setD(mode, e.target.value)}
+                                      placeholder={mode === '%' ? '10' : '200'}
+                                      className="border border-input rounded px-2 py-1.5 text-sm bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 w-full min-w-0"
+                                    />
+                                  )}
+                                </div>
+                              )
+                            })()}
 
                             {stepIdx === item.steps.length - 1 ? (() => {
                               const fillsEnd = form.endDate && step.endDate && step.endDate >= form.endDate
@@ -791,7 +809,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
                             {item.steps.length === 1 && <span />}
 
                             {/* Effective price once a discount is applied */}
-                            {discountPct(step.discount) > 0 && (
+                            {discountedPrice(step.listPrice, step.discount) < Number(step.listPrice ?? 0) && (
                               <div className="col-span-full -mt-1 text-xs text-emerald-700 text-right pr-24">
                                 After {step.discount} discount: A${discountedPrice(step.listPrice, step.discount).toLocaleString('en-AU', { minimumFractionDigits: 2 })}/mo
                               </div>

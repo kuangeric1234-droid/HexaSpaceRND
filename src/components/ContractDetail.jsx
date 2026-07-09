@@ -1110,10 +1110,7 @@ export default function ContractDetail({
                         </td>
                         <td className="px-5 py-3">
                           {(item.steps ?? []).map((step, si) => {
-                            const disc = Number(step.discount?.replace('%', '') || 0)
-                            const finalPrice = disc > 0
-                              ? Number(step.listPrice ?? 0) * (1 - disc / 100)
-                              : Number(step.listPrice ?? 0)
+                            const finalPrice = stepMonthly(step)
                             return (
                               <div key={si} className="text-foreground text-right">
                                 A${finalPrice.toLocaleString('en-AU', { minimumFractionDigits: 2 })}

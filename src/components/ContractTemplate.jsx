@@ -1,7 +1,7 @@
 import { format, parseISO } from 'date-fns'
 import { buildPaymentSchedule, scheduleAmount, isMonthToMonthLease, monthToMonthRows } from '../lib/paymentSchedule.js'
 import { VO_INCLUSIONS, isVirtualOfficeAgreement } from '../lib/voInclusions.js'
-import { stepMonthly, discountPct } from '../lib/leasePricing.js'
+import { stepMonthly } from '../lib/leasePricing.js'
 import { resolvePrimaryContact } from '../lib/leaseContact.js'
 import { requiresCardOnFile } from '../lib/onboarding.js'
 
@@ -127,8 +127,8 @@ export default function ContractTemplate({ lease, tenant, space, settings, membe
             (item.steps ?? []).map((step, si) => {
               // The charged amount: list × qty less the step's negotiated discount.
               const monthly = stepMonthly(step)
-              const pct = discountPct(step.discount)
               const list = Number(step.listPrice ?? 0) * Number(step.qty ?? 1)
+              const discounted = monthly < list
               return (
                 <tr key={`${item.spaceId}-${si}`} className="border-b border-gray-200 last:border-b-0">
                   <td className="px-3 py-2 border-r border-gray-200">{space?.unitNumber ?? '—'}</td>
@@ -140,7 +140,7 @@ export default function ContractTemplate({ lease, tenant, space, settings, membe
                   </td>
                   <td className="px-3 py-2 text-right">
                     {monthly.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD
-                    {pct > 0 && (
+                    {discounted && (
                       <div className="text-[10px] text-gray-500">
                         incl. {step.discount} discount off list {list.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD
                       </div>
