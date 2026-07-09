@@ -37,9 +37,14 @@ export default function Renewals() {
     })
   }
 
+  // A lease that's been given notice / scheduled to terminate isn't a renewal
+  // candidate — it's on its way out. Keep it out of both nag lists so it stops
+  // showing as "expiring, action required" once the client has agreed to leave.
+  const leaving = (l) => !!(l.noticeGiven || l.terminationScheduledFor || l.vacateDate || l.renewalDeclined)
+
   const expiring = leases
     .filter((l) => {
-      if (l.status !== 'active') return false
+      if (l.status !== 'active' || leaving(l)) return false
       const days = daysTo(l.endDate)
       return days !== null && days >= 0 && days <= 60
     })
@@ -47,7 +52,7 @@ export default function Renewals() {
 
   const expired = leases
     .filter((l) => {
-      if (l.status !== 'active') return false
+      if (l.status !== 'active' || leaving(l)) return false
       const days = daysTo(l.endDate)
       return days !== null && days < 0
     })

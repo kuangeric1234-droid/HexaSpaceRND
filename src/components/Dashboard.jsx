@@ -84,6 +84,8 @@ export default function Dashboard() {
   }, 0)
 
   const expiringSoon = activeLeases.filter((l) => {
+    // Leases already under notice / scheduled to terminate aren't renewals.
+    if (l.noticeGiven || l.terminationScheduledFor || l.vacateDate || l.renewalDeclined) return false
     const days = differenceInDays(parseISO(l.endDate), today)
     return days >= 0 && days <= 60
   }).sort((a, b) => differenceInDays(parseISO(a.endDate), today) - differenceInDays(parseISO(b.endDate), today))

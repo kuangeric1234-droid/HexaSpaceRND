@@ -1182,6 +1182,23 @@ export function useStore() {
         }
       }
     })
+
+    // Heal orphaned occupants: an office still tagged with an occupant whose
+    // contract has since ended (terminated/offboarded) and has no live lease
+    // should read as vacant. Retroactively fixes contracts terminated before the
+    // offboard step learned to clear these fields. Guarded so a manually-assigned
+    // occupant with no ended-contract history is left untouched.
+    spaces.forEach((s) => {
+      if (!s.occupantTenantId && !s.occupantName) return
+      const spaceLeases = leases.filter((l) => leaseSpaceIds(l).includes(s.id))
+      const hasLive = spaceLeases.some((l) => ['active', 'pending'].includes(l.status) && !l.offboardedAt)
+      const hasEndedForOccupant = spaceLeases.some((l) =>
+        (['expired', 'terminated'].includes(l.status) || l.offboardedAt) &&
+        (!s.occupantTenantId || l.tenantId === s.occupantTenantId))
+      if (!hasLive && hasEndedForOccupant) {
+        updateSpace(s.id, { status: 'vacant', occupantTenantId: null, occupantName: '' })
+      }
+    })
   }, [loading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Tenants ───────────────────────────────────────────────────────────────
@@ -1778,9 +1795,21 @@ export function useStore() {
         updateLease(pl.id, { status: 'expired' }) // triggers its own offboard (frees + revokes)
       })
 
-    // Free every collected space.
+    // Free every collected space — clear both the status AND the occupant fields.
+    // Locations, Dashboard, Memberships, the floorplan and the lead/proposal
+    // availability check all read s.occupantTenantId / s.occupantName to decide
+    // occupancy, so leaving them set kept the office showing as occupied even
+    // after the contract ended. Skip any space still held by another live
+    // contract (e.g. an overlapping office move).
     setSpaces((prev) => {
-      const next = prev.map((s) => (spaceIds.has(s.id) && s.status !== 'vacant' ? { ...s, status: 'vacant' } : s))
+      const next = prev.map((s) => {
+        if (!spaceIds.has(s.id)) return s
+        const heldByOther = leasesRef.current.some((l) =>
+          l.id !== lease.id && ['active', 'pending'].includes(l.status) && !l.offboardedAt &&
+          leaseSpaceIds(l).includes(s.id))
+        if (heldByOther) return s
+        return { ...s, status: 'vacant', occupantTenantId: null, occupantName: '' }
+      })
       spaceIds.forEach((id) => { const sp = next.find((s) => s.id === id); if (sp) syncRow('spaces', sp.id, sp) })
       return next
     })
