@@ -47,6 +47,7 @@ const GROUPS = [
   {
     heading: 'More',
     items: [
+      { to: '/announcements', icon: Megaphone, label: 'Announcements' },
       { to: '/messages', icon: MessageSquare, label: 'Messages' },
       { to: '/mail', icon: Mailbox, label: 'Mail & Deliveries' },
       { to: '/directory', icon: MonitorPlay, label: 'Directory' },

@@ -17,6 +17,7 @@ import EventBookings from './components/EventBookings.jsx'
 import FunctionBookings from './components/FunctionBookings.jsx'
 import AdminMessages from './components/AdminMessages.jsx'
 import MailRegister from './components/MailRegister.jsx'
+import Announcements from './components/Announcements.jsx'
 import FoodOrders from './components/FoodOrders.jsx'
 import Members from './components/Members.jsx'
 import Memberships from './components/Memberships.jsx'
@@ -68,6 +69,7 @@ export default function AdminApp({ onLogout }) {
           <Route path="crm" element={<Crm />} />
           <Route path="marketing" element={<Marketing />} />
           <Route path="messages" element={<AdminMessages />} />
+          <Route path="announcements" element={<Announcements />} />
           <Route path="mail" element={<MailRegister />} />
           <Route path="directory" element={<Directory />} />
           <Route path="food-orders" element={<FoodOrders />} />
