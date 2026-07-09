@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
-import { Megaphone, Send, Loader2, CheckCircle2, ChevronDown, ChevronUp, FlaskConical } from 'lucide-react'
+import { Megaphone, Send, Loader2, CheckCircle2, ChevronDown, ChevronUp, FlaskConical, Sparkles } from 'lucide-react'
 import { authHeaders } from '../lib/apiFetch.js'
 
 // Announcements — broadcast emails to members (the OfficeRND "Messages" hub).
@@ -94,6 +94,26 @@ function ComposeModal({ members, onClose, onSent }) {
   const [busy, setBusy] = useState(null) // 'test' | 'send'
   const [msg, setMsg] = useState(null)
 
+  // AI drafting — rough brief in, subject + on-brand content out (editable).
+  const [brief, setBrief] = useState('')
+  const [drafting, setDrafting] = useState(false)
+  const [draftErr, setDraftErr] = useState('')
+
+  async function draftWithAI() {
+    if (!brief.trim()) { setDraftErr('Say what the announcement is about first.'); return }
+    setDrafting(true); setDraftErr('')
+    try {
+      const r = await fetch('/api/announcements-draft', {
+        method: 'POST', headers: await authHeaders(),
+        body: JSON.stringify({ brief: brief.trim() }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(d.error ?? 'Drafting failed.')
+      setSubject(d.subject ?? '')
+      setContent(d.content ?? '')
+    } catch (e) { setDraftErr(e.message) } finally { setDrafting(false) }
+  }
+
   const countFor = (g) => members.filter((m) =>
     g.match.includes(String(m.status ?? '').toLowerCase()) && /\S+@\S+/.test(m.email ?? '')).length
   const recipientCount = [...new Set(members
@@ -139,6 +159,25 @@ function ComposeModal({ members, onClose, onSent }) {
             </div>
             <p className="text-xs text-muted-foreground mt-2">{recipientCount} unique email{recipientCount === 1 ? '' : 's'} will receive this (BCC — members never see each other).</p>
           </div>
+          {/* AI draft */}
+          <div className="border border-dashed border-border rounded-lg p-3 bg-muted/30">
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+              <Sparkles size={12} /> Draft with AI
+            </label>
+            <div className="flex gap-2">
+              <input value={brief} onChange={(e) => setBrief(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); draftWithAI() } }}
+                placeholder={'e.g. "carpet cleaning this Sunday 9am–1pm on level 4, apologise for the noise"'}
+                className="flex-1 border border-input rounded-md px-3 py-2 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-ring/40" />
+              <button onClick={draftWithAI} disabled={drafting}
+                className="flex items-center gap-1.5 border border-input px-3 py-2 rounded-md text-sm font-medium hover:bg-muted/50 disabled:opacity-40 whitespace-nowrap">
+                {drafting ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} {drafting ? 'Drafting…' : 'Draft it'}
+              </button>
+            </div>
+            {draftErr && <p className="text-xs text-red-600 mt-1.5">{draftErr}</p>}
+            <p className="text-[11px] text-muted-foreground mt-1.5">Describe roughly what you want to say — it fills in the subject and message below in the Hexa voice. Edit before sending.</p>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Subject</label>
             <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Deep carpet cleaning notice — this Sunday"
