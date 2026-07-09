@@ -6,7 +6,9 @@
 // onboarding email, and the Salto access-provisioning calls so the store, the
 // contract flow and the portal all agree on one definition of "activated".
 
-import { authHeaders } from './apiFetch.js'
+// NOTE: no top-level import of apiFetch.js — it pulls in the browser Supabase
+// client (import.meta.env), which crashes Node when server code (api/reconcile)
+// imports this module. The two client-only fetches below lazy-import it.
 
 const PORTAL_URL = 'https://portal.hexaspace.com.au'
 
@@ -135,6 +137,7 @@ export function exitVirtualOfficeApplies(lease) {
 // Provision a Salto credential for a member on the office door. Returns
 // { accessLink, saltoUserId } (mocked server-side until real Salto creds exist).
 export async function provisionSaltoAccess({ member, space, lease }) {
+  const { authHeaders } = await import('./apiFetch.js')
   const res = await fetch('/api/salto/provision', {
     method: 'POST',
     headers: await authHeaders(),
@@ -159,6 +162,7 @@ export async function provisionSaltoAccess({ member, space, lease }) {
 // mode 'remove_user' (default) deletes the KS user; 'remove_from_group'
 // strips only this space's access group (company keeps other space(s)).
 export async function revokeSaltoAccess({ member, space, mode = 'remove_user' }) {
+  const { authHeaders } = await import('./apiFetch.js')
   const res = await fetch('/api/salto/revoke', {
     method: 'POST',
     headers: await authHeaders(),
