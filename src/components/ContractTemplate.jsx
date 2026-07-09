@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns'
 import { buildPaymentSchedule, scheduleAmount, isMonthToMonthLease, monthToMonthRows } from '../lib/paymentSchedule.js'
-import { VO_INCLUSIONS, isVirtualOfficeAgreement } from '../lib/voInclusions.js'
+import { leaseInclusions } from '../lib/voInclusions.js'
 import { stepMonthly } from '../lib/leasePricing.js'
 import { resolvePrimaryContact } from '../lib/leaseContact.js'
 import { requiresCardOnFile } from '../lib/onboarding.js'
@@ -54,7 +54,7 @@ export default function ContractTemplate({ lease, tenant, space, settings, membe
   const schedule = buildPaymentSchedule(lease, settings)
   const mtm = isMonthToMonthLease(lease)
   const scheduleRows = mtm ? monthToMonthRows(schedule) : (schedule?.rows ?? [])
-  const showInclusions = isVirtualOfficeAgreement(lease, space)
+  const inclusions = leaseInclusions(lease, space)
   const taxRatePct = settings?.billingRules?.taxRate ?? 10
   const gst = Math.round(deposit * (taxRatePct / 100) * 100) / 100
   const totalInitial = Math.round((deposit + gst) * 100) / 100
@@ -153,8 +153,8 @@ export default function ContractTemplate({ lease, tenant, space, settings, membe
         </tbody>
       </table>
 
-      {/* ── Virtual Office inclusions ── */}
-      {showInclusions && (
+      {/* ── Inclusions (VO standard set and/or negotiated extras) ── */}
+      {inclusions.length > 0 && (
         <>
           <h2 className="font-bold uppercase text-gray-900 mb-3 tracking-wide">INCLUSIONS</h2>
           <table className="w-full text-xs border border-gray-300 mb-8">
@@ -164,7 +164,7 @@ export default function ContractTemplate({ lease, tenant, space, settings, membe
               </tr>
             </thead>
             <tbody>
-              {VO_INCLUSIONS.map((item) => (
+              {inclusions.map((item) => (
                 <tr key={item} className="border-b border-gray-200 last:border-b-0">
                   <td className="px-3 py-2 text-gray-700">{item}</td>
                 </tr>

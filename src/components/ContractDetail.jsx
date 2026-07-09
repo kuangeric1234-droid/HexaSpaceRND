@@ -11,7 +11,7 @@ import DocumentsPanel from './DocumentsPanel.jsx'
 import { logAudit } from '../lib/audit.js'
 import { buildPaymentSchedule, scheduleAmount, isMonthToMonthLease, monthToMonthRows } from '../lib/paymentSchedule.js'
 import { stepMonthly } from '../lib/leasePricing.js'
-import { VO_INCLUSIONS, isVirtualOfficeAgreement } from '../lib/voInclusions.js'
+import { leaseInclusions } from '../lib/voInclusions.js'
 import { resolvePrimaryContact } from '../lib/leaseContact.js'
 import { sendLeaseForSigning } from '../lib/esign.js'
 import { requiresCardOnFile } from '../lib/onboarding.js'
@@ -296,14 +296,15 @@ export default function ContractDetail({
       y += 6
 
       // ── Virtual Office inclusions ─────────────────────────────
-      if (isVirtualOfficeAgreement(lease, space)) {
+      const pdfInclusions = leaseInclusions(lease, space)
+      if (pdfInclusions.length > 0) {
         checkPage(20)
         doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(80)
         doc.text('INCLUSIONS', ml, y); doc.setTextColor(0)
         doc.setDrawColor(180); doc.setLineWidth(0.3); doc.line(ml, y + 2, mr, y + 2)
         y += 7
         doc.setFont('helvetica', 'normal'); doc.setFontSize(8)
-        for (const item of VO_INCLUSIONS) {
+        for (const item of pdfInclusions) {
           const lines = doc.splitTextToSize(item, mr - ml - 8)
           checkPage(lines.length * 4 + 4)
           doc.text('•', ml + 1, y + 3)

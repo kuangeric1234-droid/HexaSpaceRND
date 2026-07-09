@@ -84,6 +84,7 @@ function initForm(editLease, leases) {
       noticePeriodMonths: editLease.noticePeriodMonths ?? 2,
       status: editLease.status ?? 'active',
       notes: editLease.notes ?? '',
+      inclusions: editLease.inclusions ?? '',
       contractTerms: editLease.contractTerms ?? ['tmpl1', 'tmpl2'],
       items: editLease.items ?? [
         {
@@ -114,6 +115,7 @@ function initForm(editLease, leases) {
     noticePeriodMonths: 2,
     status: 'active',
     notes: '',
+    inclusions: '',
     contractTerms: ['tmpl1', 'tmpl2'],
     items: [
       {
@@ -371,6 +373,7 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
       bondAmount: Number(firstItem.deposit ?? 0),
       status: form.status,
       notes: form.notes,
+      inclusions: form.inclusions,
       contractNumber: form.contractNumber,
       contractType: form.contractType,
       documentType: form.documentType,
@@ -934,6 +937,21 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
               >
                 Add Addendum
               </button>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-border">
+              <label className="block text-sm font-medium text-foreground mb-1.5">Inclusions</label>
+              <textarea
+                rows={4}
+                value={form.inclusions}
+                onChange={(e) => setForm({ ...form, inclusions: e.target.value })}
+                placeholder={'One inclusion per line — printed as an INCLUSIONS table on the agreement, e.g.\n2 × car parks included\n4 hours of boardroom credits per month\nSignage on the Level 4 directory'}
+                className="w-full border border-input rounded px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 resize-y"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Whatever was negotiated — each line becomes a row on the agreement document. Virtual Office
+                agreements print their standard inclusions first, then these.
+              </p>
             </div>
 
             <div className="mt-6 pt-6 border-t border-border">
