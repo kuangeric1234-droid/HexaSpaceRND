@@ -1165,13 +1165,17 @@ export function useStore() {
       }
       const space = spaces.find((s) => s.id === lease.spaceId)
       const alreadyOccupied = space?.status === 'occupied'
-      if (space) {
-        const desired = desiredSpaceStatus(lease, invoices)
+      // Every line item's space follows the lease's schedule status — a
+      // multi-office contract holds/occupies all its offices, not just the primary.
+      const desired = desiredSpaceStatus(lease, invoices)
+      leaseSpaceIds(lease).forEach((sid) => {
+        const sp = spaces.find((s) => s.id === sid)
+        if (!sp) return
         // Never pull an already-occupied space back to reserved (protects
         // tenants who moved in under the pre-gate flow).
-        const demoting = alreadyOccupied && desired === 'reserved'
-        if (desired !== space.status && !demoting) updateSpace(space.id, { status: desired })
-      }
+        const demoting = sp.status === 'occupied' && desired === 'reserved'
+        if (desired !== sp.status && !demoting) updateSpace(sp.id, { status: desired })
+      })
       const gateTenant = tenants.find((t) => t.id === lease.tenantId)
       if (shouldOnboard(lease, invoices, gateTenant)) {
         if (alreadyOccupied) {
@@ -1398,19 +1402,21 @@ export function useStore() {
     setLeases((prev) => [...prev, item])
     syncRow('leases', item.id, item)
     logAudit('create', 'lease', item.id, item.contractNumber ?? item.id)
-    // A real contract holds the space as 'reserved' — it only becomes 'occupied'
-    // once the access gate is met (signed + deposit + first invoice paid) and the
-    // commencement date is reached. Bare quick-assignments occupy immediately.
+    // A real contract holds its spaces as 'reserved' — they only become
+    // 'occupied' once the access gate is met (signed + deposit + first invoice
+    // paid) and the commencement date is reached. Bare quick-assignments occupy
+    // immediately. EVERY line item's space is held, not just the primary — a
+    // multi-office contract reserves all its offices.
     const initialStatus = requiresAccessGate(item) ? 'reserved' : 'occupied'
+    const heldIds = new Set(leaseSpaceIds(item))
     setSpaces((prev) => {
-      const next = prev.map((s) => (s.id === lease.spaceId ? { ...s, status: initialStatus } : s))
-      const updated = next.find((s) => s.id === lease.spaceId)
-      if (updated) {
+      const next = prev.map((s) => (heldIds.has(s.id) ? { ...s, status: initialStatus } : s))
+      next.filter((s) => heldIds.has(s.id)).forEach((updated) => {
         syncRow('spaces', updated.id, updated)
         // Auto-remove from website: if the unit was published, re-sync so its
         // Sanity status flips to 'leased'. Fire-and-forget — never block leasing.
         if (updated.publishedToWeb) publishListing(updated).catch((e) => console.error('Listing auto-sync:', e))
-      }
+      })
       return next
     })
     return item
@@ -1445,11 +1451,14 @@ export function useStore() {
     if (!accessGateMet(lease, invoicesRef.current, tenant)) return
     const space = spacesRef.current.find((s) => s.id === lease.spaceId)
     const alreadyOccupied = space?.status === 'occupied'
-    if (space) {
-      const desired = desiredSpaceStatus(lease, invoicesRef.current)
-      const demoting = space.status === 'occupied' && desired === 'reserved'
-      if (desired !== space.status && !demoting) updateSpace(space.id, { status: desired })
-    }
+    // Flip every line item's space (multi-office contracts), not just the primary.
+    const desired = desiredSpaceStatus(lease, invoicesRef.current)
+    leaseSpaceIds(lease).forEach((sid) => {
+      const sp = spacesRef.current.find((s) => s.id === sid)
+      if (!sp) return
+      const demoting = sp.status === 'occupied' && desired === 'reserved'
+      if (desired !== sp.status && !demoting) updateSpace(sp.id, { status: desired })
+    })
     // If the space was already occupied, this tenant is already moved in — stamp
     // onboardedAt to suppress a retroactive welcome rather than re-sending it.
     if (alreadyOccupied) { updateLease(leaseId, { onboardedAt: lease.activatedAt ?? new Date().toISOString() }); return }
@@ -1460,10 +1469,11 @@ export function useStore() {
     setLeases((prev) => {
       const lease = prev.find((l) => l.id === id)
       if (lease) {
+        // Release every space the contract held (all line items, not just primary).
+        const heldIds = new Set(leaseSpaceIds(lease))
         setSpaces((spaces) => {
-          const next = spaces.map((s) => (s.id === lease.spaceId ? { ...s, status: 'vacant' } : s))
-          const updated = next.find((s) => s.id === lease.spaceId)
-          if (updated) syncRow('spaces', updated.id, updated)
+          const next = spaces.map((s) => (heldIds.has(s.id) ? { ...s, status: 'vacant' } : s))
+          next.filter((s) => heldIds.has(s.id)).forEach((updated) => syncRow('spaces', updated.id, updated))
           return next
         })
       }

@@ -361,6 +361,12 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
     }
     const firstItem = form.items[0] ?? {}
     const firstStep = firstItem.steps?.[0] ?? {}
+    // Contract-level money sums EVERY line item's opening step (a multi-office
+    // contract charges all its offices, not just the first row): what we
+    // actually charge per month, the combined list price, and the total deposit.
+    const startMonthly = form.items.reduce(
+      (sum, it) => sum + discountedPrice(it.steps?.[0]?.listPrice, it.steps?.[0]?.discount), 0)
+    const startList = form.items.reduce((sum, it) => sum + Number(it.steps?.[0]?.listPrice ?? 0), 0)
     onSave({
       tenantId: form.tenantId,
       spaceId: firstItem.spaceId,
@@ -368,9 +374,9 @@ export default function ContractForm({ editLease, leases, tenants, spaces, templ
       endDate: form.endDate,
       // What we actually charge: list price less the step's discount. The RRP is
       // kept alongside so documents can show "list $X — discount → $Y".
-      monthlyRent: discountedPrice(firstStep.listPrice, firstStep.discount),
-      listPrice: Number(firstStep.listPrice ?? 0),
-      bondAmount: Number(firstItem.deposit ?? 0),
+      monthlyRent: startMonthly,
+      listPrice: startList,
+      bondAmount: form.items.reduce((sum, it) => sum + Number(it.deposit ?? 0), 0),
       status: form.status,
       notes: form.notes,
       inclusions: form.inclusions,

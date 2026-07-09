@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase.js'
 import { jsPDF } from 'jspdf'
 import DocumentsPanel from './DocumentsPanel.jsx'
 import { logAudit } from '../lib/audit.js'
-import { buildPaymentSchedule, scheduleAmount, isMonthToMonthLease, monthToMonthRows } from '../lib/paymentSchedule.js'
+import { buildPaymentSchedule, scheduleAmount, isMonthToMonthLease, monthToMonthRows, contractTermValue } from '../lib/paymentSchedule.js'
 import { stepMonthly } from '../lib/leasePricing.js'
 import { leaseInclusions } from '../lib/voInclusions.js'
 import { resolvePrimaryContact } from '../lib/leaseContact.js'
@@ -112,7 +112,8 @@ export default function ContractDetail({
   const contractNum = lease.contractNumber ?? `CON-${lease.id.slice(-3).toUpperCase()}`
   const stageBadges = getStageBadges(lease)
   const sigMeta = SIG_STATUS[lease.signatureStatus]
-  const annualValue = lease.monthlyRent ? lease.monthlyRent * 12 : null
+  // Whole-of-term contract value (ex GST) — every line item, every schedule step.
+  const annualValue = contractTermValue(lease, settings)
   const isMonthToMonth = lease.contractType === 'Month-to-month' || lease.documentType === 'Membership Agreement Month-to-month'
 
   // Find previous contract if this is a renewal

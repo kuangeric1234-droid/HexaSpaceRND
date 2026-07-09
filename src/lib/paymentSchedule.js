@@ -115,6 +115,18 @@ export function monthToMonthRows(schedule) {
   ]
 }
 
+// Total contract value across the whole term (ex GST) — the sum of every
+// scheduled month, so multi-year and multi-office contracts report their real
+// worth. null for month-to-month (open-ended) leases; falls back to
+// monthlyRent × 12 when the schedule can't be built (missing dates).
+export function contractTermValue(lease, settings) {
+  if (isMonthToMonthLease(lease)) return null
+  const schedule = buildPaymentSchedule(lease, settings)
+  const total = schedule?.totals?.total ?? 0
+  if (total > 0) return total
+  return lease?.monthlyRent ? lease.monthlyRent * 12 : null
+}
+
 // True when the given month is $0 under the lease's contract schedule — either
 // a step-encoded free period or the final-N-months new-member offer. Billing
 // engines use this to skip invoicing months the agreement promises rent-free.

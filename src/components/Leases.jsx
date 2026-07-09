@@ -6,6 +6,7 @@ import ContractForm from './ContractForm.jsx'
 import ContractDetail from './ContractDetail.jsx'
 import { sendLeaseForSigning, shouldAutoSendForSigning } from '../lib/esign.js'
 import TerminateModal, { TERMINATION_REASONS, applyTermination } from './TerminateModal.jsx'
+import { contractTermValue } from '../lib/paymentSchedule.js'
 
 const DOC_TYPES = [
   'License Agreement',
@@ -374,7 +375,8 @@ export default function Leases() {
               const contractNum = lease.contractNumber ?? `CON-${lease.id.slice(-3).toUpperCase()}`
               const stageBadges = getStageBadges(lease)
               const sigMeta = SIG_STATUS[lease.signatureStatus]
-              const annualValue = lease.monthlyRent ? lease.monthlyRent * 12 : null
+              // Whole-of-term value (ex GST): every line item, every schedule step.
+              const annualValue = contractTermValue(lease, settings)
               const isMonthToMonth = lease.documentType === 'Membership Agreement Month-to-month' || lease.contractType === 'Month-to-month'
               const docType = lease.documentType ?? 'License Agreement'
 

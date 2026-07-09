@@ -25,7 +25,14 @@ export function isEnded(lease) {
 }
 
 export function depositAmount(lease) {
-  return lease?.items?.[0]?.deposit ?? lease?.bondAmount ?? 0
+  // Sum every line item's deposit (a multi-office contract holds one bond per
+  // office). Legacy leases whose items never carried a deposit field fall back
+  // to the contract-level bondAmount.
+  const items = lease?.items ?? []
+  if (items.some((i) => i.deposit != null)) {
+    return items.reduce((sum, i) => sum + Number(i.deposit ?? 0), 0)
+  }
+  return lease?.bondAmount ?? 0
 }
 
 // Does this lease go through the signed-and-paid access gate? Real contracts do
