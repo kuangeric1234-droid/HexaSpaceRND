@@ -1,7 +1,8 @@
-// POST /api/booking-confirmation — booking confirmation email for ADMIN-made
-// meeting-room bookings: sent to the member it was booked for, cc info@ (ops).
-// Member-made bookings are covered by the portal flow (notify-booking) instead.
-// Admin-authed. Body: { bookingId }
+// POST /api/booking-confirmation — booking email for ADMIN-made meeting-room
+// bookings: sent to the member it was booked for, cc info@ (ops). Covers the
+// original confirmation plus admin edits: kind 'amended' (e.g. extended time)
+// and 'cancelled'. Member-made bookings use the portal flow (notify-booking).
+// Admin-authed. Body: { bookingId, kind?: 'new' | 'amended' | 'cancelled' }
 import { requireAdmin } from './_auth.js'
 import { sendResendEmail } from './_email.js'
 import { brandFrame, bKicker, bH1, bP, bTable, bSmall } from './_brand.js'
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
   if (auth.error) return res.status(auth.status).json({ error: auth.error })
   const sb = auth.sb
 
-  const { bookingId } = req.body ?? {}
+  const { bookingId, kind = 'new' } = req.body ?? {}
   if (!bookingId) return res.status(400).json({ error: 'bookingId is required.' })
 
   try {
@@ -43,20 +44,38 @@ export default async function handler(req, res) {
     const memberEmail = member?.email || null
     const firstName = String(member?.name || '').split(' ')[0] || 'there'
 
+    const copy = {
+      new: {
+        kicker: 'Booking Confirmation', h1: 'Your meeting room is booked ✅', subject: 'Booking confirmed',
+        lead: `Hi ${firstName}, we've booked <strong>${roomName}</strong> for you${company ? ` (${company})` : ''}. Here are the details:`,
+        outro: 'Your access pass unlocks the meeting room from 15 minutes before your booking. Need to change or cancel? Reply to this email or manage it in the member portal.',
+      },
+      amended: {
+        kicker: 'Booking Updated', h1: 'Your booking has been updated 🕒', subject: 'Booking updated',
+        lead: `Hi ${firstName}, the details of your <strong>${roomName}</strong> booking have changed. Here are the new details:`,
+        outro: 'Your door access adjusts to the new time automatically — your pass unlocks the room from 15 minutes before the booking. Questions? Just reply to this email.',
+      },
+      cancelled: {
+        kicker: 'Booking Cancelled', h1: 'Your booking has been cancelled', subject: 'Booking cancelled',
+        lead: `Hi ${firstName}, your <strong>${roomName}</strong> booking below has been cancelled. Any credits it used have been returned to your allowance.`,
+        outro: 'Need to rebook? Reply to this email or book any time in the member portal.',
+      },
+    }[kind] ?? {}
+
     const inner =
-      bKicker('Booking Confirmation') +
-      bH1('Your meeting room is booked ✅') +
-      bP(`Hi ${firstName}, we've booked <strong>${roomName}</strong> for you${company ? ` (${company})` : ''}. Here are the details:`) +
+      bKicker(copy.kicker ?? 'Booking') +
+      bH1(copy.h1 ?? 'Booking update') +
+      bP(copy.lead ?? '') +
       bTable([
         ['Room', roomName, true],
         ['Date', dmy(b.date), true],
         ['Time', `${to12(b.startTime)} – ${to12(b.endTime)}`, true],
         ...(b.repeat && b.repeat !== 'none' ? [['Repeats', b.repeat, true]] : []),
         ['Reference', b.reference || '—', true],
-        ...(Number(b.creditsUsed) > 0 ? [['Credits used', String(b.creditsUsed), true]] : []),
+        ...(kind !== 'cancelled' && Number(b.creditsUsed) > 0 ? [['Credits used', String(b.creditsUsed), true]] : []),
       ]) +
-      bP('Your access pass unlocks the meeting room from 15 minutes before your booking. Need to change or cancel? Reply to this email or manage it in the member portal.') +
-      bSmall('Booked for you by the Hexa Space team.')
+      bP(copy.outro ?? '') +
+      bSmall('Sent by the Hexa Space team.')
 
     const r = await sendResendEmail({
       from: 'Hexa Space <noreply@hexaspace.com.au>',
@@ -65,7 +84,7 @@ export default async function handler(req, res) {
       // main send above already goes to ops instead.
       ...(memberEmail ? { cc: OPS_EMAIL } : {}),
       replyTo: OPS_EMAIL,
-      subject: `Booking confirmed: ${roomName} — ${dmy(b.date)} ${to12(b.startTime)}${memberEmail ? '' : ' (no member email on file)'}`,
+      subject: `${copy.subject ?? 'Booking update'}: ${roomName} — ${dmy(b.date)} ${to12(b.startTime)}${memberEmail ? '' : ' (no member email on file)'}`,
       html: brandFrame(inner, { footerLabel: 'Bookings' }),
     })
     return res.status(200).json({ sent: !!r?.ok, to: memberEmail ?? OPS_EMAIL })

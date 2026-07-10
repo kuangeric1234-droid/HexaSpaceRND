@@ -1362,12 +1362,36 @@ export function useStore() {
 
   const updateBooking = useCallback((id, updates) => {
     setBookings((prev) => {
+      const before = prev.find((b) => b.id === id)
       const next = prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
       const updated = next.find((b) => b.id === id)
       if (updated) syncRow('bookings', id, updated)
       // Booking just became confirmed → queue Salto room access immediately
       // (the zap holds it until 15 min before the start, so early is safe).
       if (updated && /confirmed|approved/i.test(String(updates.status ?? ''))) queueRoomAccess()
+      // Admin edited a member's booking (only the admin Calendar calls this):
+      // time/date change (e.g. extended) → 'amended' email; cancellation →
+      // 'cancelled'. Both go to the member, cc info@ (endpoint skips
+      // non-meeting rooms itself).
+      if (before && updated?.memberId && updated.type !== 'function') {
+        const cancelled = updates.status === 'Cancelled' && before.status !== 'Cancelled'
+        const timeChanged = ['date', 'startTime', 'endTime'].some(
+          (k) => updates[k] != null && String(updates[k]) !== String(before[k] ?? ''))
+        const kind = cancelled ? 'cancelled'
+          : timeChanged && /confirmed/i.test(String(updated.status ?? '')) ? 'amended' : null
+        if (kind) {
+          ;(async () => {
+            try {
+              await new Promise((r) => setTimeout(r, 2500))
+              await fetch('/api/booking-confirmation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+                body: JSON.stringify({ bookingId: id, kind }),
+              })
+            } catch { /* email is best-effort */ }
+          })()
+        }
+      }
       return next
     })
   }, [])
