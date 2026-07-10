@@ -11,7 +11,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from './_auth.js'
 import { sendResendEmail, sendResendBatch } from './_email.js'
-import { brandFrame, bKicker, bH1, bSmall, SANS } from './_brand.js'
+import { brandFrame, bKicker, bH1, bSmall, SANS, OLIVE } from './_brand.js'
 
 const SUPABASE_URL = process.env.SUPABASE_URL
 const TEST_TO = 'info@hexaspace.com.au'
@@ -21,10 +21,31 @@ export const config = { maxDuration: 60 }
 
 const esc = (s) => String(s ?? '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))
 
-// Plain text → branded paragraphs (blank line = new paragraph).
+const A = (href, text) => `<a href="${href}" style="color:${OLIVE};text-decoration:underline">${text}</a>`
+
+// Lightweight, SAFE inline Markdown → HTML. The input is ALREADY html-escaped, so
+// we only ever ADD our own known-good tags — user text can't inject markup. Links
+// are restricted to http(s)/mailto so nothing dangerous (e.g. javascript:) slips in.
+// Supports [text](url), **bold**, _italic_, and bare URLs.
+function inlineMd(escaped) {
+  const stash = []
+  let s = escaped
+  // [text](url) first — stash as a token so bare-URL auto-linking can't double-wrap it.
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g, (_, text, url) => {
+    stash.push(A(url, text))
+    return `@@X${stash.length - 1}@@`
+  })
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+  s = s.replace(/(^|[\s(])_([^_\n]+)_(?=[\s).,!?]|$)/g, '$1<em>$2</em>')
+  s = s.replace(/(https?:\/\/[^\s<]+)/g, (m) => A(m, m)) // bare URLs
+  s = s.replace(/@@X(\d+)@@/g, (_, i) => stash[Number(i)])
+  return s
+}
+
+// Plain text (+ light Markdown) → branded paragraphs (blank line = new paragraph).
 function contentHtml(text) {
   return String(text ?? '').trim().split(/\n{2,}/)
-    .map((p) => `<p style="font-family:${SANS};font-size:15px;line-height:1.7;color:#3a3a3a;margin:0 0 16px">${esc(p).replace(/\n/g, '<br>')}</p>`)
+    .map((p) => `<p style="font-family:${SANS};font-size:15px;line-height:1.7;color:#3a3a3a;margin:0 0 16px">${inlineMd(esc(p)).replace(/\n/g, '<br>')}</p>`)
     .join('')
 }
 

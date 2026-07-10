@@ -188,6 +188,9 @@ function ComposeModal({ members, onClose, onSent }) {
             <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={8}
               placeholder={'Hi everyone,\n\nThis Sunday the Level 4 carpets are being deep-cleaned between 9am and 1pm…\n\nBlank lines become new paragraphs.'}
               className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 resize-y" />
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              Formatting — <code className="bg-muted px-1 rounded">**bold**</code>, <code className="bg-muted px-1 rounded">_italic_</code>, and <code className="bg-muted px-1 rounded">[link text](https://…)</code>. Bare links become clickable; blank lines start a new paragraph. Send a test to yourself first to check it.
+            </p>
           </div>
           {msg && (
             msg.ok
