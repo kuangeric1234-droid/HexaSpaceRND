@@ -142,11 +142,12 @@ export default function Home() {
           onClick={() => nav('/mail')} highlight={awaitingMail.length > 0} />
         <Tile icon={Printer} label="Printer" onClick={() => nav('/printer')} />
       </div>
+      {/* "Order drinks" button hidden until the Eclat partnership is formal — restore to re-enable:
       <button onClick={() => nav('/food')}
         className="w-full mt-px border border-ink/10 bg-paper min-h-[52px] flex items-center justify-center gap-2.5 active:bg-bone transition-colors">
         <Coffee size={16} strokeWidth={1.5} className="text-ink" />
         <span className="font-heading uppercase tracking-nav text-[11px] text-ink">Order drinks</span>
-      </button>
+      </button> */}
 
       {/* Unpaid invoice banner */}
       {unpaid.length > 0 && !justPaid && (

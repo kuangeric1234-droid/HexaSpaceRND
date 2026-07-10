@@ -1672,8 +1672,13 @@ function RemoteUnlockSection({ settings, updateSettings, spaces }) {
   const cur = settings.salto?.remoteOpen ?? {}
   const [enabled, setEnabled] = useState(cur.enabled === true)
   const [dailyLimit, setDailyLimit] = useState(cur.dailyLimit ?? 10)
+  // A space's lock value is a string (single door) or an array of { lockId, label }
+  // for a dual/combined office — expand each into its own editable row.
   const [rows, setRows] = useState(() =>
-    Object.entries(cur.locks ?? {}).map(([spaceId, lockId]) => ({ spaceId, lockId: String(lockId) })))
+    Object.entries(cur.locks ?? {}).flatMap(([spaceId, val]) =>
+      Array.isArray(val)
+        ? val.map((v) => ({ spaceId, lockId: String(v?.lockId ?? ''), label: v?.label ?? '' }))
+        : [{ spaceId, lockId: String(val), label: '' }]))
   const [entryRows, setEntryRows] = useState(() =>
     (Array.isArray(cur.entryDoors) ? cur.entryDoors : []).map((e) => ({
       label: e.label ?? '', lockId: String(e.lockId ?? ''),
@@ -1691,8 +1696,19 @@ function RemoteUnlockSection({ settings, updateSettings, spaces }) {
   })
 
   function save() {
+    // Group rows by space: one plain lock → string; multiple (or a labelled)
+    // lock → array of { lockId, label } so dual offices round-trip intact.
+    const bySpace = {}
+    for (const r of rows) {
+      if (!r.spaceId || !r.lockId.trim()) continue
+      ;(bySpace[r.spaceId] ??= []).push({ lockId: r.lockId.trim(), label: (r.label ?? '').trim() })
+    }
     const locks = {}
-    for (const r of rows) if (r.spaceId && r.lockId.trim()) locks[r.spaceId] = r.lockId.trim()
+    for (const [spaceId, arr] of Object.entries(bySpace)) {
+      locks[spaceId] = (arr.length === 1 && !arr[0].label)
+        ? arr[0].lockId
+        : arr.map((a) => ({ lockId: a.lockId, label: a.label }))
+    }
     const entryDoors = entryRows
       .filter((e) => e.lockId.trim() && e.floors.length)
       .map((e) => ({ label: e.label.trim() || 'Entry', lockId: e.lockId.trim(), floors: e.floors }))
@@ -1727,6 +1743,7 @@ function RemoteUnlockSection({ settings, updateSettings, spaces }) {
       <div className="mt-6 mb-2 text-sm font-medium text-foreground">Office → Salto lock mapping</div>
       <p className="text-xs text-muted-foreground mb-3">
         Only mapped spaces get an office Unlock button. Find the lock ID in the Salto KS portal (Locks → the door on that suite).
+        For a <strong>dual office</strong> (e.g. Suite 15 + 16), add one row per door with the same space and a label each.
       </p>
       <div className="space-y-2">
         {rows.map((r, i) => (
@@ -1738,12 +1755,14 @@ function RemoteUnlockSection({ settings, updateSettings, spaces }) {
             </select>
             <input value={r.lockId} onChange={(e) => upd(i, { lockId: e.target.value })}
               placeholder="Salto lock ID" className="border border-input rounded-md px-3 py-2 text-sm flex-1" />
+            <input value={r.label ?? ''} onChange={(e) => upd(i, { label: e.target.value })}
+              placeholder="Label (dual only)" className="border border-input rounded-md px-3 py-2 text-sm w-36" />
             <button type="button" onClick={() => setRows((rows2) => rows2.filter((_, idx) => idx !== i))}
               className="text-muted-foreground hover:text-red-500 text-sm px-1">✕</button>
           </div>
         ))}
       </div>
-      <button type="button" onClick={() => setRows((r) => [...r, { spaceId: '', lockId: '' }])}
+      <button type="button" onClick={() => setRows((r) => [...r, { spaceId: '', lockId: '', label: '' }])}
         className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium">+ Add mapping</button>
 
       <div className="mt-8 mb-2 text-sm font-medium text-foreground">Building entry doors (by floor)</div>

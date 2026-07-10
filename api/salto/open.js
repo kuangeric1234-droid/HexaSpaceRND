@@ -64,17 +64,24 @@ async function memberDoors(sb, companyId, settings) {
   const doors = []
   const memberFloors = new Set()
 
-  // ── office: the member's own leased spaces mapped to a lock ────────────────
+  // ── office: the member's own leased spaces mapped to lock(s) ───────────────
+  // A space maps to a single lockId (string) OR, for a dual/combined office, an
+  // array of { lockId, label } — so e.g. "Suite 15 + 16" opens both doors.
   for (const lease of active) {
     const space = spaceById.get(lease.spaceId)
     if (!space) continue
     const fl = floorNum(space.floor)
     if (fl != null) memberFloors.add(fl)
-    const lockId = officeLocks[lease.spaceId] ?? space.saltoLockId
-    if (lockId) {
+    const mapped = officeLocks[lease.spaceId]
+    const list = Array.isArray(mapped)
+      ? mapped.filter((m) => m?.lockId).map((m) => ({ lockId: String(m.lockId), label: m.label || space.unitNumber }))
+      : (mapped ?? space.saltoLockId)
+        ? [{ lockId: String(mapped ?? space.saltoLockId), label: space.unitNumber }]
+        : []
+    for (const l of list) {
       doors.push({
-        id: `office:${space.id}`, kind: 'office', label: space.unitNumber,
-        spaceId: space.id, lockId: String(lockId), availableNow: true,
+        id: `office:${space.id}:${l.lockId}`, kind: 'office', label: l.label,
+        spaceId: space.id, lockId: l.lockId, availableNow: true,
       })
     }
   }

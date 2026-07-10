@@ -1,12 +1,13 @@
 import { NavLink } from 'react-router-dom'
-import { House, CalendarClock, Coffee, Ellipsis } from 'lucide-react'
+import { House, CalendarClock, Ellipsis } from 'lucide-react'
 import { useApp } from './context.js'
 import { buildNotifications } from './lib/notifications.js'
 
 const TABS = [
   { to: '/', label: 'Home', icon: House, end: true },
   { to: '/book', label: 'Book', icon: CalendarClock },
-  { to: '/food', label: 'Drinks', icon: Coffee },
+  // Drinks tab hidden until the Eclat partnership is formal — restore to re-enable:
+  // { to: '/food', label: 'Drinks', icon: Coffee },  (re-add `Coffee` to the import)
   { to: '/more', label: 'More', icon: Ellipsis },
 ]
 
