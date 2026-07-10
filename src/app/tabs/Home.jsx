@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { format, parseISO, isFuture, isToday } from 'date-fns'
 import {
   Mailbox, Printer, Coffee, ArrowRight, ArrowUpRight, KeyRound, Receipt,
-  CalendarClock, Bell, Send,
+  CalendarClock, Bell, Send, Check,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
 import { fetchSanityEvents } from '../../lib/sanity.js'
@@ -13,6 +13,7 @@ import { invoiceTotal, unpaidInvoices } from '../lib/invoiceTotal.js'
 import { buildNotifications } from '../lib/notifications.js'
 import { canViewBilling } from '../../lib/billingAccess.js'
 import { bookingPhase } from '../lib/bookingActions.js'
+import { useRoomUnlock } from '../lib/useRoomUnlock.js'
 import PaySheet from '../screens/PaySheet.jsx'
 import BookingSheet from '../screens/BookingSheet.jsx'
 
@@ -173,22 +174,8 @@ export default function Home() {
         </button>
       )}
 
-      {/* Happening now — a live booking, tap to unlock the door */}
-      {activeBooking && (
-        <div className="mt-8">
-          <Label className="mb-4">Happening now</Label>
-          <Card onClick={() => setSheetBooking(activeBooking)} className="p-5 flex items-center gap-4 border-hexa-green/50">
-            <div className="bg-hexa-green text-paper h-14 w-14 shrink-0 flex items-center justify-center">
-              <KeyRound size={20} strokeWidth={1.5} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-heading uppercase tracking-nav text-[11px] text-ink truncate">{bookingName(spaces, activeBooking)}</div>
-              <div className="hx-prose text-[12px] mt-1">{to12(activeBooking.startTime)} – {to12(activeBooking.endTime)} · tap to unlock</div>
-            </div>
-            <Chip tone="green">Key live</Chip>
-          </Card>
-        </div>
-      )}
+      {/* Happening now — a live booking; tap the card itself to unlock the door */}
+      {activeBooking && <HappeningNow booking={activeBooking} spaces={spaces} settings={data.settings} />}
 
       {/* Next booking */}
       <div className="mt-8">
@@ -273,6 +260,35 @@ export default function Home() {
         />
       )}
     </Screen>
+  )
+}
+
+// Live booking — the whole card is the unlock button (no popup).
+function HappeningNow({ booking, spaces, settings }) {
+  const { phase, unlock } = useRoomUnlock(booking, settings)
+  const open = phase === 'open', unlocking = phase === 'unlocking'
+  return (
+    <div className="mt-8">
+      <Label className="mb-4">Happening now</Label>
+      <button onClick={unlock} disabled={unlocking}
+        className={`w-full p-5 flex items-center gap-4 border transition-all active:scale-[0.99] ${
+          open ? 'bg-hexa-green border-hexa-green text-paper'
+            : unlocking ? 'bg-ink border-ink text-paper animate-pulse'
+            : 'bg-paper border-hexa-green/50 text-ink active:bg-bone'}`}>
+        <span className="h-14 w-14 shrink-0 rounded-full border border-current/20 flex items-center justify-center">
+          {open ? <Check size={22} strokeWidth={1.6} /> : <KeyRound size={20} strokeWidth={1.5} />}
+        </span>
+        <span className="flex-1 min-w-0 text-left">
+          <span className="font-heading uppercase tracking-nav text-[11px] block truncate">{bookingName(spaces, booking)}</span>
+          <span className="hx-prose text-[12px] mt-1 block truncate" style={{ color: open || unlocking ? 'var(--color-paper)' : undefined }}>
+            {open ? 'Unlocked — give it a moment, then push.'
+              : unlocking ? 'Unlocking…'
+              : `${to12(booking.startTime)} – ${to12(booking.endTime)} · tap to unlock`}
+          </span>
+        </span>
+        {!open && !unlocking && <Chip tone="green">Key live</Chip>}
+      </button>
+    </div>
   )
 }
 
