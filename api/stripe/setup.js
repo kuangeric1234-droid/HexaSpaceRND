@@ -5,7 +5,7 @@
 // onto the tenant record.
 import { stripeConfigured, stripeFetch, ensureStripeCustomer } from '../_stripe.js'
 import { applyCors } from '../_cors.js'
-import { requireMember, isAdminEmail } from '../_auth.js'
+import { requireMember, isAdminEmail, isBillingAuthority } from '../_auth.js'
 
 export default async function handler(req, res) {
   if (applyCors(req, res)) return
@@ -19,6 +19,10 @@ export default async function handler(req, res) {
   if (auth.error) return res.status(auth.status).json({ error: auth.error })
   const supabase = auth.sb
   const isAdmin = await isAdminEmail(supabase, auth.user.email)
+  // Only the company's billing/contact person (or an admin) may manage the card.
+  if (!isAdmin && !(await isBillingAuthority(supabase, auth.user.email))) {
+    return res.status(403).json({ error: 'Only your company’s billing contact can manage the payment card.' })
+  }
   const tenantId = isAdmin ? (req.body?.tenantId || auth.companyId) : auth.companyId
   const returnTo = req.body?.returnTo
   if (!tenantId) return res.status(400).json({ error: 'No company on this account.' })

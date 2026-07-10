@@ -5,6 +5,7 @@ import { Download, CreditCard, Plus } from 'lucide-react'
 import { Page, PageHeader, Card, SubTabs, Segmented, StatusBadge, Empty, Eyebrow, Field, fmt, money } from './ui.jsx'
 import { supabase } from '../lib/supabase.js'
 import { CARD_AUTHORITY_TEXT, cardAuthorityFields } from '../lib/cardAuthority.js'
+import { canViewBilling } from '../lib/billingAccess.js'
 
 function calcTotals(invoice) {
   let taxable = 0, exempt = 0
@@ -354,23 +355,29 @@ function FeesTab({ fees }) {
 }
 
 export default function PortalBilling({ data }) {
-  const { company, invoices, leases, fees, spaces } = data
-  const [tab, setTab] = useState('invoices')
+  const { company, invoices, leases, fees, spaces, member } = data
+  // Invoices + payment details are limited to the company's billing/contact
+  // person (server-enforced too). Teammates see only membership + fees.
+  const canBilling = canViewBilling(member)
+  const [tab, setTab] = useState(canBilling ? 'invoices' : 'membership')
+  const tabs = [
+    ...(canBilling
+      ? [{ key: 'invoices', label: 'Invoices' }, { key: 'payment', label: 'Payment Details' }]
+      : []),
+    { key: 'membership', label: 'Membership' },
+    { key: 'fees', label: 'One-Off Fees' },
+  ]
   return (
     <Page>
       <PageHeader kicker="Billing" title="Billing & Membership" />
-      <SubTabs
-        tabs={[
-          { key: 'invoices', label: 'Invoices' },
-          { key: 'payment', label: 'Payment Details' },
-          { key: 'membership', label: 'Membership' },
-          { key: 'fees', label: 'One-Off Fees' },
-        ]}
-        active={tab}
-        onChange={setTab}
-      />
-      {tab === 'invoices' && <InvoicesTab invoices={invoices} company={company} settings={data.settings} />}
-      {tab === 'payment' && <PaymentTab company={company} />}
+      <SubTabs tabs={tabs} active={tab} onChange={setTab} />
+      {!canBilling && (
+        <p className="hx-prose text-[13px] text-portal-muted mb-6">
+          Invoices and payment details are managed by your company’s billing contact.
+        </p>
+      )}
+      {tab === 'invoices' && canBilling && <InvoicesTab invoices={invoices} company={company} settings={data.settings} />}
+      {tab === 'payment' && canBilling && <PaymentTab company={company} />}
       {tab === 'membership' && <MembershipTab leases={leases} invoices={invoices} spaces={spaces} />}
       {tab === 'fees' && <FeesTab fees={fees} />}
     </Page>

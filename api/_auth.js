@@ -44,6 +44,17 @@ export async function companyForEmail(sb, email) {
   return t?.[0]?.id ?? null;
 }
 
+// Whether a verified member may act as their company's billing authority — view/
+// pay invoices and manage the stored card. True for the company's billing or
+// contact person, or a company-email login that has no member row (the owner).
+// Client twin: src/lib/billingAccess.js canViewBilling(). Admins bypass separately.
+export async function isBillingAuthority(sb, email) {
+  const { data } = await sb.from('members').select('data').ilike('data->>email', email);
+  const rows = (data ?? []).map((r) => r.data).filter((m) => m?.email);
+  if (rows.length === 0) return true; // company-email / owner login (no member row)
+  return rows.some((m) => m.billingPerson || m.contactPerson);
+}
+
 // Gate: a verified member. Returns { sb, user, companyId } or { error, status }.
 export async function requireMember(req) {
   const sb = serviceClient();

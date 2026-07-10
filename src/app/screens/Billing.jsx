@@ -7,6 +7,7 @@ import { invoiceTotal, unpaidInvoices } from '../lib/invoiceTotal.js'
 import { apiUrl, openPayment } from '../lib/native.js'
 import { supabase } from '../../lib/supabase.js'
 import { CARD_AUTHORITY_TEXT, cardAuthorityFields } from '../../lib/cardAuthority.js'
+import { canViewBilling } from '../../lib/billingAccess.js'
 import PaySheet from './PaySheet.jsx'
 
 // Billing & invoices — pay outstanding invoices (saved card / Checkout),
@@ -14,6 +15,9 @@ import PaySheet from './PaySheet.jsx'
 export default function Billing() {
   const { data, patch } = useApp()
   const { company, invoices, leases, spaces } = data
+  // Invoices, payments and the stored card are limited to the company's
+  // billing/contact person (server-enforced too). Teammates see membership only.
+  const canBilling = canViewBilling(data.member)
   const [payInvoice, setPayInvoice] = useState(null)
   const [busyCard, setBusyCard] = useState(false)
   const [authorityTicked, setAuthorityTicked] = useState(false)
@@ -74,31 +78,35 @@ export default function Billing() {
         </div>
       )}
 
-      {/* Outstanding */}
-      <Label className="mb-3 mt-2">Outstanding</Label>
-      {unpaid.length === 0 ? (
-        <Card className="p-5"><p className="hx-prose text-[13px]">Nothing outstanding — you're all paid up.</p></Card>
-      ) : (
-        <div className="space-y-px bg-ink/10">
-          {unpaid.map((inv) => (
-            <Card key={inv.id} className="p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-heading uppercase tracking-nav text-[11px] text-ink">{inv.number}</div>
-                  <div className="hx-prose text-[12px] mt-1">Due {fmt(inv.dueDate)}</div>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="font-display font-extralight text-2xl">{money(invoiceTotal(inv))}</div>
-                  <StatusBadge status={inv.status} />
-                </div>
-              </div>
-              <button onClick={() => setPayInvoice(inv)}
-                className="mt-4 w-full min-h-[46px] bg-ink text-paper font-heading uppercase tracking-nav text-[11px] active:bg-charcoal">
-                Pay now
-              </button>
-            </Card>
-          ))}
-        </div>
+      {/* Outstanding — billing contact only */}
+      {canBilling && (
+        <>
+          <Label className="mb-3 mt-2">Outstanding</Label>
+          {unpaid.length === 0 ? (
+            <Card className="p-5"><p className="hx-prose text-[13px]">Nothing outstanding — you're all paid up.</p></Card>
+          ) : (
+            <div className="space-y-px bg-ink/10">
+              {unpaid.map((inv) => (
+                <Card key={inv.id} className="p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-heading uppercase tracking-nav text-[11px] text-ink">{inv.number}</div>
+                      <div className="hx-prose text-[12px] mt-1">Due {fmt(inv.dueDate)}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-display font-extralight text-2xl">{money(invoiceTotal(inv))}</div>
+                      <StatusBadge status={inv.status} />
+                    </div>
+                  </div>
+                  <button onClick={() => setPayInvoice(inv)}
+                    className="mt-4 w-full min-h-[46px] bg-ink text-paper font-heading uppercase tracking-nav text-[11px] active:bg-charcoal">
+                    Pay now
+                  </button>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Membership */}
@@ -126,7 +134,8 @@ export default function Billing() {
         </div>
       )}
 
-      {/* Card on file */}
+      {/* Card on file — billing contact only */}
+      {canBilling && (<>
       <Label className="mb-3 mt-9">Payment method</Label>
       <Card className="p-6 text-center">
         <CreditCard size={20} strokeWidth={1.4} className="mx-auto text-portal-muted" />
@@ -184,6 +193,13 @@ export default function Billing() {
       )}
 
       {invoices.length === 0 && <><Rule className="mt-9" /><EmptyNote label="No invoices yet." /></>}
+      </>)}
+
+      {!canBilling && (
+        <p className="hx-prose text-[13px] mt-9 text-portal-muted">
+          Invoices and payments are managed by your company’s billing contact.
+        </p>
+      )}
 
       {payInvoice && (
         <PaySheet

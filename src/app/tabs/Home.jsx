@@ -11,6 +11,7 @@ import { useApp } from '../context.js'
 import { Screen, Label, Display, Rule, Card, Chip, Sheet, fmt, to12, money, bookingName } from '../ui.jsx'
 import { invoiceTotal, unpaidInvoices } from '../lib/invoiceTotal.js'
 import { buildNotifications } from '../lib/notifications.js'
+import { canViewBilling } from '../../lib/billingAccess.js'
 import PaySheet from '../screens/PaySheet.jsx'
 
 // Home — Eclat-style front page: wordmark + icon row, serif greeting,
@@ -59,6 +60,7 @@ export default function Home() {
 
   const unpaid = unpaidInvoices(invoices)
   const owing = unpaid.reduce((s, i) => s + invoiceTotal(i), 0)
+  const canBilling = canViewBilling(member)
   const notifications = buildNotifications(data)
 
   // "My key" → the dedicated tap-to-unlock screen (own office door +
@@ -147,8 +149,8 @@ export default function Home() {
         <span className="font-heading uppercase tracking-nav text-[11px] text-ink">Order drinks</span>
       </button> */}
 
-      {/* Unpaid invoice banner */}
-      {unpaid.length > 0 && !justPaid && (
+      {/* Unpaid invoice banner — billing contact only */}
+      {canBilling && unpaid.length > 0 && !justPaid && (
         <button onClick={() => setPayInvoice(unpaid[0])}
           className="w-full mt-6 bg-charcoal text-paper px-5 py-4 flex items-center gap-4 text-left active:opacity-80">
           <Receipt size={18} strokeWidth={1.5} className="text-hexa-green shrink-0" />
