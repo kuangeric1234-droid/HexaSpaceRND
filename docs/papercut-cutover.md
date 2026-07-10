@@ -47,6 +47,10 @@ server — never here.
 - **Rollback:** `Set-Service PaperCutCA -StartupType Automatic; Start-Service PaperCutCA`
 
 ## Phase 2 — connector takes over provisioning
+- **ORDER: Phase 1 MUST be done first.** Do not live-provision until PaperCutCA is confirmed
+  **stopped + disabled** — otherwise the nightly ~21:32 prune deletes the ~226 accounts you just
+  created within hours. The dry-run is always safe; only the live apply is gated on this. (This is
+  why the connector-side auto-mode guardrail blocks the write until the prune-gate is lifted.)
 - Dry-run: `node provision-members.mjs` (APPLY unset) → review CREATE/ASSIGN/KEEP counts.
 - Live: `PAPERCUT_PROVISION_APPLY=1 node provision-members.mjs` — creates users + auto-generates a
   PIN (primary-card-number) at creation; backfills a PIN for any existing member missing one.
@@ -99,6 +103,23 @@ Windows Task Scheduler:
 Run each once manually first.
 
 ## Phase 5 — switch print login to portal credentials — GATED on portal passwords
+
+### Pre-cutover straggler check — who actually gets locked out
+The gate is **not** "everyone signed up for the portal." It's "every member who actually prints has
+a portal password." Drive to *that* number, not total signup:
+1. On the box, list distinct users from the last ~30 days of print logs
+   (`[app-path]\server\logs\csv\daily`) → resolve each to its portal email → `active-printer-emails.txt`.
+   (Real denominator observed 2026-07-10: **22** distinct printers, not 431 — all resolved cleanly.)
+2. Diff those emails against portal-password status **portal-side** (service key never leaves the
+   portal): `POST /api/papercut/has-password` with `{ emails: [...] }`, Bearer `PAPERCUT_SYNC_TOKEN`.
+   Returns `missing` = active printers with **no** portal password. Backed by the SECURITY DEFINER
+   fn `public.papercut_has_password` (`papercut-has-password-schema.sql` — run it in Supabase once).
+3. Chase invites for the `missing` list only. Flip when it's empty (or holds only dormant
+   non-printers). **Caveat:** print logs rotate at ~30 days, so quarterly/dormant printers aren't in
+   the count — they're the tail you mop up AFTER the flip (rollback is one command), not a gate.
+   Only card/tap release is unaffected for the password-less; Mobility-Print first-run and the
+   `:9191` web sign-in are what break, which is why this is a chase and not a blocker.
+
 - Copy `hexa-auth.cmd` + `auth-provider.mjs` + `hexa-config.json` to
   `C:\Program Files\PaperCut MF\providers\hexa\`.
 - Add that dir to `security.custom-executable.allowed-directory-list`.
