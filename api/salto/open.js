@@ -1,41 +1,128 @@
-// /api/salto/open — remote-unlock a member's OWN office door from the app.
+// /api/salto/open — remote-unlock doors from the member app ("My key" tab).
 //
-// Deliberately narrow: a member can only open the door of a space their
-// company holds an ACTIVE lease on, and only when the admin has (a) enabled
-// the feature and (b) mapped that space to a Salto KS lock. The front door,
-// reception and common doors are never openable here — those stay on the
-// Salto app / fob, per policy.
+// Three door kinds, each authorized server-side from source of truth (the client
+// only ever sends a doorId — never a lockId):
+//   • office — the member's OWN office/suite door, from an active lease. Lock in
+//     settings.salto.remoteOpen.locks[spaceId] (or space.saltoLockId). Always shown.
+//   • entry  — a building-entry door for the member's FLOOR. Configured in
+//     settings.salto.remoteOpen.entryDoors: [{ lockId, label, floors:[2,4,5] }].
+//     Shown when the member's floor (derived from an active-lease space's `floor`,
+//     'l2'/'l4'/'l5') is listed on the door.
+//   • room   — a meeting room / studio the member's COMPANY holds a Confirmed
+//     booking for, openable from 15 min before start until the booking ends
+//     (matches the api/salto/room-access grant window). Whole team can open. Lock
+//     in settings.salto.roomLocks[spaceId] (or space.saltoLockId).
 //
-//   GET  → { enabled, doors: [{ spaceId, label }], remaining }  (member-authed)
-//   POST { spaceId } → fires the unlock; every attempt is audit-logged to
-//         salto_open_log (deny-all RLS) with a per-member daily cap.
+//   GET  → { enabled, remaining, doors: [{ id, kind, label, sublabel?, availableNow, until? }] }
+//   POST { doorId } → fires the unlock. Every attempt is written to salto_open_log
+//         as 'dispatched'; the zap's callback (api/salto/open-callback.js) flips it
+//         to the real 'opened'/'failed'. Per-member shared daily cap across kinds.
 //
-// Transport: SALTO_REMOTE_OPEN_WEBHOOK (Zapier/bridge zap receives
-// { action: 'remote_open', lockId, unit, email }) — swap in the KS Connect
-// API here once Hexa's developer credentials exist. Mock when unconfigured.
+// Transport — SALTO_REMOTE_OPEN_WEBHOOK: a "Webhooks by Zapier" Catch Hook whose
+// zap runs the Salto KS native "open door / pulse lock" action on {{lockId}}, then
+// POSTs { requestId, result } back to /api/salto/open-callback. Mock when unset.
+//
+// ZAP RECIPE (single zap, all kinds — remote open is the same KS action regardless):
+//   1. Trigger  Webhooks by Zapier · Catch Hook            → URL = SALTO_REMOTE_OPEN_WEBHOOK
+//   2. Filter   Only continue if  source == "hexaspace-app"  AND  token == SALTO_REMOTE_OPEN_TOKEN
+//   3. Action   Salto KS · Open door                        → Lock = {{lockId}}
+//   4. Action   Webhooks by Zapier · POST                   → /api/salto/open-callback
+//               body { requestId: {{requestId}}, result: "opened" (or "failed" on error path),
+//                      secret: SALTO_CALLBACK_SECRET }
 
 import { requireMember } from '../_auth.js'
 import { applyCors } from '../_cors.js'
+import { melOffset, isConfirmed } from './_time.js'
 
 const DAILY_CAP_DEFAULT = 10
+const ROOM_LEAD_MS = 15 * 60 * 1000 // door opens 15 min before the booking start
 
+// 'l2' / 'L4' / 4 → 4
+function floorNum(f) {
+  const m = String(f ?? '').match(/\d+/)
+  return m ? Number(m[0]) : null
+}
+
+// The full set of doors this member may open right now. Each door keeps its
+// lockId (used by POST); GET strips it before returning to the client.
 async function memberDoors(sb, companyId, settings) {
   const cfg = settings?.salto?.remoteOpen ?? {}
-  const locks = cfg.locks ?? {} // { [spaceId]: ksLockId }
-  const [{ data: lRows }, { data: sRows }] = await Promise.all([
+  const officeLocks = cfg.locks ?? {}                                   // { [spaceId]: lockId }
+  const entryDoors = Array.isArray(cfg.entryDoors) ? cfg.entryDoors : [] // [{ lockId, label, floors }]
+  const roomLocks = settings?.salto?.roomLocks ?? {}                    // { [spaceId]: lockId }
+
+  const [{ data: lRows }, { data: sRows }, { data: bRows }] = await Promise.all([
     sb.from('leases').select('data').eq('data->>tenantId', companyId),
     sb.from('spaces').select('data'),
+    sb.from('bookings').select('data').eq('data->>companyId', companyId),
   ])
   const active = (lRows ?? []).map((r) => r.data).filter((l) => l.status === 'active')
   const spaces = (sRows ?? []).map((r) => r.data)
+  const bookings = (bRows ?? []).map((r) => r.data)
+  const spaceById = new Map(spaces.map((s) => [s.id, s]))
+
   const doors = []
+  const memberFloors = new Set()
+
+  // ── office: the member's own leased spaces mapped to a lock ────────────────
   for (const lease of active) {
-    const space = spaces.find((s) => s.id === lease.spaceId)
-    const lockId = locks[lease.spaceId] ?? space?.saltoLockId
-    if (space && lockId) doors.push({ spaceId: space.id, label: space.unitNumber, lockId })
+    const space = spaceById.get(lease.spaceId)
+    if (!space) continue
+    const fl = floorNum(space.floor)
+    if (fl != null) memberFloors.add(fl)
+    const lockId = officeLocks[lease.spaceId] ?? space.saltoLockId
+    if (lockId) {
+      doors.push({
+        id: `office:${space.id}`, kind: 'office', label: space.unitNumber,
+        spaceId: space.id, lockId: String(lockId), availableNow: true,
+      })
+    }
   }
-  return doors
+
+  // ── entry: building-entry doors for the member's floor(s) ──────────────────
+  for (const e of entryDoors) {
+    if (!e?.lockId) continue
+    const floors = (e.floors ?? []).map(floorNum).filter((n) => n != null)
+    if (!floors.some((f) => memberFloors.has(f))) continue
+    doors.push({
+      id: `entry:${e.lockId}`, kind: 'entry', label: e.label || 'Entry',
+      spaceId: null, lockId: String(e.lockId), availableNow: true,
+    })
+  }
+
+  // ── room: confirmed bookings live in their window (−15 min → end) ──────────
+  const now = Date.now()
+  for (const b of bookings) {
+    if (!isConfirmed(b) || !b.date || !b.startTime || !b.endTime || !b.resourceId) continue
+    const space = spaceById.get(b.resourceId)
+    const lockId = roomLocks[b.resourceId] ?? space?.saltoLockId
+    if (!lockId) continue
+    const off = melOffset(b.date)
+    const from = new Date(`${b.date}T${b.startTime}:00${off}`).getTime()
+    const until = new Date(`${b.date}T${b.endTime}:00${off}`).getTime()
+    if (isNaN(from) || isNaN(until)) continue
+    if (now < from - ROOM_LEAD_MS || now >= until) continue
+    doors.push({
+      id: `room:${b.id}`, kind: 'room', label: space?.unitNumber ?? 'Meeting room',
+      sublabel: `Your booking · ${b.startTime}–${b.endTime}`,
+      spaceId: b.resourceId, lockId: String(lockId), availableNow: true,
+      until, bookingRef: b.reference ?? b.id,
+    })
+  }
+
+  // Cosmetic dedupe: one physical lock = one tile (POST still re-resolves the
+  // full list by id, so a deduped-out door remains openable).
+  const seen = new Set()
+  return doors.filter((d) => {
+    const k = `${d.kind}:${d.lockId}`
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
 }
+
+const publicDoor = ({ id, kind, label, sublabel, availableNow, until }) =>
+  ({ id, kind, label, sublabel, availableNow, until })
 
 export default async function handler(req, res) {
   if (applyCors(req, res)) return
@@ -51,61 +138,74 @@ export default async function handler(req, res) {
   const enabled = cfg.enabled === true
   const cap = Number(cfg.dailyLimit) > 0 ? Number(cfg.dailyLimit) : DAILY_CAP_DEFAULT
 
+  // Shared daily cap across all door kinds — count anything that fired (real or
+  // mock), not failed attempts.
   const dayStart = new Date(); dayStart.setUTCHours(dayStart.getUTCHours() - 24)
   const { count } = await sb.from('salto_open_log')
     .select('id', { count: 'exact', head: true })
     .eq('email', auth.user.email)
-    .eq('result', 'opened')
+    .in('result', ['opened', 'dispatched', 'mock'])
     .gte('at', dayStart.toISOString())
   const remaining = Math.max(0, cap - (count ?? 0))
 
   if (req.method === 'GET') {
     const doors = enabled ? await memberDoors(sb, auth.companyId, settings) : []
-    return res.status(200).json({ enabled, remaining, doors: doors.map(({ spaceId, label }) => ({ spaceId, label })) })
+    return res.status(200).json({ enabled, remaining, doors: doors.map(publicDoor) })
   }
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
   if (!enabled) return res.status(403).json({ error: 'Remote unlock is not enabled.' })
 
-  const { spaceId } = req.body ?? {}
+  const { doorId } = req.body ?? {}
   const doors = await memberDoors(sb, auth.companyId, settings)
-  const door = doors.find((d) => d.spaceId === spaceId)
-  // Own-door only: anything not on the member's active leases is rejected.
-  if (!door) return res.status(403).json({ error: 'That door is not on your membership.' })
+  const door = doors.find((d) => d.id === doorId)
+  // Authorization is the door list itself: anything not currently openable by
+  // this member (wrong floor, no active lease, booking outside its window) is absent.
+  if (!door) return res.status(403).json({ error: 'That door isn’t available to open right now.' })
   if (remaining <= 0) return res.status(429).json({ error: 'Daily unlock limit reached — use your fob or the Salto app.' })
 
-  const log = async (result) => {
-    await sb.from('salto_open_log').insert({
-      id: `so_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      email: auth.user.email, member_id: null, company_id: auth.companyId,
-      space_id: door.spaceId, lock_id: String(door.lockId), result,
-    }).then(() => {}, () => {})
+  const requestId = `so_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+  const logRow = {
+    id: requestId, email: auth.user.email, member_id: null, company_id: auth.companyId,
+    space_id: door.spaceId, lock_id: String(door.lockId), kind: door.kind,
+    door_label: door.label, booking_ref: door.bookingRef ?? null,
   }
+  const writeLog = (result) =>
+    sb.from('salto_open_log').upsert({ ...logRow, result }).then(() => {}, () => {})
 
   const webhook = process.env.SALTO_REMOTE_OPEN_WEBHOOK
   if (!webhook) {
-    await log('mock')
-    return res.status(200).json({ mock: true, opened: true, door: door.label, note: 'SALTO_REMOTE_OPEN_WEBHOOK not set — no unlock sent.' })
+    await writeLog('mock')
+    return res.status(200).json({ mock: true, dispatched: true, door: door.label, requestId,
+      note: 'SALTO_REMOTE_OPEN_WEBHOOK not set — no unlock sent.' })
   }
 
+  // Record the attempt as 'dispatched' BEFORE firing, so the zap's callback can
+  // find the row by requestId even if it beats our response.
+  await writeLog('dispatched')
   try {
     const r = await fetch(webhook, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'remote_open',
+        requestId,
+        kind: door.kind,
         lockId: String(door.lockId),
+        lockName: door.label,
         unit: door.label,
+        bookingRef: door.bookingRef ?? null,
         email: auth.user.email,
+        company: auth.companyId,
+        token: process.env.SALTO_REMOTE_OPEN_TOKEN ?? null,
         source: 'hexaspace-app',
       }),
     })
     if (!r.ok) throw new Error(`hook ${r.status}`)
-    await log('opened')
-    return res.status(200).json({ opened: true, door: door.label, remaining: remaining - 1 })
+    return res.status(200).json({ dispatched: true, door: door.label, requestId, remaining: remaining - 1 })
   } catch (err) {
     console.error('salto remote open failed:', err)
-    await log('failed')
+    await writeLog('failed')
     return res.status(502).json({ error: 'Could not reach the door system — try your fob or the Salto app.' })
   }
 }

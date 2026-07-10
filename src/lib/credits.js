@@ -138,8 +138,8 @@ function hoursBetween(start, end) {
 export const AFTER_HOURS_DEFAULTS = {
   coreStart: 9,        // business-hours band any member can book
   coreEnd: 17,
-  extendedStart: 7,    // widest window a 24/7 member can reach
-  extendedEnd: 22,
+  extendedStart: 5,    // widest window a 24/7 member can reach (early morning)
+  extendedEnd: 23,     // …through to late evening — before & after hours
   eligibleTiers: ['Private Office', 'Dedicated Desk'], // the "24/7 access" memberships
 }
 

@@ -6,7 +6,7 @@ import {
   Wrench, BarChart2, Menu, X, Calendar, MessageSquare,
   ClipboardList, Megaphone, Building2, User, Tag, DollarSign,
   CalendarCheck, Activity, CalendarDays, PartyPopper, Mailbox, Croissant, KeyRound,
-  MonitorPlay,
+  MonitorPlay, DoorOpen,
 } from 'lucide-react'
 import { logout } from '../lib/auth.js'
 import { supabase } from '../lib/supabase.js'
@@ -25,6 +25,7 @@ const GROUPS = [
       { to: '/bookings', icon: CalendarCheck, label: 'Bookings' },
       { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
       { to: '/activity', icon: Activity, label: 'Activity Log' },
+      { to: '/access-log', icon: DoorOpen, label: 'Access Log' },
     ],
   },
   {

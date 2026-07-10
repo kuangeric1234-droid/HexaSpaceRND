@@ -1661,26 +1661,46 @@ function Stat({ label, value, ok, sub }) {
 }
 
 // ── Main Settings ─────────────────────────────────────────────────────────────
-// ── Remote unlock (own office door, member app) ──────────────────────────────
-// Members may remote-open ONLY the door of the space their company actively
-// leases, and only for spaces mapped to a Salto KS lock here. Front door /
-// reception / common doors are never mapped — those stay on fob + Salto app.
+// ── Remote unlock (member app "My key") ──────────────────────────────────────
+// Three door kinds, all authorized server-side (api/salto/open.js): a member's
+// OWN office door (active lease → lock map below), BUILDING ENTRY doors scoped to
+// their floor, and MEETING ROOMS during a booking (rooms use the roomLocks map,
+// set on the Spaces / meeting-room tab). Every unlock is audit-logged (Access Log)
+// and rate-limited. Requires the SALTO_REMOTE_OPEN_WEBHOOK zap (mock until set).
+const ENTRY_FLOORS = [2, 4, 5]
 function RemoteUnlockSection({ settings, updateSettings, spaces }) {
   const cur = settings.salto?.remoteOpen ?? {}
   const [enabled, setEnabled] = useState(cur.enabled === true)
   const [dailyLimit, setDailyLimit] = useState(cur.dailyLimit ?? 10)
   const [rows, setRows] = useState(() =>
     Object.entries(cur.locks ?? {}).map(([spaceId, lockId]) => ({ spaceId, lockId: String(lockId) })))
+  const [entryRows, setEntryRows] = useState(() =>
+    (Array.isArray(cur.entryDoors) ? cur.entryDoors : []).map((e) => ({
+      label: e.label ?? '', lockId: String(e.lockId ?? ''),
+      floors: Array.isArray(e.floors) ? e.floors.map(Number) : [],
+    })))
   const [saved, setSaved] = useState(false)
 
   const lockable = [...spaces].sort((a, b) => (a.unitNumber || '').localeCompare(b.unitNumber || ''))
   const upd = (i, patch) => setRows((r) => r.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
+  const updEntry = (i, patch) => setEntryRows((r) => r.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
+  const toggleFloor = (i, f) => updEntry(i, {
+    floors: entryRows[i].floors.includes(f)
+      ? entryRows[i].floors.filter((x) => x !== f)
+      : [...entryRows[i].floors, f].sort((a, b) => a - b),
+  })
 
   function save() {
     const locks = {}
     for (const r of rows) if (r.spaceId && r.lockId.trim()) locks[r.spaceId] = r.lockId.trim()
+    const entryDoors = entryRows
+      .filter((e) => e.lockId.trim() && e.floors.length)
+      .map((e) => ({ label: e.label.trim() || 'Entry', lockId: e.lockId.trim(), floors: e.floors }))
     updateSettings({
-      salto: { ...(settings.salto ?? {}), remoteOpen: { enabled, dailyLimit: Number(dailyLimit) || 10, locks } },
+      salto: {
+        ...(settings.salto ?? {}),
+        remoteOpen: { ...cur, enabled, dailyLimit: Number(dailyLimit) || 10, locks, entryDoors },
+      },
     })
     setSaved(true); setTimeout(() => setSaved(false), 2000)
   }
@@ -1689,24 +1709,24 @@ function RemoteUnlockSection({ settings, updateSettings, spaces }) {
     <div>
       <h3 className="text-lg font-semibold text-foreground mb-1">Door Access — remote unlock</h3>
       <p className="text-sm text-muted-foreground mb-6">
-        Lets members unlock their <strong>own office door</strong> from the Hexa app. A member can only open
-        doors of spaces their company holds an active contract on, and only spaces mapped to a Salto KS lock
-        below — the front door, reception and common areas are never openable this way. Every unlock is
-        audit-logged and rate-limited. Requires the <code>SALTO_REMOTE_OPEN_WEBHOOK</code> zap (mock until set).
+        Lets members unlock doors from the Hexa app: their <strong>own office</strong> (active contract),
+        the <strong>building entry for their floor</strong>, and a <strong>meeting room they’ve booked</strong>
+        (during its window — set room locks on the meeting-room tab). Every unlock is audit-logged to the
+        Access Log and rate-limited. Requires the <code>SALTO_REMOTE_OPEN_WEBHOOK</code> zap (mock until set).
       </p>
 
-      <FormRow label="Enable remote unlock" description="Master switch for the app's Unlock button">
+      <FormRow label="Enable remote unlock" description="Master switch for the app's Unlock buttons">
         <Toggle checked={enabled} onChange={setEnabled} />
       </FormRow>
-      <FormRow label="Daily limit" description="Unlocks per member per day before they must use their fob">
+      <FormRow label="Daily limit" description="Unlocks per member per day (shared across all doors) before they must use their fob">
         <input type="number" min={1} max={50} value={dailyLimit}
           onChange={(e) => setDailyLimit(e.target.value)}
           className="w-20 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center" />
       </FormRow>
 
-      <div className="mt-6 mb-2 text-sm font-medium text-foreground">Space → Salto lock mapping</div>
+      <div className="mt-6 mb-2 text-sm font-medium text-foreground">Office → Salto lock mapping</div>
       <p className="text-xs text-muted-foreground mb-3">
-        Only mapped spaces get an Unlock button. Find the lock ID in the Salto KS portal (Locks → the door on that suite).
+        Only mapped spaces get an office Unlock button. Find the lock ID in the Salto KS portal (Locks → the door on that suite).
       </p>
       <div className="space-y-2">
         {rows.map((r, i) => (
@@ -1725,6 +1745,35 @@ function RemoteUnlockSection({ settings, updateSettings, spaces }) {
       </div>
       <button type="button" onClick={() => setRows((r) => [...r, { spaceId: '', lockId: '' }])}
         className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium">+ Add mapping</button>
+
+      <div className="mt-8 mb-2 text-sm font-medium text-foreground">Building entry doors (by floor)</div>
+      <p className="text-xs text-muted-foreground mb-3">
+        Each entry door shows in the app for members whose floor is ticked. A member’s floor comes from their
+        active-lease space. E.g. a Level 4/5 reception door → tick L4 + L5.
+      </p>
+      <div className="space-y-2">
+        {entryRows.map((e, i) => (
+          <div key={i} className="flex items-center gap-2 flex-wrap">
+            <input value={e.label} onChange={(ev) => updEntry(i, { label: ev.target.value })}
+              placeholder="Label (e.g. L4/5 Reception)" className="border border-input rounded-md px-3 py-2 text-sm flex-1 min-w-[160px]" />
+            <input value={e.lockId} onChange={(ev) => updEntry(i, { lockId: ev.target.value })}
+              placeholder="Salto lock ID" className="border border-input rounded-md px-3 py-2 text-sm flex-1 min-w-[160px]" />
+            <div className="flex items-center gap-1">
+              {ENTRY_FLOORS.map((f) => (
+                <button key={f} type="button" onClick={() => toggleFloor(i, f)}
+                  className={`px-2.5 py-2 rounded-md text-xs font-medium border ${
+                    e.floors.includes(f) ? 'bg-foreground text-background border-foreground' : 'bg-card text-muted-foreground border-input'}`}>
+                  L{f}
+                </button>
+              ))}
+            </div>
+            <button type="button" onClick={() => setEntryRows((r2) => r2.filter((_, idx) => idx !== i))}
+              className="text-muted-foreground hover:text-red-500 text-sm px-1">✕</button>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={() => setEntryRows((r) => [...r, { label: '', lockId: '', floors: [] }])}
+        className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium">+ Add entry door</button>
 
       <SaveButton onClick={save} saved={saved} />
     </div>

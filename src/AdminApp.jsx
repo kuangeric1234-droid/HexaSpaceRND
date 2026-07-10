@@ -25,6 +25,7 @@ import Fees from './components/Fees.jsx'
 import Fobs from './components/Fobs.jsx'
 import Bookings from './components/Bookings.jsx'
 import ActivityLog from './components/ActivityLog.jsx'
+import AccessLog from './components/AccessLog.jsx'
 import Calendar from './components/Calendar.jsx'
 import Directory from './components/Directory.jsx'
 import { useStore } from './store/useStore.js'
@@ -59,6 +60,7 @@ export default function AdminApp({ onLogout }) {
           <Route path="bookings" element={<Bookings />} />
           <Route path="calendar" element={<Calendar />} />
           <Route path="activity" element={<ActivityLog />} />
+          <Route path="access-log" element={<AccessLog />} />
           <Route path="spaces" element={<Spaces />} />
           <Route path="leases" element={<Leases />} />
           <Route path="billing" element={<Billing />} />

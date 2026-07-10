@@ -35,6 +35,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { selectAllRows } from '../_db.js'
 import { resolveAccessGroup } from './_groups.js'
+import { melOffset, melLocal, isConfirmed, isCancelled } from './_time.js'
 
 const SUPABASE_URL = process.env.SUPABASE_URL
 
@@ -43,35 +44,6 @@ const SUPABASE_URL = process.env.SUPABASE_URL
 // resolveAccessGroup returns (Office N / Suite N / a saltoDoors override) is
 // treated as company-exclusive and is safe for lock-centric grants.
 const SHARED_GROUPS = new Set(['Dedicated Desk', 'Virtual Office', 'Flexible Access'])
-
-// Melbourne offset with DST: +11 from the first Sunday of October to the
-// first Sunday of April, +10 otherwise.
-function melOffset(dateStr) {
-  const d = new Date(`${dateStr}T00:00:00Z`)
-  const y = d.getUTCFullYear()
-  const firstSunday = (year, month) => {
-    const x = new Date(Date.UTC(year, month, 1))
-    return 1 + ((7 - x.getUTCDay()) % 7)
-  }
-  const m = d.getUTCMonth() // 0-based
-  if (m > 9 || (m === 9 && d.getUTCDate() >= firstSunday(y, 9))) return '+11:00'
-  if (m < 3 || (m === 3 && d.getUTCDate() < firstSunday(y, 3))) return '+11:00'
-  return '+10:00'
-}
-
-// Render a UTC ms timestamp as Melbourne-local date + time strings, using the
-// booking date's fixed offset (melOffset above).
-function melLocal(ms, offset) {
-  const hours = Number(offset.slice(1, 3))
-  const local = new Date(ms + hours * 3600 * 1000)
-  return {
-    date: local.toISOString().slice(0, 10),
-    time: local.toISOString().slice(11, 16),
-  }
-}
-
-const isConfirmed = (b) => /confirmed|approved/i.test(String(b?.status ?? ''))
-const isCancelled = (b) => /cancel/i.test(String(b?.status ?? ''))
 
 async function postHook(hook, payload) {
   if (!hook) return

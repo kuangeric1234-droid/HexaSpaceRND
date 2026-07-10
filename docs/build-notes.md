@@ -93,3 +93,35 @@ T&C), alongside clause 7 (Fees, Payment and Invoicing):
   that remains unpaid after its invoice due date. A receipt is issued for
   every charge. Card numbers are held by Stripe; Hexa Space does not store
   full card details."
+
+## Remote door open (member app "My key")
+Members open doors from the app's My Key tab. api/salto/open.js serves +
+authorizes three door kinds, each from source of truth (client only sends a
+doorId, never a lockId):
+- **office** — own office/suite from an active lease → settings.salto.remoteOpen.locks[spaceId]
+- **entry** — building entry for the member's FLOOR (derived from their active-lease
+  space's `floor`) → settings.salto.remoteOpen.entryDoors [{ lockId, label, floors }]
+- **room** — a meeting room / studio the member's company has a Confirmed booking for,
+  live from 15 min before start until end (matches api/salto/room-access window) →
+  settings.salto.roomLocks[spaceId]. Media Studios is a booking-scoped room, not an entry.
+
+Every unlock writes salto_open_log (run salto-open-log-schema.sql once). The row is
+'dispatched' at tap; the zap's callback settles it to 'opened'/'failed'. Admin sees it
+at /access-log (Operations → Access Log). Shared per-member daily cap (remoteOpen.dailyLimit).
+
+One-time setup:
+1. Run salto-open-log-schema.sql in the Supabase SQL editor.
+2. Seed lock maps: `node scripts/seed-remote-open-locks.mjs` (dry run) then `--commit`.
+   Review the "rooms needing MANUAL mapping" output — meeting-room lock labels
+   (West/North/South/Earth/Sky) don't 1:1 match app room names; map leftovers on the
+   meeting-room tab (settings.salto.roomLocks).
+3. Vercel env: SALTO_REMOTE_OPEN_WEBHOOK (Catch Hook URL), SALTO_REMOTE_OPEN_TOKEN
+   (anti-spoof, checked by the zap's Filter step), SALTO_CALLBACK_SECRET (the callback's
+   shared secret). Without SALTO_REMOTE_OPEN_WEBHOOK the endpoint mocks (logs, no unlock).
+4. Zapier — one zap handles all kinds (remote open is the same KS action regardless):
+   Catch Hook → Filter (source == "hexaspace-app" AND token == SALTO_REMOTE_OPEN_TOKEN)
+   → Salto KS "Open door" (Lock = {{lockId}}) → Webhooks POST to
+   /api/salto/open-callback { requestId: {{requestId}}, result: "opened"/"failed",
+   secret: SALTO_CALLBACK_SECRET }.
+5. Settings → Door Access — remote unlock: toggle Enable, set daily limit, and confirm
+   the office lock map + floor entry doors seeded above.
