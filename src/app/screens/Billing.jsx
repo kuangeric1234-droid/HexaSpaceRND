@@ -124,10 +124,13 @@ export default function Billing() {
                   </div>
                   <div className="hx-prose text-[12px] mt-1">{fmt(l.startDate)} – {fmt(l.endDate)}</div>
                 </div>
-                <div className="text-right">
-                  <div className="font-display font-extralight text-xl">{money(l.monthlyRent)}</div>
-                  <div className="hx-prose text-[11px]">per month + GST</div>
-                </div>
+                {/* Monthly cost is commercially sensitive — billing/contact person only */}
+                {canBilling && (
+                  <div className="text-right">
+                    <div className="font-display font-extralight text-xl">{money(l.monthlyRent)}</div>
+                    <div className="hx-prose text-[11px]">per month + GST</div>
+                  </div>
+                )}
               </div>
             </Card>
           ))}

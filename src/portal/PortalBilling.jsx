@@ -306,7 +306,7 @@ function PaymentTab({ company }) {
   )
 }
 
-function MembershipTab({ leases, invoices, spaces }) {
+function MembershipTab({ leases, invoices, spaces, canBilling }) {
   const active = leases.filter(l => l.status === 'active')
   const nextBill = invoices
     .filter(i => i.status === 'pending' || i.status === 'overdue')
@@ -322,15 +322,20 @@ function MembershipTab({ leases, invoices, spaces }) {
               <Eyebrow>{l.documentType || 'Membership'}</Eyebrow>
               <h3 className="hx-display text-2xl mt-2">{nameFor(l.spaceId) || l.contractNumber || 'Membership'}</h3>
             </div>
-            <div className="text-right">
-              <div className="hx-display text-2xl">{money(l.monthlyRent)}</div>
-              <p className="hx-prose text-[12px]">per month + GST</p>
-            </div>
+            {/* Monthly cost is commercially sensitive — billing/contact person only */}
+            {canBilling && (
+              <div className="text-right">
+                <div className="hx-display text-2xl">{money(l.monthlyRent)}</div>
+                <p className="hx-prose text-[12px]">per month + GST</p>
+              </div>
+            )}
           </div>
-          <div className="grid sm:grid-cols-3 gap-5 mt-7 border-t border-ink/10 pt-6">
+          <div className={`grid ${canBilling ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-5 mt-7 border-t border-ink/10 pt-6`}>
             <Field label="Started" value={fmt(l.startDate)} />
             <Field label="Renews / ends" value={fmt(l.endDate)} />
-            <Field label="Next bill" value={nextBill ? `${fmt(nextBill.dueDate)} · ${money(calcTotals(nextBill).total)}` : '—'} />
+            {canBilling && (
+              <Field label="Next bill" value={nextBill ? `${fmt(nextBill.dueDate)} · ${money(calcTotals(nextBill).total)}` : '—'} />
+            )}
           </div>
         </Card>
       ))}
@@ -378,7 +383,7 @@ export default function PortalBilling({ data }) {
       )}
       {tab === 'invoices' && canBilling && <InvoicesTab invoices={invoices} company={company} settings={data.settings} />}
       {tab === 'payment' && canBilling && <PaymentTab company={company} />}
-      {tab === 'membership' && <MembershipTab leases={leases} invoices={invoices} spaces={spaces} />}
+      {tab === 'membership' && <MembershipTab leases={leases} invoices={invoices} spaces={spaces} canBilling={canBilling} />}
       {tab === 'fees' && <FeesTab fees={fees} />}
     </Page>
   )
