@@ -149,8 +149,9 @@ export default function Home() {
         <span className="font-heading uppercase tracking-nav text-[11px] text-ink">Order drinks</span>
       </button> */}
 
-      {/* Unpaid invoice banner — billing contact only */}
-      {canBilling && unpaid.length > 0 && !justPaid && (
+      {/* Unpaid invoice banner — hidden on Home for now (app launch). Remove the
+          `false &&` to restore; it stays gated to the billing contact via canBilling. */}
+      {false && canBilling && unpaid.length > 0 && !justPaid && (
         <button onClick={() => setPayInvoice(unpaid[0])}
           className="w-full mt-6 bg-charcoal text-paper px-5 py-4 flex items-center gap-4 text-left active:opacity-80">
           <Receipt size={18} strokeWidth={1.5} className="text-hexa-green shrink-0" />
