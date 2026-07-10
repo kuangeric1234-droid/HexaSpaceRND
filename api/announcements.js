@@ -49,11 +49,28 @@ function contentHtml(text) {
     .join('')
 }
 
+// Rich content from the editor is HTML. TipTap output is schema-constrained (it
+// can only emit configured marks/nodes — no scripts/handlers), but strip anything
+// dangerous as belt-and-suspenders and give links the brand colour. Wrapped so the
+// text inherits the brand font.
+function styleEditorHtml(html) {
+  let s = String(html ?? '')
+    .replace(/<\/?(script|style|iframe|object|embed)\b[^>]*>/gi, '')
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/(href\s*=\s*")\s*javascript:[^"]*(")/gi, '$1#$2')
+  s = s.replace(/<a\b/gi, `<a style="color:${OLIVE};text-decoration:underline"`)
+  return `<div style="font-family:${SANS};font-size:15px;line-height:1.7;color:#3a3a3a">${s}</div>`
+}
+
+const looksHtml = (t) => /<(p|div|strong|em|b|i|u|a|ul|ol|li|h[1-6]|br)\b/i.test(String(t ?? ''))
+
 function buildHtml(subject, content) {
+  // Editor HTML → styled; plain text (old records / AI drafts) → the Markdown path.
+  const body = looksHtml(content) ? styleEditorHtml(content) : contentHtml(content)
   const inner =
     bKicker('Hexa Space · Member Update') +
     bH1(esc(subject)) +
-    contentHtml(content) +
+    body +
     bSmall('You’re receiving this because you’re a member of Hexa Space — 402/830 Whitehorse Road, Box Hill VIC 3128.')
   return brandFrame(inner, { footerLabel: 'Community' })
 }

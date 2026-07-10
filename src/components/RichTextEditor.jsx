@@ -6,13 +6,17 @@ import TextAlign from '@tiptap/extension-text-align'
 import {
   Bold, Italic, Underline as UnderlineIcon,
   List, ListOrdered,
-  AlignLeft, AlignCenter, AlignRight,
+  AlignLeft, AlignCenter, AlignRight, Link2, Link2Off,
 } from 'lucide-react'
 
 export default function RichTextEditor({ content, onChange, minHeight = 360 }) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Enable the bundled Link mark, restricted to safe schemes; don't follow
+        // links while editing (openOnClick) so clicking places the cursor instead.
+        link: { openOnClick: false, autolink: true, defaultProtocol: 'https', protocols: ['http', 'https', 'mailto'] },
+      }),
       Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
     ],
@@ -48,6 +52,14 @@ export default function RichTextEditor({ content, onChange, minHeight = 360 }) {
   function setFormat(value) {
     if (value === 'p') editor.chain().focus().setParagraph().run()
     else editor.chain().focus().toggleHeading({ level: Number(value.replace('h', '')) }).run()
+  }
+
+  function setLink() {
+    const prev = editor.getAttributes('link').href
+    const url = window.prompt('Link URL (https://… or mailto:…)', prev || 'https://')
+    if (url === null) return // cancelled
+    if (url.trim() === '') { editor.chain().focus().extendMarkRange('link').unsetLink().run(); return }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url.trim() }).run()
   }
 
   return (
@@ -97,6 +109,15 @@ export default function RichTextEditor({ content, onChange, minHeight = 360 }) {
         </Btn>
         <Btn active={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Numbered list">
           <ListOrdered size={13} />
+        </Btn>
+
+        <Sep />
+
+        <Btn active={editor.isActive('link')} onClick={setLink} title="Insert / edit link">
+          <Link2 size={13} />
+        </Btn>
+        <Btn active={false} onClick={() => editor.chain().focus().unsetLink().run()} title="Remove link">
+          <Link2Off size={13} />
         </Btn>
       </div>
 

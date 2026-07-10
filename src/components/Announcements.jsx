@@ -3,6 +3,18 @@ import { useOutletContext } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
 import { Megaphone, Send, Loader2, CheckCircle2, ChevronDown, ChevronUp, FlaskConical, Sparkles } from 'lucide-react'
 import { authHeaders } from '../lib/apiFetch.js'
+import RichTextEditor from './RichTextEditor.jsx'
+
+// Rich content is HTML from the editor. Helpers to (a) tell if it's effectively
+// empty, (b) turn AI plain-text drafts into paragraphs the editor can load, and
+// (c) strip tags for the plain-text history preview.
+const htmlEmpty = (h) => !String(h || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+const plainToHtml = (t) => String(t || '').trim().split(/\n{2,}/)
+  .map((p) => `<p>${p.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>`)
+  .join('') || '<p></p>'
+const stripHtml = (h) => String(h || '')
+  .replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
+  .replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim()
 
 // Announcements — broadcast emails to members (the OfficeRND "Messages" hub).
 // Write a subject + plain-text content, pick who gets it, and it goes out in
@@ -71,7 +83,7 @@ export default function Announcements() {
                 {openId === a.id && (
                   <tr>
                     <td colSpan={6} className="px-4 py-4 bg-muted/30">
-                      <div className="text-sm text-foreground whitespace-pre-wrap max-w-2xl">{a.content}</div>
+                      <div className="text-sm text-foreground whitespace-pre-wrap max-w-2xl">{stripHtml(a.content)}</div>
                       {a.failures?.length > 0 && <div className="mt-2 text-xs text-red-600">Failures: {a.failures.join(' · ')}</div>}
                     </td>
                   </tr>
@@ -110,7 +122,7 @@ function ComposeModal({ members, onClose, onSent }) {
       const d = await r.json().catch(() => ({}))
       if (!r.ok) throw new Error(d.error ?? 'Drafting failed.')
       setSubject(d.subject ?? '')
-      setContent(d.content ?? '')
+      setContent(plainToHtml(d.content ?? ''))
     } catch (e) { setDraftErr(e.message) } finally { setDrafting(false) }
   }
 
@@ -121,7 +133,7 @@ function ComposeModal({ members, onClose, onSent }) {
     .map((m) => String(m.email ?? '').toLowerCase()).filter((e) => /\S+@\S+/.test(e)))].length
 
   async function submit(test) {
-    if (!subject.trim() || !content.trim()) { setMsg({ err: 'Subject and content are required.' }); return }
+    if (!subject.trim() || htmlEmpty(content)) { setMsg({ err: 'Subject and content are required.' }); return }
     if (!test && !statuses.length) { setMsg({ err: 'Pick at least one group.' }); return }
     if (!test && !window.confirm(`Send "${subject.trim()}" to ${recipientCount} member${recipientCount === 1 ? '' : 's'}?`)) return
     setBusy(test ? 'test' : 'send'); setMsg(null)
@@ -185,11 +197,9 @@ function ComposeModal({ members, onClose, onSent }) {
           </div>
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Message</label>
-            <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={8}
-              placeholder={'Hi everyone,\n\nThis Sunday the Level 4 carpets are being deep-cleaned between 9am and 1pm…\n\nBlank lines become new paragraphs.'}
-              className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 resize-y" />
+            <RichTextEditor content={content} onChange={setContent} minHeight={220} />
             <p className="text-[11px] text-muted-foreground mt-1.5">
-              Formatting — <code className="bg-muted px-1 rounded">**bold**</code>, <code className="bg-muted px-1 rounded">_italic_</code>, and <code className="bg-muted px-1 rounded">[link text](https://…)</code>. Bare links become clickable; blank lines start a new paragraph. Send a test to yourself first to check it.
+              Use the toolbar for <strong>bold</strong>, italics, links and lists — no code needed. Send a test to yourself first to check how it looks.
             </p>
           </div>
           {msg && (
