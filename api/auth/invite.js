@@ -13,8 +13,10 @@ export default async function handler(req, res) {
   if (auth.error) return res.status(auth.status).json({ error: auth.error })
 
   // redirectTo is pinned server-side (never accept a caller-supplied redirect).
-  const { email, subject, heading, intro, ctaLabel } = req.body ?? {}
-  const r = await invitePortalUser({ email, subject, heading, intro, ctaLabel })
+  // extraHtml is an admin-composed content block (e.g. the function booking's
+  // session list + quote) rendered between the intro and the CTA button.
+  const { email, subject, heading, intro, extraHtml, ctaLabel, footerLabel } = req.body ?? {}
+  const r = await invitePortalUser({ email, subject, heading, intro, extraHtml, ctaLabel, footerLabel })
   if (!r.ok) {
     const status = r.error === 'Email is required.' ? 400 : 500
     return res.status(status).json({ error: r.error })

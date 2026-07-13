@@ -35,6 +35,47 @@ function hasDetails(b) {
   return !!(b.signedAt || b.companyInfo || b.memberInfo)
 }
 
+// Branded HTML block embedded in the "complete your function booking" invite
+// email so the client sees exactly what they're booking — every session date &
+// time, the per-session pricing, the full quote and the deposit/balance split
+// (not just the amount due). Inline styles only (email-safe).
+function functionQuoteSummaryHtml(b) {
+  const q = quoteFor(b)
+  const OLIVE = '#7F8B2F', MUTE = '#6b6b6b', HAIR = '#e3e1e6', INK = '#1a1a1a'
+  const SANS = "'HexaGT','Helvetica Neue',Arial,sans-serif"
+  const dmy = (d) => { const [y, m, day] = String(d || '').split('-'); return day ? `${day}/${m}/${y}` : '—' }
+  const r = (l, v, strong) => `<tr>
+    <td style="padding:8px 0;font-family:${SANS};font-size:12px;color:${MUTE};border-bottom:1px solid ${HAIR}">${l}</td>
+    <td style="padding:8px 0;font-family:${SANS};font-size:13px;color:${INK};text-align:right;${strong ? 'font-weight:600;' : ''}border-bottom:1px solid ${HAIR}">${v}</td>
+  </tr>`
+  const ss = (q.sessions && q.sessions.length) ? q.sessions : bookingSessions(b)
+  let lines = ''
+  if (ss.length > 1) {
+    lines += `<tr><td colspan="2" style="padding:12px 0 4px;font-family:${SANS};font-size:11px;color:${OLIVE};text-transform:uppercase;letter-spacing:.1em">Sessions (${ss.length})</td></tr>`
+    ss.forEach((s) => { lines += r(`${dmy(s.date)} · ${s.startTime || ''}–${s.endTime || ''}`, s.rental != null ? money(s.rental) : '') })
+    if (q.cleaning) lines += r(`Cleaning — ${q.sessionCount || ss.length} sessions`, money(q.cleaning))
+  } else {
+    const s = ss[0] || {}
+    lines += r('Date', `${dmy(s.date)} · ${s.startTime || ''}–${s.endTime || ''}`)
+    lines += r(`Venue hire — ${q.hours || 0} hrs`, money(q.rental))
+    if (q.cleaning) lines += r('Cleaning fee', money(q.cleaning))
+  }
+  if (q.staff > 0) lines += r('Event staff', money(q.staff))
+  ;(q.extras || []).forEach((e) => { lines += r(e.description, money(e.amount)) })
+  if (q.lateFee > 0) lines += r('Late booking fee', money(q.lateFee))
+  if (q.discount > 0) lines += r(`Discount${q.discountPct ? ` (${q.discountPct}%)` : ''}${q.discountReason ? ` — ${q.discountReason}` : ''}`, `-${money(q.discount)}`)
+  lines += r('GST (10%)', money(q.gst))
+  lines += r('Total (inc GST)', money(q.total), true)
+  return `<div style="margin:22px 0 6px">
+    <div style="font-family:${SANS};font-size:11px;color:${OLIVE};text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px">Your booking · ${b.eventName || 'Function'}</div>
+    <table style="width:100%;border-collapse:collapse">${lines}</table>
+    <table style="width:100%;border-collapse:collapse;margin-top:8px">
+      ${r('Payable now — 50% deposit + $300 security', money(q.dueNow), true)}
+      ${r('Balance — due 14 days before the first session', money(q.balanceDue))}
+    </table>
+  </div>`
+}
+
 // ── 1. Brochure / info email (with the Book-a-time link) ─────────────────────
 export async function sendBrochure({ booking, settings }) {
   const requestToken = booking.requestToken || randToken()
@@ -68,8 +109,10 @@ export async function sendBookingInvite({ store, booking, settings }) {
       email: booking.email, redirectTo: `${portalBaseUrl(settings)}/function-space`,
       subject: 'Complete your Hexa Space function booking',
       heading: 'Your function booking is approved',
-      intro: `Great news — your date is available! Set up your portal access to review your booking, sign, and pay your deposit to secure the venue. Your deposit invoice${booking.quote ? ` (${money(booking.quote.dueNow)} due now)` : ''} is ready in Billing. Already have a password? Just log in at ${portalBaseUrl(settings)}.`,
+      intro: 'Great news — your date is available! Here are your booking details. Set up your portal access to review everything, sign, and pay your deposit to secure the venue.',
+      extraHtml: functionQuoteSummaryHtml(booking),
       ctaLabel: 'Set up access & continue',
+      footerLabel: 'Function Space Hire',
     }),
   }).catch(() => {})
   return persistFn({ ...booking, companyId: tenantId, memberId: booking.memberId || memberMatch?.id || null, stage: 'invited', inviteSentAt: nowIso() })
