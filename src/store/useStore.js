@@ -1608,6 +1608,11 @@ export function useStore() {
   const raiseSigningInvoices = useCallback((leaseId) => {
     const lease = leasesRef.current.find((l) => l.id === leaseId)
     if (!lease) return
+    // Renewals continue an existing tenancy: the bond is already held under the
+    // prior contract and the ongoing membership is billed by the monthly bill
+    // run. So a renewal signing must NOT raise a fresh deposit or an opening-
+    // month membership invoice — only an initial signing does.
+    if (lease.previousContractId || lease.contractType === 'Renewal') return
     const invs = invoicesRef.current
     const s = settingsRef.current || {}
     const space = spacesRef.current.find((sp) => sp.id === lease.spaceId)
