@@ -7,8 +7,13 @@
 // web-safe fallbacks). Kept import-free on purpose.
 //
 // Placeholders: {{company}} {{name}} {{organisation}} {{eventName}} {{eventType}}
-// {{eventDate}} {{startTime}} {{endTime}} {{guests}} {{total}} {{dueNow}}
+// {{eventDate}} {{startTime}} {{endTime}} {{sessions}} {{guests}} {{total}} {{dueNow}}
 // {{balanceDue}} {{signLink}} {{website}}
+//
+// {{sessions}} renders the Date/Sessions table rows — a single "Date" line for a
+// one-off booking, or a full per-session list (with per-session pricing) for a
+// multi-session series. It replaces the old single {{eventDate}} · {{startTime}}
+// row so multi-session quotes email correctly. The serverless sender fills it.
 
 const OLIVE = '#7F8B2F', GREIGE = '#EFEDF2', INK = '#1a1a1a', MUTE = '#6b6b6b', HAIR = '#e3e1e6'
 const SERIF = "'HexaBig', Georgia, 'Times New Roman', serif"
@@ -57,7 +62,7 @@ const row = (label, val, strong) => `    <tr><td style="padding:9px 0;font-famil
 
 const SUMMARY = `<table style="width:100%;border-collapse:collapse;margin:2px 0 22px;border-top:1px solid ${HAIR};border-bottom:1px solid ${HAIR}">
 ${row('Event', '{{eventName}}')}
-${row('Date', '{{eventDate}} · {{startTime}}–{{endTime}}')}
+{{sessions}}
 ${row('Guests', '{{guests}}')}
 ${row('Total (inc GST)', '{{total}}', true)}
 ${row('Payable now', '{{dueNow}} <span style="color:' + MUTE + '">(50% deposit + $300 security)</span>')}

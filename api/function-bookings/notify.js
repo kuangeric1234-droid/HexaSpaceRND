@@ -70,19 +70,47 @@ function frame(fromName, inner) {
 </body></html>`
 }
 
-function summaryRows(b) {
-  const q = b.quote || {}
-  const row = (l, v, strong) => `<tr>
+const sumRow = (l, v, strong) => `<tr>
     <td style="padding:9px 0;font-family:${SANS};font-size:12px;color:${MUTE};width:150px;border-bottom:1px solid ${HAIR}">${l}</td>
     <td style="padding:9px 0;font-family:${SANS};font-size:13px;color:${INK};${strong ? 'font-weight:600;' : ''}border-bottom:1px solid ${HAIR}">${v}</td>
   </tr>`
+
+// dd/mm/yyyy from a YYYY-MM-DD date string.
+function dmy(d) { const [y, m, day] = String(d || '').split('-'); return day ? `${day}/${m}/${y}` : '—' }
+
+// Resolve a booking's sessions from the quote (priced) or the raw booking.
+function bookingSessionList(b) {
+  const q = b.quote || {}
+  if (Array.isArray(q.sessions) && q.sessions.length) return q.sessions
+  if (Array.isArray(b.sessions) && b.sessions.length) return b.sessions
+  return b.eventDate ? [{ date: b.eventDate, startTime: b.startTime, endTime: b.endTime }] : []
+}
+
+// The Date / Sessions portion of the summary table — one line for a single
+// booking, a full per-session list (with per-session $ when priced) for a series.
+function sessionRows(b) {
+  const q = b.quote || {}
+  const ss = bookingSessionList(b)
+  if (ss.length <= 1) {
+    const s = ss[0] || {}
+    return sumRow('Date', `${dmy(s.date)} · ${s.startTime || ''}–${s.endTime || ''}`)
+  }
+  const priced = Array.isArray(q.sessions) && q.sessions.length
+  let rows = sumRow(`Sessions (${ss.length})`, '', true)
+  ss.forEach((s) => { rows += sumRow(`${dmy(s.date)} · ${s.startTime || ''}–${s.endTime || ''}`, priced ? money(s.rental) : '') })
+  if (q.cleaning) rows += sumRow(`Cleaning — ${q.sessionCount || ss.length} sessions`, money(q.cleaning))
+  return rows
+}
+
+function summaryRows(b) {
+  const q = b.quote || {}
   return `<table style="width:100%;border-collapse:collapse;margin:4px 0 24px">
-    ${row('Event', b.eventName || '—')}
-    ${row('Date', `${b.eventDate || '—'} · ${b.startTime || ''}–${b.endTime || ''}`)}
-    ${row('Guests', b.guests || '—')}
-    ${q.discount > 0 ? row('Discount' + (q.discountPct ? ` (${q.discountPct}%)` : '') + (q.discountReason ? ` - ${q.discountReason}` : ''), `-${money(q.discount)}`) : ''}
-    ${row('Total (inc GST)', money(q.total), true)}
-    ${row('Payable now', `${money(q.dueNow)} <span style="color:${MUTE}">(50% deposit + $300 security)</span>`)}
+    ${sumRow('Event', b.eventName || '—')}
+    ${sessionRows(b)}
+    ${sumRow('Guests', b.guests || '—')}
+    ${q.discount > 0 ? sumRow('Discount' + (q.discountPct ? ` (${q.discountPct}%)` : '') + (q.discountReason ? ` - ${q.discountReason}` : ''), `-${money(q.discount)}`) : ''}
+    ${sumRow('Total (inc GST)', money(q.total), true)}
+    ${sumRow('Payable now', `${money(q.dueNow)} <span style="color:${MUTE}">(50% deposit + $300 security)</span>`)}
   </table>`
 }
 
@@ -121,6 +149,9 @@ export default async function handler(req, res) {
       name: b.name || 'there', organisation: b.organisation || '',
       eventName: b.eventName || 'your function', eventType: b.eventType || '',
       eventDate: b.eventDate || '', startTime: b.startTime || '', endTime: b.endTime || '',
+      // {{sessions}} → the multi-session-aware Date/Sessions rows (used by the
+      // editable function templates in place of a single hardcoded Date line).
+      sessions: sessionRows(b),
       guests: b.guests || '', total: money(q.total), dueNow: money(q.dueNow), balanceDue: money(q.balanceDue),
       signLink: signUrl || '', website: settings?.company?.website || 'hexaspace.com.au',
       bookLink: functionBookLink(settings, b.requestToken),
