@@ -1,0 +1,66 @@
+# Codemagic CI — cloud iOS build for the Hexa Space member app.
+# Codemagic's build machines are Macs, so the whole iOS toolchain (cap add ios,
+# CocoaPods, Xcode, signing, TestFlight upload) runs in the cloud — no local Mac.
+#
+# The iOS native project is generated FRESH on every build (`cap add ios`), so we
+# don't commit the ios/ folder. Everything is driven by capacitor.config.json +
+# assets/, so there's nothing to configure by hand in Xcode.
+#
+# ── One-time setup you do in the UIs (see docs/ios-cloud-build.md) ─────────────
+#   1. Apple Developer: register App ID  au.com.hexaspace.member
+#   2. App Store Connect: create the app (same bundle id) → note its numeric Apple ID
+#   3. App Store Connect: create an App Store Connect API key (.p8 + Issuer ID + Key ID)
+#   4. Codemagic: add that API key as an integration named exactly "HexaSpace ASC Key"
+#   5. Fill APP_STORE_APPLE_ID below with the numeric app id from step 2
+#   6. Codemagic: connect this GitHub repo and run the "ios-testflight" workflow
+
+workflows:
+  ios-testflight:
+    name: Hexa Space iOS · TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      # Must match the App Store Connect API key name configured in Codemagic → Teams → Integrations.
+      app_store_connect: HexaSpace ASC Key
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: au.com.hexaspace.member
+      vars:
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+        APP_STORE_APPLE_ID: 0000000000 # ← numeric app id from App Store Connect (replace)
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Build web assets (vite)
+        script: npm run build
+      - name: Add iOS platform + icons/splash + sync web
+        script: |
+          npx cap add ios
+          npx capacitor-assets generate --ios || true
+          npx cap sync ios
+      - name: Fetch signing files (automatic, via the API key)
+        script: xcode-project use-profiles
+      - name: Set the next TestFlight build number
+        script: |
+          cd ios/App
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          agvtool new-version -all $(($LATEST + 1))
+      - name: Build signed .ipa
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # After TestFlight is verified, flip to true to auto-submit for App Store review:
+        # submit_to_app_store: false
