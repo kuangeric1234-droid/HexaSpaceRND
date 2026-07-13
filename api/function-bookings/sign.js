@@ -36,10 +36,11 @@ export default async function handler(req, res) {
 
     // Notify the events team using SERVER data (not a client blob).
     const base = `https://${req.headers.host}`;
-    fetch(`${base}/api/function-bookings/notify`, {
+    // Awaited — Vercel kills unawaited requests once the response goes out.
+    await fetch(`${base}/api/function-bookings/notify`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ booking: updated, mode: 'signed' }),
-    }).catch(() => {});
+    }).catch((e) => console.error('function sign notify:', e));
 
     return res.status(200).json({ ok: true });
   } catch (err) {

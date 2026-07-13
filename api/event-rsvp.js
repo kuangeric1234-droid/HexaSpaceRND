@@ -60,7 +60,8 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Could not save registration' })
     }
 
-    notifyAdmin(supabase, registration).catch(() => {})
+    // Awaited — Vercel kills unawaited sends once the response goes out.
+    await notifyAdmin(supabase, registration).catch((e) => console.error('event-rsvp email:', e))
     return res.status(200).json({ success: true })
   } catch (err) {
     console.error('event-rsvp error:', err)

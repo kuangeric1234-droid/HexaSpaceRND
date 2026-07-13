@@ -75,7 +75,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Could not save your booking' })
   }
 
-  notifyAdmin(supabase, booking).catch(() => {})
+  // Awaited — Vercel kills unawaited sends once the response goes out.
+  await notifyAdmin(supabase, booking).catch((e) => console.error('popup-booking email:', e))
   return res.status(200).json({ success: true })
 }
 

@@ -67,7 +67,8 @@ export default async function handler(req, res) {
 
     const { error } = await supabase.from('function_bookings').upsert({ id: record.id, data: record, updated_at: now })
     if (error) { console.error('function-request insert error:', error); return res.status(500).json({ error: 'Could not save request' }) }
-    notifyAdmin(supabase, record).catch(() => {})
+    // Awaited — Vercel kills unawaited sends once the response goes out.
+    await notifyAdmin(supabase, record).catch((e) => console.error('function-request email:', e))
     return res.status(200).json({ success: true, ref: record.ref })
   } catch (err) {
     console.error('function-request error:', err)

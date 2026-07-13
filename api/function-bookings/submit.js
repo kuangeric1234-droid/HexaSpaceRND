@@ -127,7 +127,8 @@ export default async function handler(req, res) {
     await supabase.from('function_bookings').upsert({ id: b.id, data: updated, updated_at: now })
 
     // ── Email the deposit-due notice (with the tax-invoice PDF attached) ──
-    emailDeposit(settings, updated, q, depInv).catch(() => {})
+    // Awaited — Vercel kills unawaited sends once the response goes out.
+    await emailDeposit(settings, updated, q, depInv).catch((e) => console.error('function submit deposit email:', e))
     return res.status(200).json({ success: true, dueNow: q.dueNow })
   } catch (err) {
     console.error('function submit error:', err)

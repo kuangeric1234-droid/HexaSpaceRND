@@ -74,8 +74,12 @@ export default async function handler(req, res) {
     const { error } = await supabase.from('leads').upsert({ id, data: lead, updated_at: now })
     if (error) { console.error('book-tour insert error:', error); return res.status(500).json({ error: 'Could not save request' }) }
 
-    notifyAdmin(supabase, lead).catch(() => {})
-    sendTourConfirmation(supabase, lead).catch(() => {})
+    // Awaited — Vercel kills unawaited sends once the response goes out.
+    const sends = await Promise.allSettled([
+      notifyAdmin(supabase, lead),
+      sendTourConfirmation(supabase, lead),
+    ])
+    sends.forEach((r) => { if (r.status === 'rejected') console.error('book-tour email:', r.reason) })
     return res.status(200).json({ success: true })
   } catch (err) {
     console.error('book-tour error:', err)

@@ -111,9 +111,13 @@ export default async function handler(req, res) {
       else console.error('referral-signup lead error:', error)
     }
 
-    // Best-effort emails — never block the response.
-    emailReferrer(supabase, referrer).catch(() => {})
-    notifyAdmin(supabase, referrer, { alreadyEnrolled, directLeadCreated, referralName: fName }).catch(() => {})
+    // Awaited — Vercel kills unawaited sends once the response goes out.
+    // Email failures still never fail the signup.
+    const sends = await Promise.allSettled([
+      emailReferrer(supabase, referrer),
+      notifyAdmin(supabase, referrer, { alreadyEnrolled, directLeadCreated, referralName: fName }),
+    ])
+    sends.forEach((r) => { if (r.status === 'rejected') console.error('referral-signup email:', r.reason) })
 
     return res.status(200).json({
       success: true,

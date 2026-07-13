@@ -104,10 +104,14 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Could not save enquiry' })
     }
 
-    // Best-effort admin notification — never blocks the response.
-    notifyAdmin(supabase, lead, space).catch(() => {})
-    // Best-effort brochure email to the enquirer (Day 0 of the nurture flow).
-    sendBrochure(lead, space, leadType, templates, settings).catch(() => {})
+    // Must complete BEFORE the response — Vercel freezes the function once the
+    // response is sent, so fire-and-forget sends silently die. Email failures
+    // still never fail the submission.
+    const sends = await Promise.allSettled([
+      notifyAdmin(supabase, lead, space),
+      sendBrochure(lead, space, leadType, templates, settings), // Day 0 of the nurture flow
+    ])
+    sends.forEach((r) => { if (r.status === 'rejected') console.error('form-submit email:', r.reason) })
 
     return res.status(200).json({ success: true })
   } catch (err) {
@@ -144,8 +148,12 @@ async function handleFunctionEnquiry(req, res, supabase) {
     }
     const { error } = await supabase.from('function_bookings').upsert({ id, data: record, updated_at: now })
     if (error) { console.error('form-submit function insert error:', error); return res.status(500).json({ error: 'Could not save enquiry' }) }
-    notifyFunctionAdmin(supabase, record).catch(() => {})
-    sendFunctionBrochure(supabase, record).catch(() => {}) // auto-brochure + book-a-time link
+    // Awaited — Vercel kills unawaited sends once the response goes out.
+    const sends = await Promise.allSettled([
+      notifyFunctionAdmin(supabase, record),
+      sendFunctionBrochure(supabase, record), // auto-brochure + book-a-time link
+    ])
+    sends.forEach((r) => { if (r.status === 'rejected') console.error('form-submit function email:', r.reason) })
     return res.status(200).json({ success: true, ref })
   } catch (err) {
     console.error('handleFunctionEnquiry error:', err)
