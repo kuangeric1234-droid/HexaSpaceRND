@@ -8,12 +8,13 @@
 // tenants with cardAuthorityAccepted === true (api/overdue-reminders.js);
 // member-initiated payments (tapping “Pay”) are their own authorisation.
 
-export const CARD_AUTHORITY_VERSION = 'v1-2026-07'
+export const CARD_AUTHORITY_VERSION = 'v2-2026-07'
 
 export const CARD_AUTHORITY_TEXT =
   'I authorise Hexa Space Pty Ltd to charge this card for amounts owing under my ' +
   'membership or booking agreement — including overdue invoices after the grace ' +
-  'period — until I remove the card or withdraw this authority in writing.'
+  'period, with at least 2 business days’ prior written notice by email before any ' +
+  'such charge — until I remove the card or withdraw this authority in writing.'
 
 /** Fields stamped onto the tenant record when the authority is accepted. */
 export function cardAuthorityFields(byEmail) {
