@@ -623,6 +623,13 @@ export default function ContractDetail({
 
   // All admins who should be copied on signed contracts / notifications.
   const adminRecipients = () => [...new Set(['eric@hexaspace.com.au', 'info@hexaspace.com.au', settings?.emails?.notificationEmail, settings?.company?.email].filter(Boolean).map((e) => e.toLowerCase()))]
+  // The signed party must always get their copy: whoever the signing link was
+  // emailed to, plus the contract's primary contact and the company email —
+  // imported companies often have these differ (or lack a company email at all).
+  const signedCopyRecipients = () => [...new Set(
+    [lease.eSignEmailedTo, primaryContact?.email, tenant?.email, ...adminRecipients()]
+      .filter(Boolean).map((e) => String(e).toLowerCase())
+  )]
 
   // Build the signed PDF once and email it (attached) to the client AND to us,
   // using the editable "Signed contract" email template when present.
@@ -641,7 +648,7 @@ export default function ContractDetail({
       subject = `Signed copy: ${contractNum} — ${companyName}`
       html = `<div style="font-family:Arial,sans-serif;color:#1a1a1a;padding:32px;max-width:560px"><div style="font-size:18px;font-weight:bold;letter-spacing:2px;margin-bottom:16px">${companyName.toUpperCase()}</div><p>Hi ${tenant?.contactName ?? ''},</p><p>Please find the fully signed copy of <strong>${contractNum}</strong> attached.</p></div>`
     }
-    const recipients = [...new Set([tenant?.email, ...adminRecipients()].filter(Boolean))]
+    const recipients = signedCopyRecipients()
     const attachments = [{ filename: `${contractNum}_${slug}_SIGNED.pdf`, content: pdfBase64 }]
     for (const to of recipients) {
       await sendEmail({ to, subject, html, settings, attachments, tenantId: tenant?.id, emailType: 'signedContract' })
@@ -650,7 +657,7 @@ export default function ContractDetail({
   }
 
   async function handleSendSignedCopy() {
-    const recips = [...new Set([tenant?.email, ...adminRecipients()].filter(Boolean))]
+    const recips = signedCopyRecipients()
     if (recips.length === 0) { alert('No email address on file.'); return }
     if (!window.confirm(`Send the signed copy of ${contractNum} to: ${recips.join(', ')}?`)) return
     setGenerating(true)
