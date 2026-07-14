@@ -336,6 +336,44 @@ export function renderOnboardingTemplate({ template, lease, tenant, space, setti
   }
 }
 
+// ── Portal-signup welcome (fires at countersign, before the paid gate) ─────────
+// For a brand-new client whose contacts have never had portal access: sent the
+// moment both parties have signed, through /api/auth/invite so the set-password
+// link is minted server-side and arrives in the same email as the what-to-dos.
+// The full "space ready" onboarding (Salto + welcome pack) still fires at the
+// paid gate — this just gets them into the portal (and paying) straight away.
+export function portalWelcomeInvitePayload({ tenant, space, settings }) {
+  const name = settings?.company?.name || 'Hexa Space'
+  const unit = space?.unitNumber || 'your space'
+  const appUrl = `${settings?.portalUrl || PORTAL_URL}/app`
+  const boxTitle = (t) => `<div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:${_OLIVE};margin-bottom:8px;font-weight:600">${t}</div>`
+  const li = (t) => `<li style="margin:0 0 6px">${t}</li>`
+  return {
+    subject: `Welcome to ${name} — set up your member portal`,
+    heading: 'Your agreement is fully signed — welcome aboard',
+    greeting: `Hi ${tenant?.contactName || tenant?.businessName || 'there'},`,
+    intro: `Both parties have now signed your agreement for ${unit}. First step: create your member portal login — it's where your invoices, bookings and team live.`,
+    extraHtml:
+      `<div style="background:${_GREIGE};border-radius:8px;padding:16px 20px;margin:0 0 18px">` +
+        boxTitle('First things to do') +
+        `<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:#3a3a3a">` +
+        li('Create your login with the button below') +
+        li('View and pay your invoices under Billing') +
+        li('Add your team members — each gets their own portal access') +
+        li('Book meeting rooms with your monthly credits') +
+        li('Message our team for anything you need') +
+        `</ul></div>` +
+      `<div style="background:${_GREIGE};border-radius:8px;padding:16px 20px;margin:0 0 18px">` +
+        boxTitle('On your phone') +
+        `<p style="margin:0;font-size:13px;line-height:1.8;color:#3a3a3a">Use <a href="${appUrl}" style="color:${_OLIVE};font-weight:600">portal.hexaspace.com.au/app</a> and add it to your home screen so it opens like an app:<br>` +
+        `<strong>iPhone</strong> — open it in Safari, tap Share, then &ldquo;Add to Home Screen&rdquo;.<br>` +
+        `<strong>Android</strong> — open it in Chrome, tap the &#8942; menu, then &ldquo;Add to Home screen&rdquo;.</p>` +
+      `</div>`,
+    ctaLabel: 'Create your login',
+    footerLabel: 'Welcome',
+  }
+}
+
 // ── Bond refund (offboarding) email ─────────────────────────────────────────────
 
 export function resolveBondRefundCopy({ invoice, tenant, space, settings, amount }) {

@@ -14,7 +14,7 @@ import { stepMonthly } from '../lib/leasePricing.js'
 import { leaseInclusions } from '../lib/voInclusions.js'
 import { resolvePrimaryContact } from '../lib/leaseContact.js'
 import { sendLeaseForSigning } from '../lib/esign.js'
-import { requiresCardOnFile } from '../lib/onboarding.js'
+import { requiresCardOnFile, portalWelcomeInvitePayload } from '../lib/onboarding.js'
 
 const SIG_STATUS = {
   manually_signed: { label: 'Manually Signed', cls: 'bg-green-500 text-white' },
@@ -178,11 +178,37 @@ export default function ContractDetail({
         const fullSig = { ...(eSignData || {}), status: 'fully_signed', licensor_signature_data: signatureData, licensor_signer_name: licensorName, licensor_signed_at: now }
         await emailSignedCopy(fullSig)
       } catch (e) { console.error('Signed copy email failed:', e) }
+
+      // Brand-new client (nobody at the company has portal access yet) → send
+      // the portal-signup welcome now, without waiting for the paid gate.
+      try {
+        await sendPortalWelcome()
+      } catch (e) { console.error('Portal welcome failed:', e) }
     } catch (err) {
       alert(`Error: ${err.message}`)
     } finally {
       setCountersigning(false)
     }
+  }
+
+  // Portal-signup welcome for a brand-new client: one email with the set-password
+  // link, first-steps list and the add-to-home-screen phone instructions. Skipped
+  // when anyone at the company already has portal access (renewal / extra contract)
+  // and made idempotent via lease.portalWelcomeSentAt.
+  async function sendPortalWelcome() {
+    if (lease.portalWelcomeSentAt) return
+    const companyMembers = members.filter((m) => m.companyId === tenant?.id)
+    if (companyMembers.some((m) => m.portalAccess)) return
+    const email = primaryContact?.email || tenant?.email
+    if (!email) return
+    const { authHeaders } = await import('../lib/apiFetch.js')
+    const r = await fetch('/api/auth/invite', {
+      method: 'POST', headers: await authHeaders(),
+      body: JSON.stringify({ email, ...portalWelcomeInvitePayload({ tenant, space, settings }) }),
+    })
+    if (!r.ok) throw new Error(await r.text().catch(() => `HTTP ${r.status}`))
+    onUpdateLease?.(lease.id, { portalWelcomeSentAt: new Date().toISOString() })
+    logAudit('email', 'lease', lease.id, contractNum, `Portal welcome + signup link sent to ${email}`)
   }
 
   // sigData = { licensee_signature_data, licensee_signer_name, licensee_signed_at, licensor_signature_data, licensor_signer_name, licensor_signed_at }

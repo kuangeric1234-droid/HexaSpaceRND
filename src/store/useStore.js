@@ -88,8 +88,11 @@ async function onboardLease({ lease, tenant, space, members, settings, templates
     } catch (e) { console.error('Onboarding email failed:', e) }
 
     // 3. Portal invite (creates the Supabase auth user + set-password email).
+    // Skipped when the signup already went out — either the member has portal
+    // access or the countersign-time portal welcome carried the invite link.
     // Failures are recorded on the member so the admin sees an "invite failed"
     // chip and can resend from the member profile.
+    if (primary?.portalAccess || lease.portalWelcomeSentAt) return
     try {
       const r = await fetch('/api/auth/invite', {
         method: 'POST', headers: await authHeaders(),
