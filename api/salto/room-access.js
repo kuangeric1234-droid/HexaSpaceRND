@@ -103,7 +103,11 @@ export default async function handler(req, res) {
 
   // The exclusive (company-owned) KS access groups a company holds, from its
   // active office/suite leases. Shared functional groups are excluded — a room
-  // lock can't be added to those safely.
+  // lock can't be added to those safely. A group is only usable here if we have
+  // its KS id: a null id (office/suite with no KS group yet, e.g. Office 2/16/17
+  // or bad migration data) would send an empty access_group_id and error the
+  // "Add a Lock" step — so we drop it and let the booking fall back to
+  // user-centric instead of failing.
   const groupCache = new Map()
   function exclusiveGroupsFor(companyId) {
     if (groupCache.has(companyId)) return groupCache.get(companyId)
@@ -112,7 +116,7 @@ export default async function handler(req, res) {
       if (l.tenantId !== companyId) continue
       const sp = spaces.find((s) => s.id === l.spaceId)
       const g = resolveAccessGroup(sp?.saltoDoors, sp?.unitNumber, l.membershipType)
-      if (g && !SHARED_GROUPS.has(g)) out.set(g, groupIds[g] ?? null)
+      if (g && !SHARED_GROUPS.has(g) && groupIds[g]) out.set(g, groupIds[g])
     }
     const arr = [...out].map(([name, id]) => ({ name, id }))
     groupCache.set(companyId, arr)
