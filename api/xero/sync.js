@@ -272,11 +272,47 @@ export default async function handler(req, res) {
     }
 
     const taxRate = settings.billingRules?.taxEnabled !== false
-    const results = { pushed: [], errors: [], skipped }
+    const results = { pushed: [], linked: [], errors: [], skipped }
+
+    // Xero UPSERTS POST /Invoices by InvoiceNumber — if the number already
+    // exists there (an earlier push that never got xeroInvoiceId stamped back,
+    // or an invoice Xero raised itself from its own INV-#### sequence), the
+    // push becomes an UPDATE of that invoice, and Xero rejects updates to paid
+    // ones ("status AUTHORISED cannot be applied … has payments allocated").
+    // Check first: a same-number ACCREC with the same total is OUR invoice
+    // already in Xero — adopt it as synced instead of pushing. A same-number
+    // invoice with a different total belongs to someone else — never push
+    // onto it.
+    const adopted = new Set(), taken = new Set()
+    for (const batch of chunk(eligible, 40)) {
+      const nums = batch.map((i) => encodeURIComponent(i.number)).join(',')
+      const r = await xeroFetch(supabase, `/Invoices?InvoiceNumbers=${nums}`)
+      if (!r.ok) break // best-effort — a collision then surfaces as a push validation error
+      for (const xi of r.json?.Invoices ?? []) {
+        if (xi.Status === 'VOIDED' || xi.Status === 'DELETED') continue
+        const inv = batch.find((i) => String(i.number).trim() === String(xi.InvoiceNumber).trim())
+        if (!inv) continue
+        const ownTotal = Math.round(invoiceTotal(inv) * (inv.vatEnabled !== false ? 1.1 : 1) * 100) / 100
+        if (xi.Type === 'ACCREC' && Math.abs(Number(xi.Total) - ownTotal) <= 0.05) {
+          adopted.add(inv.number)
+          results.linked.push({ number: inv.number, xeroInvoiceId: xi.InvoiceID })
+          if (!dryRun) {
+            inv.xeroInvoiceId = xi.InvoiceID
+            inv.xeroSync = true
+            inv.xeroSyncedAt = new Date().toISOString()
+            await saveRow(supabase, 'invoices', inv.id, inv)
+          }
+        } else {
+          taken.add(inv.number)
+          skipped.push({ number: inv.number, reason: `number already used in Xero by a different invoice (${xi.Contact?.Name ?? '?'} $${xi.Total}) — renumber before pushing` })
+        }
+      }
+    }
+    const toPush = eligible.filter((i) => !adopted.has(i.number) && !taken.has(i.number))
 
     // Build payloads (and resolve contacts) invoice by invoice.
     const payloads = []
-    for (const inv of eligible) {
+    for (const inv of toPush) {
       const tenant = tenants.find((t) => t.id === inv.tenantId)
       if (!tenant) { results.errors.push({ number: inv.number, error: 'No tenant on platform' }); continue }
       const lease = leases.find((l) => l.id === inv.leaseId)
@@ -327,6 +363,7 @@ export default async function handler(req, res) {
           total: Math.round(invoiceTotal(p.inv) * 100) / 100,
           accounts: [...new Set(p.xero.LineItems.map((l) => l.AccountCode))],
         })),
+        wouldLink: results.linked,
         skipped, errors: results.errors,
       })
     }
