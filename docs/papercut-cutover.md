@@ -21,12 +21,11 @@ server — never here.
 1. **Overdraft enabled globally** before anyone is set restricted (else restricting blocks at $0).
 2. **Members have portal passwords** before the auth switch (Phase 5) — anyone without one can't
    print after it. Depends on the portal migration.
-3. **Elevated / admin session** for: `server.properties`, the `config.json` ACL tighten, service
-   changes, and **Phase 3A overdraft config**. Confirmed on this box: `server-command.exe` needs
-   elevation (even reads are access-denied) and the Config Editor needs an admin browser.
-   `api.getConfigValue` works headless, but config *writes* (`api.setConfigValue`) are
-   unverified/likely restricted — so plan the window with admin access. All other XML-RPC calls
-   (incl. Phase 3B) are token-auth and headless.
+3. **Elevated OS session** for: `server.properties` (Phase 5), the `config.json` ACL tighten
+   (Phase 6), and service changes (Phase 1). Confirmed on this box: `server-command.exe` needs
+   elevation (even reads are access-denied). **Phase 3A needs an admin BROWSER login only** — it's
+   a normal UI field, not a config key (see 3A). All other XML-RPC calls (incl. Phase 3B) are
+   token-auth and headless. Book the window with **both** OS elevation and an admin browser.
 4. **Stop the OfficeRnD prune (Phase 1) before any live provision** — its nightly ~21:32
    `deleteExistingUser` removes non-OfficeRnD users, so provisioned accounts vanish within hours.
 
@@ -61,20 +60,24 @@ server — never here.
 ## Phase 3 — restricted + overdraft + $30 quota (no cap) — GATED
 Split by requirement: **3A needs an admin/elevated session; 3B is headless.**
 
-### 3A — enable overdraft globally  (ADMIN SESSION)
-So restricted ≠ blocked. Both confirmed write routes need elevation/admin:
-- `server-command.exe set-config <key> <value>` (`server\bin\win\` — requires elevation; even
-  `get-config` is access-denied non-elevated), or
-- Config Editor UI (Options → Actions → Config Editor — admin browser login).
+### 3A — enable overdraft globally  (ADMIN BROWSER — not OS elevation)
+So restricted ≠ blocked.
 
-1. **Identify the canonical overdraft config key** via Config Editor "search overdraft" (or
-   PaperCut docs). `system.default-user-overdraft` was a guess and read back `""` — ambiguous,
-   since `getConfigValue` also returns `""` for unknown keys. Confirm the real key and whether it
-   applies to existing default-mode users or new ones only.
-2. Set it to a high limit (e.g. `100000` = effectively unlimited) and apply.
-3. Optional headless fast-path: a single `api.setConfigValue(<key>, <value>)` attempt. Succeeds →
-   3A is headless after all; faults (not found / not permitted) → use server-command / Config
-   Editor under elevation. This is a WRITE — only under "go phase 3".
+**RESOLVED (16 Jul 2026): this is NOT a config key.** It's a normal admin UI field — no Config
+Editor, no `server-command set-config`, no key to hunt. Per PaperCut's manual:
+
+> **Options tab → General page → Account Options area → "Default overdraft limit for restricted
+> users/accounts" → enter the limit → Apply.**
+
+This is why `system.default-user-overdraft` read back `""` — it was never a real key, and
+`getConfigValue` returns `""` for unknown keys, which made the guess look ambiguous rather than
+simply wrong. Earlier notes framing 3A as "needs elevation for server-command" were chasing a
+ghost: **3A needs an admin browser login only.** (OS elevation is still required for Phase 1's
+service change, Phase 5's `server.properties`, and Phase 6's ACL — just not for this.)
+
+1. Set the field to a high limit (e.g. `100000` = effectively unlimited) → Apply.
+2. **Still open (docs don't say):** whether the default applies retroactively to EXISTING restricted
+   users or only newly-restricted ones. Do not assume — the VERIFY step below is what settles it.
 
 **VERIFY (the real pass/fail — not a balance write):** read demo's effective overdraft
 (`api.getUserOverdraftMode` + limit) — it must reflect the global you set. A negative balance via
