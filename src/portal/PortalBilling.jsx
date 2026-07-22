@@ -128,6 +128,13 @@ const FILTERS = ['all', 'pending', 'paid', 'overdue']
 function InvoicesTab({ invoices, company, settings }) {
   const [filter, setFilter] = useState('all')
   const [payingId, setPayingId] = useState(null)
+  // Saved-card payments settle inline (no redirect) — track them locally so
+  // the row flips to paid immediately, plus which invoice the chooser is for.
+  const [payChoice, setPayChoice] = useState(null)
+  const [paidLocal, setPaidLocal] = useState({})
+  const [chargedNum, setChargedNum] = useState(null)
+  const [chargeError, setChargeError] = useState('')
+  const hasCard = !!company?.stripePaymentMethodId
   // Stripe Checkout redirects back with ?paid=<invoice number>. The webhook
   // marks the invoice paid server-side, so the list may lag a few seconds —
   // show a confirmation instead of a stale "pending" with no explanation.
@@ -135,7 +142,8 @@ function InvoicesTab({ invoices, company, settings }) {
   useEffect(() => {
     if (justPaid) window.history.replaceState({}, '', window.location.pathname)
   }, [justPaid])
-  const filtered = [...invoices]
+  const filtered = invoices
+    .map(i => paidLocal[i.id] ?? i)
     .filter(i => filter === 'all' || i.status === filter)
     .sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate))
 
@@ -155,6 +163,28 @@ function InvoicesTab({ invoices, company, settings }) {
       setPayingId(null)
     }
   }
+
+  // One-click: charge the card on file (same endpoint the admin and the
+  // member app use), no redirect.
+  async function paySavedCard(inv) {
+    setPayingId(inv.id); setChargeError('')
+    try {
+      const r = await fetch('/api/stripe/charge', {
+        method: 'POST',
+        headers: await authHeaders(),
+        body: JSON.stringify({ invoiceId: inv.id }),
+      })
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(data.error ?? 'The payment could not be processed.')
+      setPaidLocal(prev => ({ ...prev, [inv.id]: data.invoice ?? { ...inv, status: 'paid' } }))
+      setChargedNum(inv.number)
+      setPayChoice(null)
+    } catch (e) {
+      setChargeError(e.message)
+    } finally {
+      setPayingId(null)
+    }
+  }
   return (
     <>
       {justPaid && (
@@ -162,6 +192,14 @@ function InvoicesTab({ invoices, company, settings }) {
           <p className="hx-prose text-[13px] text-ink">
             ✓ Payment received for invoice <span className="font-heading uppercase tracking-nav text-[11px]">{justPaid}</span> — thank you.
             Your invoice will show as paid within a few minutes.
+          </p>
+        </div>
+      )}
+      {chargedNum && (
+        <div className="mb-6 border border-hexa-green/40 bg-hexa-green/10 rounded px-4 py-3">
+          <p className="hx-prose text-[13px] text-ink">
+            ✓ Paid — invoice <span className="font-heading uppercase tracking-nav text-[11px]">{chargedNum}</span> was
+            charged to your saved card. A receipt is on its way.
           </p>
         </div>
       )}
@@ -191,7 +229,7 @@ function InvoicesTab({ invoices, company, settings }) {
                         <div className="inline-flex items-center gap-4">
                           {(inv.status === 'pending' || inv.status === 'overdue') && (
                             <button
-                              onClick={() => payNow(inv)}
+                              onClick={() => { if (hasCard) { setChargeError(''); setPayChoice(inv) } else payNow(inv) }}
                               disabled={payingId === inv.id}
                               className="inline-flex items-center gap-1.5 text-ink hover:opacity-70 transition-opacity disabled:opacity-40"
                             >
@@ -211,6 +249,49 @@ function InvoicesTab({ invoices, company, settings }) {
             </table>
           </div>
         </Card>
+      )}
+
+      {/* Pay chooser — saved card (one click) or Stripe Checkout (any card) */}
+      {payChoice && (
+        <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" onClick={() => !payingId && setPayChoice(null)}>
+          <div className="bg-white rounded shadow-xl w-full max-w-sm p-8" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <p className="font-heading uppercase tracking-nav text-[11px] text-ink">{payChoice.number}</p>
+              <p className="font-display font-extralight text-4xl text-ink mt-2">{money(calcTotals(payChoice).total)}</p>
+              <p className="hx-prose text-[12px] text-portal-muted mt-1">Due {fmt(payChoice.dueDate)}{payChoice.status === 'overdue' ? ' · overdue' : ''}</p>
+            </div>
+            {chargeError && (
+              <div className="mt-5 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">{chargeError}</div>
+            )}
+            <div className="mt-6 space-y-3">
+              <button
+                onClick={() => paySavedCard(payChoice)}
+                disabled={!!payingId}
+                className="w-full inline-flex items-center justify-center gap-2 bg-ink text-white rounded-md px-4 py-3 font-heading uppercase tracking-nav text-[11px] hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                <CreditCard size={14} />
+                {payingId ? 'Charging…' : `Pay with ${(company.cardBrand || 'card').toUpperCase()} •••• ${company.cardLast4}`}
+              </button>
+              <button
+                onClick={() => payNow(payChoice)}
+                disabled={!!payingId}
+                className="w-full inline-flex items-center justify-center gap-2 border border-ink/20 text-ink rounded-md px-4 py-3 font-heading uppercase tracking-nav text-[11px] hover:bg-bone transition-colors disabled:opacity-50"
+              >
+                Pay with another card
+              </button>
+              <button
+                onClick={() => setPayChoice(null)}
+                disabled={!!payingId}
+                className="w-full text-portal-muted hover:text-ink transition-colors font-heading uppercase tracking-nav text-[10px] py-1"
+              >
+                Cancel
+              </button>
+            </div>
+            <p className="hx-prose text-[11px] text-portal-muted text-center mt-5">
+              Payments are processed securely by Stripe — we never see your card number.
+            </p>
+          </div>
+        </div>
       )}
     </>
   )

@@ -78,14 +78,25 @@ export default async function handler(req, res) {
       success_url: `${base}${backPath}?paid=${encodeURIComponent(invoice.number ?? '1')}`,
       cancel_url: `${base}${backPath}`,
     })
-    // Receipt email for Stripe Checkout: company email, else billing person.
-    let payerEmail = tenant?.email
-    if (!payerEmail && tenant?.id) {
-      const { data: mRows } = await supabase.from('members').select('data').eq('data->>companyId', tenant.id)
-      const mine = (mRows ?? []).map((r) => r.data).filter((m) => m?.email)
-      payerEmail = (mine.find((m) => m.billingPerson) ?? mine.find((m) => m.contactPerson) ?? mine[0])?.email
+    if (tenant?.stripeCustomerId) {
+      // Attach the tenant's Stripe customer so Checkout offers their saved
+      // card alongside the normal card form. Filters cover every
+      // allow_redisplay value our setup flow may have stamped on the card.
+      // (customer and customer_email are mutually exclusive on sessions.)
+      params.set('customer', tenant.stripeCustomerId)
+      params.set('saved_payment_method_options[allow_redisplay_filters][0]', 'always')
+      params.set('saved_payment_method_options[allow_redisplay_filters][1]', 'limited')
+      params.set('saved_payment_method_options[allow_redisplay_filters][2]', 'unspecified')
+    } else {
+      // Receipt email for Stripe Checkout: company email, else billing person.
+      let payerEmail = tenant?.email
+      if (!payerEmail && tenant?.id) {
+        const { data: mRows } = await supabase.from('members').select('data').eq('data->>companyId', tenant.id)
+        const mine = (mRows ?? []).map((r) => r.data).filter((m) => m?.email)
+        payerEmail = (mine.find((m) => m.billingPerson) ?? mine.find((m) => m.contactPerson) ?? mine[0])?.email
+      }
+      if (payerEmail) params.set('customer_email', payerEmail)
     }
-    if (payerEmail) params.set('customer_email', payerEmail)
 
     const r = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
