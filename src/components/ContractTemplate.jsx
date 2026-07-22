@@ -62,8 +62,12 @@ export default function ContractTemplate({ lease, tenant, space, spaces = [], se
   const scheduleRows = mtm ? monthToMonthRows(schedule) : (schedule?.rows ?? [])
   const inclusions = leaseInclusions(lease, space)
   const taxRatePct = settings?.billingRules?.taxRate ?? 10
-  const gst = Math.round(deposit * (taxRatePct / 100) * 100) / 100
-  const totalInitial = Math.round((deposit + gst) * 100) / 100
+  // Initial payment = the first scheduled month (prorated/stepped as the
+  // schedule says). GST applies to that month only — the deposit is not a
+  // taxable supply — but the deposit is part of what's paid up front.
+  const firstMonth = Number(scheduleRows[0]?.total ?? 0)
+  const gst = Math.round(firstMonth * (taxRatePct / 100) * 100) / 100
+  const totalInitial = Math.round((firstMonth + gst + Number(deposit)) * 100) / 100
 
   return (
     <div className="bg-white text-gray-800 font-sans text-sm px-12 py-10 max-w-4xl mx-auto">
@@ -202,7 +206,7 @@ export default function ContractTemplate({ lease, tenant, space, spaces = [], se
         {/* Right: payments */}
         <div className="text-xs space-y-0">
           {[
-            ['Initial payment:', `${Number(deposit).toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
+            ['Initial payment:', `${firstMonth.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
             [`GST ${taxRatePct} %:`, `${gst.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
             ['Total initial payment:', `${totalInitial.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
             ['Deposit', `${Number(deposit).toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],

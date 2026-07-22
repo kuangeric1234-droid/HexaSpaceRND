@@ -345,11 +345,14 @@ export default function ContractDetail({
         y += 5
       }
 
-      // Summary
+      // Summary — initial payment = the first scheduled month (prorated/
+      // stepped as the schedule says); GST on that month only (the deposit is
+      // not a taxable supply) but the deposit joins the up-front total.
       const deposit = Number(items[0]?.deposit ?? 0)
       const taxRatePct = settings?.billingRules?.taxRate ?? 10
-      const gst = Math.round(deposit * (taxRatePct / 100) * 100) / 100
-      const totalInit = Math.round((deposit + gst) * 100) / 100
+      const firstMonth = Number(buildPaymentSchedule(lease, settings)?.rows?.[0]?.total ?? 0)
+      const gst = Math.round(firstMonth * (taxRatePct / 100) * 100) / 100
+      const totalInit = Math.round((firstMonth + gst + deposit) * 100) / 100
 
       // ── Summary: notice/dates (left) + payments (right) ───────
       const sumRows = [
@@ -358,7 +361,7 @@ export default function ContractDetail({
         ['End Date:', lease.endDate ? format(parseISO(lease.endDate), 'dd/MM/yyyy') : isMonthToMonthLease(lease) ? 'Month-to-month' : '—'],
       ]
       const payRows = [
-        ['Initial payment:', `${deposit.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
+        ['Initial payment:', `${firstMonth.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
         [`GST ${taxRatePct} %:`, `${gst.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
         ['Total initial payment:', `${totalInit.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
         ['Deposit', `${deposit.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`],
