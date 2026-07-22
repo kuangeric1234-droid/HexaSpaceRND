@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { MonitorPlay, Plus, Trash2, ArrowUp, ArrowDown, Copy, ExternalLink, Check, RefreshCw } from 'lucide-react'
+import { MonitorPlay, Plus, Trash2, ArrowUp, ArrowDown, Copy, ExternalLink, Check, RefreshCw, Wand2 } from 'lucide-react'
 import { supabase } from '../lib/supabase.js'
 import { cloneBoard } from '../lib/directoryData.js'
+import { buildDirectoryBoard } from '../lib/directoryAuto.js'
 
 const nowIso = () => new Date().toISOString()
 const LEVELS = ['4', '2']
@@ -22,6 +23,7 @@ export default function Directory() {
   const [savedAt, setSavedAt] = useState(null)   // level that was just saved
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
+  const [syncing, setSyncing] = useState(false)
 
   useEffect(() => { load() }, [])
   async function load() {
@@ -86,6 +88,28 @@ export default function Directory() {
     setTimeout(() => setCopied(false), 1600)
   }
 
+  // Pull live occupancy into the editor: suites from active office contracts,
+  // community from VO/desk memberships. Existing display text is kept where
+  // the occupant hasn't changed. Nothing is saved until you hit Save.
+  async function fillFromLive() {
+    setSyncing(true)
+    setError('')
+    try {
+      const [t, l, s] = await Promise.all(
+        ['tenants', 'leases', 'spaces'].map((tb) => supabase.from(tb).select('data'))
+      )
+      const live = {
+        tenants: (t.data ?? []).map((r) => r.data),
+        leases: (l.data ?? []).map((r) => r.data),
+        spaces: (s.data ?? []).map((r) => r.data),
+      }
+      patchBoard(buildDirectoryBoard(level, board, live))
+    } catch (e) {
+      setError(e?.message || 'Could not load live data.')
+    }
+    setSyncing(false)
+  }
+
   const communityText = (board.community || []).join('\n')
 
   return (
@@ -132,6 +156,40 @@ export default function Directory() {
               </a>
             </div>
             <p className="text-xs text-muted-foreground mt-2">This link never changes. Editing and re-saving refreshes the board on any TV already showing it (within ~30s).</p>
+          </div>
+
+          {/* live-data sync */}
+          <div className="border border-border rounded-lg bg-card p-4 mb-6">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <label className="flex items-start gap-2.5 text-sm cursor-pointer min-w-0">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={!!board.autoSync}
+                  onChange={(e) => patchBoard({ autoSync: e.target.checked })}
+                />
+                <span>
+                  <span className="font-medium text-foreground">Auto-update this board from live data</span>
+                  <span className="block text-xs text-muted-foreground mt-1">
+                    Refreshes every morning with the daily reconcile: suites from active office contracts,
+                    community members from virtual office &amp; desk memberships. Your polished display names
+                    (bilingual lines, shared-suite pairings) are kept while the occupant stays the same.
+                  </span>
+                </span>
+              </label>
+              <button
+                onClick={fillFromLive}
+                disabled={syncing}
+                className="flex items-center gap-1.5 text-sm border border-input rounded-md px-3 py-2 font-medium hover:bg-muted/50 disabled:opacity-50 shrink-0"
+              >
+                <Wand2 size={14} /> {syncing ? 'Loading…' : 'Refresh from live data now'}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              The refresh fills the editor below — review it, fix anything odd, then Save. Tip: run this once and
+              compare against the current board before ticking auto-update; differences usually mean a contract on
+              the platform needs correcting.
+            </p>
           </div>
 
           {/* suites editor */}

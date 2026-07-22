@@ -26,6 +26,7 @@
 
 import { randomUUID } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
+import { buildDirectoryBoard } from '../src/lib/directoryAuto.js'
 import { sendResendEmail, billingEmailFor } from './_email.js'
 import { brandFrame, bKicker, bH1, bH2, bP, bSmall, bPanel, bBtn, SANS, INK, MUTE } from './_brand.js'
 import {
@@ -529,8 +530,26 @@ export default async function handler(req, res) {
       } catch (e) { out.errors.push(`salto sweep ${label}: ${e.message}`) }
     }
 
+    // ── 6. Directory boards — refresh autoSync boards from live data ────────
+    // Boards with autoSync ticked (Directory admin) regenerate here daily:
+    // suites from office occupancy, community from VO/desk memberships.
+    // Hand-edited display text survives while the occupant is unchanged
+    // (see src/lib/directoryAuto.js). TVs poll the table, so they follow.
+    out.directorySynced = []
+    try {
+      const { data: dirRows } = await supabase.from('directory_boards').select('id, data')
+      for (const row of dirRows ?? []) {
+        if (row.data?.autoSync !== true) continue
+        const next = buildDirectoryBoard(row.id, row.data, { tenants, leases, spaces })
+        if (JSON.stringify(next) !== JSON.stringify(row.data)) {
+          await saveRow('directory_boards', row.id, next) // saveRow no-ops on dryRun
+          out.directorySynced.push(`Level ${row.id} board refreshed (${next.suites.length} suites, ${next.community.length} community)`)
+        }
+      }
+    } catch (e) { out.errors.push(`directory sync: ${e.message}`) }
+
     // ── Admin digest (only when something happened or needs attention) ──────
-    const anything = out.occupied.length + out.onboarded.length + out.expired.length + out.bondOverdue.length + out.saltoSwept.length + (out.cardReminders?.length ?? 0) + out.overdueWarned.length + out.overdueCancelled.length + out.renewed.length + out.renewalEmailed.length + out.errors.length > 0
+    const anything = out.occupied.length + out.onboarded.length + out.expired.length + out.bondOverdue.length + out.saltoSwept.length + (out.cardReminders?.length ?? 0) + out.overdueWarned.length + out.overdueCancelled.length + out.renewed.length + out.renewalEmailed.length + out.directorySynced.length + out.errors.length > 0
     if (anything && resendKey && !dryRun) {
       const list = (items) => bPanel(items.map((i) => `<div style="font-family:${SANS};font-size:13px;color:${INK};padding:4px 0">${i}</div>`).join(''))
       const section = (title, items) => items.length ? bH2(title) + list(items) : ''
@@ -547,6 +566,7 @@ export default async function handler(req, res) {
         section(`⛔ ${out.overdueCancelled.length} membership(s) auto-cancelled (90d overdue)`, out.overdueCancelled) +
         section(`🔑 ${out.saltoSwept.length} door access revocation(s) swept`, out.saltoSwept) +
         section(`💳 ${(out.cardReminders ?? []).length} card-on-file reminder(s) sent`, out.cardReminders ?? []) +
+        section(`📺 ${out.directorySynced.length} directory board(s) refreshed`, out.directorySynced) +
         section(`✗ ${out.errors.length} error(s)`, out.errors) +
         bBtn('Open the admin portal', 'https://portal.hexaspace.com.au')
       const adminTo = [...new Set(['eric@hexaspace.com.au', 'info@hexaspace.com.au', settings?.emails?.notificationEmail].filter(Boolean).map((e) => e.toLowerCase()))]
