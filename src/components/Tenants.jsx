@@ -5,6 +5,8 @@ import { Plus, Pencil, Trash2, X, UserPlus } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import TenantProfile from './TenantProfile.jsx'
 import SignupWizard from './SignupWizard.jsx'
+import ContractForm from './ContractForm.jsx'
+import { sendLeaseForSigning, shouldAutoSendForSigning } from '../lib/esign.js'
 
 const today = () => new Date().toISOString().split('T')[0]
 
@@ -26,12 +28,13 @@ const STATUS_STYLE = {
 
 export default function Tenants() {
   const { tenants, addTenant, updateTenant, deleteTenant, leases = [], invoices = [], spaces = [], settings, addInvoice,
-    members = [], addMember, updateMember, deleteMember, addLease, updateLease, bookings = [], fees = [], updateFee } = useOutletContext()
+    members = [], addMember, updateMember, deleteMember, addLease, updateLease, templates, bookings = [], fees = [], updateFee } = useOutletContext()
   const navigate = useNavigate()
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [selectedTenant, setSelectedTenant] = useState(null)
+  const [addingContract, setAddingContract] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'Active' | 'Former'
   const [showWizard, setShowWizard] = useState(false)
@@ -76,6 +79,34 @@ export default function Tenants() {
     if (window.confirm('Delete this company? Any associated contracts will remain.')) deleteTenant(id)
   }
 
+  // Create a contract straight from the company profile — same ContractForm
+  // as the Contracts page, with the company locked in. Mirrors Leases
+  // handleSave: renewals that qualify go straight out for e-signature.
+  if (selectedTenant && addingContract) {
+    return (
+      <div className="h-full flex flex-col">
+        <ContractForm
+          editLease={{ tenantId: selectedTenant.id }}
+          leases={leases}
+          tenants={tenants}
+          spaces={spaces}
+          members={members}
+          templates={templates}
+          onSave={(data) => {
+            const created = addLease({ ...data, tenantId: selectedTenant.id, companyName: selectedTenant.businessName })
+            if (created && shouldAutoSendForSigning(created)) {
+              sendLeaseForSigning({ lease: created, tenant: selectedTenant, members, settings, templates: templates ?? [], updateLease })
+                .catch((err) => console.error('Contract e-sign send failed:', err))
+            }
+            setAddingContract(false)
+          }}
+          onDiscard={() => setAddingContract(false)}
+          lockTenant
+        />
+      </div>
+    )
+  }
+
   if (selectedTenant) {
     return (
       <>
@@ -90,6 +121,7 @@ export default function Tenants() {
           onSelectContract={(lease) => navigate('/leases', { state: { openLeaseId: lease.id } })}
           onSelectInvoice={(inv) => navigate('/billing', { state: { openInvoiceId: inv.id } })}
           onAddInvoice={(data) => addInvoice({ ...data, tenantId: selectedTenant.id })}
+          onAddContract={() => setAddingContract(true)}
         />
         <CompanyModal open={showForm} editId={editId} form={form} setForm={setForm} onClose={() => setShowForm(false)} onSubmit={handleSubmit} />
       </>

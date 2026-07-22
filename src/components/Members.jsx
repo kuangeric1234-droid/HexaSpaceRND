@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Plus, X } from 'lucide-react'
 import MemberProfile from './MemberProfile.jsx'
@@ -54,6 +54,18 @@ export default function Members() {
   const hasMem = (m) => memberHasActiveMembership(m, leases)
   const [selected, setSelected] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  // Deep link: /members?member=<id> opens that profile directly (used by the
+  // company profile's member links, which open in a new tab). The param is
+  // consumed once so Back doesn't bounce the profile open again.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('member')
+    if (!id) return
+    const m = allMembers.find((x) => x.id === id)
+    if (m) {
+      setSelected(m)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [allMembers]) // eslint-disable-line react-hooks/exhaustive-deps
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(EMPTY)
   const [search, setSearch] = useState('')

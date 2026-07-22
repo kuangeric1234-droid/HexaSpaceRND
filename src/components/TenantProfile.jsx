@@ -76,7 +76,7 @@ function Section({ title, action, children }) {
   )
 }
 
-export default function TenantProfile({ tenant, leases, invoices, spaces, settings, members = [], addMember, updateMember, deleteMember, addLease, updateLease, updateTenant, onBack, onEdit, onSelectInvoice, onSelectContract, onAddInvoice, bookings = [], fees = [], updateFee }) {
+export default function TenantProfile({ tenant, leases, invoices, spaces, settings, members = [], addMember, updateMember, deleteMember, addLease, updateLease, updateTenant, onBack, onEdit, onSelectInvoice, onSelectContract, onAddInvoice, onAddContract, bookings = [], fees = [], updateFee }) {
   const [showInvoiceForm, setShowInvoiceForm] = useState(false)
   const [memberModal, setMemberModal] = useState(null)   // null | {} (new) | member (edit)
   const [showMembership, setShowMembership] = useState(false)
@@ -435,10 +435,17 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
                     {companyMembers.map((m) => (
                       <tr key={m.id} className="border-b border-border last:border-0 hover:bg-muted/50">
                         <td className="px-5 py-3">
-                          <div className="flex items-center gap-2">
+                          {/* Opens the full member profile (Members page deep link) in a new tab */}
+                          <a
+                            href={`/members?member=${m.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 group"
+                            title="Open member profile in a new tab"
+                          >
                             <span className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0"><User size={13} className="text-muted-foreground" /></span>
-                            <span className="font-medium text-foreground">{m.name}</span>
-                          </div>
+                            <span className="font-medium text-foreground group-hover:underline">{m.name}</span>
+                          </a>
                         </td>
                         <td className="px-5 py-3 text-muted-foreground">{m.email || '—'}</td>
                         <td className="px-5 py-3">
@@ -541,7 +548,13 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
             </Section>
 
             {/* ── All Contracts ── */}
-            <Section title="Contracts">
+            <Section title="Contracts" action={
+              onAddContract && (
+                <button onClick={onAddContract} className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 font-medium">
+                  <Plus size={12} /> Add contract
+                </button>
+              )
+            }>
               {tenantLeases.length === 0 ? (
                 <p className="px-5 py-5 text-sm text-muted-foreground">No contracts.</p>
               ) : (
