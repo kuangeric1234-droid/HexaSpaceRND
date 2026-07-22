@@ -3,8 +3,9 @@
 // Schedule set in vercel.json
 
 import { createClient } from '@supabase/supabase-js'
+import { randomBytes } from 'crypto'
 import { sendResendEmail, billingEmailFor } from './_email.js'
-import { brandFrame, bKicker, bH1, bP, bSmall, bTable } from './_brand.js'
+import { brandFrame, bKicker, bH1, bP, bSmall, bTable, bBtn } from './_brand.js'
 import { selectAllRows } from './_db.js'
 import { stripeConfigured, chargeInvoiceOffSession } from './_stripe.js'
 
@@ -259,13 +260,20 @@ export default async function handler(req, res) {
       const reminderEmail = billingEmailFor(tenant, members)
       if (!reminderEmail) continue
 
+      // Every listed invoice gets a public pay link (minted once, persisted in
+      // the reminder stamp below so re-sends keep the same link).
+      for (const inv of invs) {
+        if (!inv.payToken) inv.payToken = randomBytes(18).toString('base64url')
+      }
+      const payLink = (inv) => `https://portal.hexaspace.com.au/pay/${inv.id}?t=${inv.payToken}`
+
       const invoiceRows = invs.map((inv) => {
         const sub = (inv.lineItems ?? []).reduce((s, l) => {
           return s + Math.round(l.unitPrice * l.qty * (1 - (l.discountPct ?? 0) / 100) * 100) / 100
         }, 0)
         const gst = inv.vatEnabled !== false ? Math.round(sub * 0.1 * 100) / 100 : 0
         const total = sub + gst
-        return [inv.number, `Due ${inv.dueDate} · $${total.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD`, true]
+        return [inv.number, `Due ${inv.dueDate} · $${total.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD · <a href="${payLink(inv)}" style="color:#7F8B2F">Pay online</a>`, true]
       })
 
       const inner =
@@ -274,6 +282,7 @@ export default async function handler(req, res) {
         bP(`Hi ${tenant.contactName ?? tenant.businessName},`) +
         bP('The following invoice(s) are overdue. Please arrange payment at your earliest convenience.') +
         bTable(invoiceRows) +
+        (invs.length === 1 ? bBtn('Pay this invoice online', payLink(invs[0])) : '') +
         (settings?.billingRules?.blockOverdueAccess === true
           ? bP(`<strong>Please note:</strong> if payment isn't received within ${Number(settings?.billingRules?.blockGraceDays ?? 14)} days of the due date, door access for your team will be suspended until the balance is cleared, per clause 7(d) of your licence agreement (a $100 re-activation fee may apply).`)
           : '') +

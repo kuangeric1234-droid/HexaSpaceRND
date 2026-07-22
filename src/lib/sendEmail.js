@@ -170,7 +170,17 @@ export function buildSignature(settings) {
 
 // ── Email templates ────────────────────────────────────────────────────────────
 
-export function invoiceEmailHtml({ invoice, tenant, settings }) {
+// One random URL-safe pay token per invoice — the only secret behind the
+// public /pay/<id>?t=<token> page. Persist it on the invoice before emailing.
+export function makePayToken() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  return Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) => chars[b % chars.length]).join('')
+}
+
+export const invoicePayLink = (invoice) =>
+  invoice?.payToken ? `${PORTAL_URL}/pay/${invoice.id}?t=${invoice.payToken}` : null
+
+export function invoiceEmailHtml({ invoice, tenant, settings, payLink }) {
   const company = settings?.company ?? {}
   const billing = settings?.billing ?? {}
   const name = billing.businessName || company.name || 'Hexa Space'
@@ -197,8 +207,9 @@ export function invoiceEmailHtml({ invoice, tenant, settings }) {
         <tr style="background:${GREIGE}"><td style="${cell};font-weight:600;color:${INK}">Due Date</td><td style="${cell}">${invoice.dueDate ?? '—'}</td></tr>
         <tr><td style="${cell};font-weight:600;color:${INK}">Amount Due</td><td style="${cell};font-family:${SERIF};font-size:22px;color:${OLIVE}">$${grandTotal.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD</td></tr>
       </table>
+      ${payLink ? bBtn('Pay this invoice online', payLink) + bSmall(`Card payments are processed securely by Stripe. If the button doesn't work, copy this link: <a href="${payLink}" style="color:${OLIVE}">${payLink}</a>`) : ''}
       <div style="background:${GREIGE};border-radius:8px;padding:16px 18px;margin:0 0 8px">
-        <div style="font-family:${CAPS};font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:${OLIVE};margin-bottom:8px">Payment details</div>
+        <div style="font-family:${CAPS};font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:${OLIVE};margin-bottom:8px">${payLink ? 'Or pay by bank transfer' : 'Payment details'}</div>
         <div style="font-family:${SANS};font-size:13px;color:#3a3a3a;line-height:1.7">Account Name: ${name}<br>BSB: ${bsb}<br>ACC: ${acc}</div>
       </div>
       ${bSmall(`${name} · ${address}`)}`

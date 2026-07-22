@@ -7,6 +7,7 @@ import FunctionBookPage from './components/FunctionBookPage.jsx'
 import ReferrerDashboard from './components/ReferrerDashboard.jsx'
 import ProposalAccept from './components/ProposalAccept.jsx'
 import GiveNoticePage from './components/GiveNoticePage.jsx'
+import PayInvoicePage from './components/PayInvoicePage.jsx'
 import DirectoryDisplay from './components/DirectoryDisplay.jsx'
 import PortalApp from './portal/PortalApp.jsx'
 import AdminApp from './AdminApp.jsx'
@@ -111,6 +112,10 @@ export default function App() {
 
   const noticeMatch = path.match(/^\/give-notice\/([^/]+)/)
   if (noticeMatch) return <GiveNoticePage token={noticeMatch[1]} />
+
+  const payMatch = path.match(/^\/pay\/([^/]+)/)
+  if (payMatch) return <PayInvoicePage invoiceId={payMatch[1]} />
+
 
   return <RootAuth />
 }

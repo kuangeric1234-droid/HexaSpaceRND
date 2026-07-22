@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { authHeaders } from '../lib/apiFetch.js'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import { ArrowLeft, Send, RefreshCw, Ban, FileMinus, FileDown, Plus, MessageSquare, ToggleLeft, ToggleRight, Trash2, Pencil, X } from 'lucide-react'
-import { sendEmail, invoiceEmailHtml, resolveEmailTemplate, brandShell, bKicker, bH1, bP, bSmall } from '../lib/sendEmail.js'
+import { sendEmail, invoiceEmailHtml, resolveEmailTemplate, brandShell, bKicker, bH1, bP, bSmall, bBtn, makePayToken, invoicePayLink } from '../lib/sendEmail.js'
 import { logAudit } from '../lib/audit.js'
 import { billingEmailFor } from '../lib/credits.js'
 import { locationLabel, lineDescription } from '../lib/billing.js'
@@ -202,6 +202,11 @@ export default function InvoiceDetail({
     }
     if (!window.confirm(`Send ${invoice.number} to ${email}?`)) return
     try {
+      // Every emailed invoice carries a public pay link; mint the token once
+      // and persist it so re-sends keep the same link.
+      const payToken = invoice.payToken ?? makePayToken()
+      if (!invoice.payToken) onUpdate(invoice.id, { payToken })
+      const payLink = invoicePayLink({ ...invoice, payToken })
       const doc = await buildPDFDoc()
       const pdfDataUri = doc.output('datauristring')
       const pdfBase64 = pdfDataUri.split(',')[1]
@@ -209,7 +214,7 @@ export default function InvoiceDetail({
       await sendEmail({
         to: email,
         subject: resolveEmailTemplate('invoice', { number: invoice.number, company: settings?.company?.name ?? 'Hexa Space', dueDate: invoice.dueDate ?? '' }, settings).subject || `Invoice ${invoice.number} from ${settings?.company?.name ?? 'Hexa Space'}`,
-        html: invoiceEmailHtml({ invoice, tenant, settings }),
+        html: invoiceEmailHtml({ invoice, tenant, settings, payLink }),
         settings,
         attachments: [{ filename: `${invoice.number}_${slug}.pdf`, content: pdfBase64 }],
         tenantId: invoice.tenantId, emailType: 'invoice',
@@ -233,6 +238,9 @@ export default function InvoiceDetail({
       const sub = (invoice.lineItems ?? []).reduce((s, l) => s + Math.round(l.unitPrice * l.qty * (1 - (l.discountPct ?? 0) / 100) * 100) / 100, 0)
       const gst = invoice.vatEnabled !== false ? Math.round(sub * (taxRate) * 100) / 100 : 0
       const total = sub + gst
+      const payToken = invoice.payToken ?? makePayToken()
+      if (!invoice.payToken) onUpdate(invoice.id, { payToken })
+      const payLink = invoicePayLink({ ...invoice, payToken })
       await sendEmail({
         to: email,
         subject: `Payment reminder — ${invoice.number} overdue`,
@@ -242,6 +250,7 @@ export default function InvoiceDetail({
           bH1('A gentle reminder.') +
           bP(`Hi ${tenant?.contactName ?? tenant?.businessName ?? ''},`) +
           bP(`Invoice <strong style="color:#1a1a1a">${invoice.number}</strong> for <strong style="color:#1a1a1a">$${total.toLocaleString('en-AU', { minimumFractionDigits: 2 })} AUD</strong> was due on <strong style="color:#1a1a1a">${invoice.dueDate}</strong> and remains unpaid. Please arrange payment at your earliest convenience.`) +
+          (payLink ? bBtn('Pay this invoice online', payLink) : '') +
           bSmall('If you have already made payment, please disregard this message.'),
           { company: companyName, website: settings?.company?.website || 'hexaspace.com.au' },
         ),
