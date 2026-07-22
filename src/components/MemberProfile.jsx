@@ -151,7 +151,7 @@ export default function MemberProfile({ member, ctx, onBack, onEdit }) {
           <div className="bg-card border border-border rounded-xl shadow-sm p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Member</span>
-              <button onClick={onEdit} className="flex items-center gap-1 text-xs border border-input rounded px-2 py-1 hover:bg-muted/50"><Pencil size={12} /> Edit Details</button>
+              {onEdit && <button onClick={onEdit} className="flex items-center gap-1 text-xs border border-input rounded px-2 py-1 hover:bg-muted/50"><Pencil size={12} /> Edit Details</button>}
             </div>
             <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-2" />
             <div className="text-center">

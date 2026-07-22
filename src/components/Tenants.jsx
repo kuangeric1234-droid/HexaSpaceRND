@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, X, UserPlus } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import TenantProfile from './TenantProfile.jsx'
 import SignupWizard from './SignupWizard.jsx'
+import MemberProfile from './MemberProfile.jsx'
 import ContractForm from './ContractForm.jsx'
 import { sendLeaseForSigning, shouldAutoSendForSigning } from '../lib/esign.js'
 
@@ -27,14 +28,16 @@ const STATUS_STYLE = {
 }
 
 export default function Tenants() {
+  const ctx = useOutletContext()
   const { tenants, addTenant, updateTenant, deleteTenant, leases = [], invoices = [], spaces = [], settings, addInvoice,
-    members = [], addMember, updateMember, deleteMember, addLease, updateLease, templates, bookings = [], fees = [], updateFee } = useOutletContext()
+    members = [], addMember, updateMember, deleteMember, addLease, updateLease, templates, bookings = [], fees = [], updateFee } = ctx
   const navigate = useNavigate()
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [selectedTenant, setSelectedTenant] = useState(null)
   const [addingContract, setAddingContract] = useState(false)
+  const [viewMember, setViewMember] = useState(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'Active' | 'Former'
   const [showWizard, setShowWizard] = useState(false)
@@ -77,6 +80,13 @@ export default function Tenants() {
   }
   function handleDelete(id) {
     if (window.confirm('Delete this company? Any associated contracts will remain.')) deleteTenant(id)
+  }
+
+  // Member profile opened from the company page — the same full MemberProfile
+  // view as the Members page, in place (Back returns to the company).
+  if (selectedTenant && viewMember) {
+    const liveMember = members.find((m) => m.id === viewMember.id) ?? viewMember
+    return <MemberProfile member={liveMember} ctx={ctx} onBack={() => setViewMember(null)} />
   }
 
   // Create a contract straight from the company profile — same ContractForm
@@ -122,6 +132,7 @@ export default function Tenants() {
           onSelectInvoice={(inv) => navigate('/billing', { state: { openInvoiceId: inv.id } })}
           onAddInvoice={(data) => addInvoice({ ...data, tenantId: selectedTenant.id })}
           onAddContract={() => setAddingContract(true)}
+          onViewMember={(m) => setViewMember(m)}
         />
         <CompanyModal open={showForm} editId={editId} form={form} setForm={setForm} onClose={() => setShowForm(false)} onSubmit={handleSubmit} />
       </>

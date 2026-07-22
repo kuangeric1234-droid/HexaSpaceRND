@@ -76,7 +76,7 @@ function Section({ title, action, children }) {
   )
 }
 
-export default function TenantProfile({ tenant, leases, invoices, spaces, settings, members = [], addMember, updateMember, deleteMember, addLease, updateLease, updateTenant, onBack, onEdit, onSelectInvoice, onSelectContract, onAddInvoice, onAddContract, bookings = [], fees = [], updateFee }) {
+export default function TenantProfile({ tenant, leases, invoices, spaces, settings, members = [], addMember, updateMember, deleteMember, addLease, updateLease, updateTenant, onBack, onEdit, onSelectInvoice, onSelectContract, onAddInvoice, onAddContract, onViewMember, bookings = [], fees = [], updateFee }) {
   const [showInvoiceForm, setShowInvoiceForm] = useState(false)
   const [memberModal, setMemberModal] = useState(null)   // null | {} (new) | member (edit)
   const [showMembership, setShowMembership] = useState(false)
@@ -435,17 +435,15 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
                     {companyMembers.map((m) => (
                       <tr key={m.id} className="border-b border-border last:border-0 hover:bg-muted/50">
                         <td className="px-5 py-3">
-                          {/* Opens the full member profile (Members page deep link) in a new tab */}
-                          <a
-                            href={`/members?member=${m.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 group"
-                            title="Open member profile in a new tab"
+                          {/* Opens the full member profile in place (same view as the Members page) */}
+                          <button
+                            onClick={() => onViewMember?.(m)}
+                            className="flex items-center gap-2 group text-left"
+                            title="View member profile"
                           >
                             <span className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0"><User size={13} className="text-muted-foreground" /></span>
                             <span className="font-medium text-foreground group-hover:underline">{m.name}</span>
-                          </a>
+                          </button>
                         </td>
                         <td className="px-5 py-3 text-muted-foreground">{m.email || '—'}</td>
                         <td className="px-5 py-3">
