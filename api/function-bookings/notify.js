@@ -37,7 +37,7 @@ const bKicker = (t) => `<div style="font-family:${CAPS};font-size:11px;letter-sp
 const bH1 = (t) => `<h1 style="font-family:${SERIF};font-weight:400;font-size:26px;line-height:1.14;color:${INK};margin:0 0 16px">${t}</h1>`
 const bP = (t) => `<p style="font-family:${SANS};font-size:14px;line-height:1.65;color:#3a3a3a;margin:0 0 16px">${t}</p>`
 const bSmall = (t) => `<p style="font-family:${SANS};font-size:12px;line-height:1.6;color:${MUTE};margin:16px 0 0">${t}</p>`
-const bBtn = (label, href) => `<div style="text-align:center;margin:26px 0"><a href="${href}" style="display:inline-block;background:${OLIVE};color:#ffffff;text-decoration:none;padding:13px 34px;font-family:${CAPS};font-size:12px;letter-spacing:.14em;text-transform:uppercase;border-radius:6px">${label}</a></div>`
+const bBtn = (label, href) => `<div style="text-align:center;margin:26px 0"><a href="${href}" style="display:inline-block;background:${OLIVE};color:#ffffff;text-decoration:none;padding:13px 34px;font-family:${CAPS};font-size:12px;letter-spacing:.14em;text-transform:uppercase;border-radius:6px"><span style="color:#ffffff;text-decoration:none">${label}</span></a></div>`
 
 function money(v) {
   const n = Number(v) || 0

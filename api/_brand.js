@@ -30,7 +30,7 @@ export const bH1 = (t) => `<h1 style="font-family:${SERIF};font-weight:400;font-
 export const bH2 = (t) => `<h2 style="font-family:${SERIF};font-weight:400;font-size:20px;line-height:1.2;color:${INK};margin:0 0 14px">${t}</h2>`
 export const bP = (t) => `<p style="font-family:${SANS};font-size:14px;line-height:1.65;color:#3a3a3a;margin:0 0 16px">${t}</p>`
 export const bSmall = (t) => `<p style="font-family:${SANS};font-size:12px;line-height:1.6;color:${MUTE};margin:16px 0 0">${t}</p>`
-export const bBtn = (label, href) => `<div style="text-align:center;margin:26px 0"><a href="${href}" style="display:inline-block;background:${OLIVE};color:#ffffff;text-decoration:none;padding:13px 34px;font-family:${CAPS};font-size:12px;letter-spacing:.14em;text-transform:uppercase;border-radius:6px">${label}</a></div>`
+export const bBtn = (label, href) => `<div style="text-align:center;margin:26px 0"><a href="${href}" style="display:inline-block;background:${OLIVE};color:#ffffff;text-decoration:none;padding:13px 34px;font-family:${CAPS};font-size:12px;letter-spacing:.14em;text-transform:uppercase;border-radius:6px"><span style="color:#ffffff;text-decoration:none">${label}</span></a></div>`
 
 // A greige info panel — for credentials, codes, summaries, callouts.
 export const bPanel = (inner) => `<div style="background:${GREIGE};border-radius:8px;padding:16px 18px;margin:0 0 18px">${inner}</div>`

@@ -136,7 +136,7 @@ export const bKicker = (t) => `      <div style="font-family:${CAPS};font-size:1
 export const bH1 = (t) => `      <h1 style="font-family:${SERIF};font-weight:400;font-size:30px;line-height:1.12;margin:0 0 18px;color:${INK}">${t}</h1>`
 export const bP = (t) => `      <p style="font-family:${SANS};font-size:15px;line-height:1.65;color:#3a3a3a;margin:0 0 16px">${t}</p>`
 export const bSmall = (t) => `      <p style="font-family:${SANS};font-size:13px;line-height:1.6;color:${MUTE};margin:0 0 16px">${t}</p>`
-export const bBtn = (label, href) => `      <div style="margin:26px 0;text-align:center"><a href="${href}" style="background:${OLIVE};color:#ffffff;padding:13px 34px;border-radius:6px;text-decoration:none;font-family:${CAPS};font-size:12px;letter-spacing:.14em;text-transform:uppercase;display:inline-block">${label}</a></div>`
+export const bBtn = (label, href) => `      <div style="margin:26px 0;text-align:center"><a href="${href}" style="background:${OLIVE};color:#ffffff;padding:13px 34px;border-radius:6px;text-decoration:none;font-family:${CAPS};font-size:12px;letter-spacing:.14em;text-transform:uppercase;display:inline-block"><span style="color:#ffffff;text-decoration:none">${label}</span></a></div>`
 // Shared brand tokens for other modules (onboarding, function emails).
 export const BRAND = { SERIF, SANS, CAPS, OLIVE, GREIGE, INK, MUTE, HAIR }
 

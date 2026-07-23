@@ -271,7 +271,9 @@ const _k = (t) => `<div style="font-family:${_CAPS};font-size:11px;letter-spacin
 const _h = (t) => `<h1 style="font-family:${_SERIF};font-weight:400;font-size:30px;line-height:1.12;margin:0 0 18px;color:${_INK}">${t}</h1>`
 const _p = (t) => `<p style="font-family:${_SANS};font-size:15px;line-height:1.65;color:#3a3a3a;margin:0 0 16px">${t}</p>`
 const _small = (t) => `<p style="font-family:${_SANS};font-size:12px;line-height:1.6;color:${_MUTE};margin:8px 0 0">${t}</p>`
-const _btn = (label, href) => `<a href="${href}" style="display:inline-block;background:${_OLIVE};color:#fff;padding:11px 26px;border-radius:6px;text-decoration:none;font-family:${_CAPS};font-size:11px;letter-spacing:.14em;text-transform:uppercase">${label}</a>`
+// White text is doubled onto an inner span — Gmail/Outlook override anchor
+// colors (visited-link styling) unless the text node itself carries the color.
+const _btn = (label, href) => `<a href="${href}" style="display:inline-block;background:${_OLIVE};color:#ffffff;padding:11px 26px;border-radius:6px;text-decoration:none;font-family:${_CAPS};font-size:11px;letter-spacing:.14em;text-transform:uppercase"><span style="color:#ffffff;text-decoration:none">${label}</span></a>`
 const _box = (title, body) => `<div style="background:${_GREIGE};border-radius:8px;padding:18px 20px;margin:0 0 20px"><div style="font-family:${_CAPS};font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:${_OLIVE};margin-bottom:8px">${title}</div>${body}</div>`
 const _startList = `<div style="margin:4px 0 18px"><div style="font-family:${_CAPS};font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:${_OLIVE};margin-bottom:10px">Getting started</div><ul style="margin:0;padding-left:18px;font-family:${_SANS};color:#3a3a3a;font-size:13px;line-height:1.85"><li>Access is 24/7 via your mobile key or access card.</li><li>Add your team members from the portal — each gets their own access.</li><li>Loading, parking and waste follow the House Rules attached to your agreement.</li><li>Report any maintenance or questions through the portal messages.</li></ul></div>`
 

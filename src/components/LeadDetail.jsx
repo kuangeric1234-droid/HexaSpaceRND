@@ -883,7 +883,7 @@ function buildMembershipProposalHtml({ lead, settings, offer, coverMsg, acceptLi
       ${incLine}
       ${freeLine}
       <p style="font-family:${SANS};font-size:15px;line-height:1.65;color:#3a3a3a;margin:0 0 16px">If you're happy to go ahead, review and accept online below — you'll then complete your details and choose your start date.</p>
-      <div style="text-align:center;margin:24px 0"><a href="${acceptLink}" style="display:inline-block;background:#7F8B2F;color:#fff;text-decoration:none;padding:13px 34px;font-family:'HexaRework','Helvetica Neue',Arial,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;border-radius:6px">Review &amp; accept proposal</a></div>
+      <div style="text-align:center;margin:24px 0"><a href="${acceptLink}" style="display:inline-block;background:#7F8B2F;color:#ffffff;text-decoration:none;padding:13px 34px;font-family:'HexaRework','Helvetica Neue',Arial,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;border-radius:6px"><span style="color:#ffffff;text-decoration:none">Review &amp; accept proposal</span></a></div>
       <p style="font-family:${SANS};font-size:13px;line-height:1.6;color:#6b6b6b;margin:0">This proposal is valid for ${validityDays || 14} days. Any questions at all, just reply to this email.</p>`
   return brandShell(inner, { company, website })
 }
