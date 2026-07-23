@@ -857,8 +857,8 @@ function BillingRulesSection({ settings, updateSettings }) {
         </div>
       </FormRow>
       <FormRow
-        label="Auto-cancel memberships when 3 months overdue"
-        description="When a company's OLDEST unpaid invoice passes the cut-off below, escalating cancellation warnings are emailed; if still unpaid at the cut-off, its memberships are terminated and door access permanently revoked. Paying off stops it. Exempt a company via its profile. Test with the reconcile dry-run first."
+        label="Overdue cancellation workflow (admin approval required)"
+        description="Warnings are emailed from 2 months overdue (admins bcc'd); at the cut-off below the client gets a FINAL NOTICE and the account goes to 'awaiting approval' — NOTHING is cancelled until an admin clicks Approve cancellation on the company profile. Paying off at any point clears the process. Exempt a company via its profile."
       >
         <Toggle checked={form.autoCancelOverdue === true} onChange={set('autoCancelOverdue')} />
       </FormRow>

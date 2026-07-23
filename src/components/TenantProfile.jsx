@@ -294,6 +294,46 @@ export default function TenantProfile({ tenant, leases, invoices, spaces, settin
 
         {/* Scrollable main content */}
         <div className="flex-1 overflow-y-auto">
+          {/* Overdue cancellation — awaiting admin approval (set by the daily
+              reconcile once the account passes the cut-off; nothing is
+              cancelled until an admin clicks Approve here). */}
+          {tenant.overdueCancelPending && !tenant.overdueCancelledAt && (
+            <div className="bg-red-50 border-b border-red-200 px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
+              <div className="text-sm text-red-800">
+                <span className="font-semibold">Cancellation awaiting approval</span> — this account passed the overdue
+                cut-off on {fmt(tenant.overdueCancelPending)}. The client has had their final notice. Nothing happens
+                until you decide.
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={async () => {
+                    if (!window.confirm(`Cancel ALL of ${tenant.businessName}'s memberships and revoke door access? This runs the full offboarding.`)) return
+                    updateTenant(tenant.id, { overdueCancelApproved: new Date().toISOString() })
+                    try {
+                      const { authHeaders } = await import('../lib/apiFetch.js')
+                      const r = await fetch('/api/reconcile', { method: 'POST', headers: await authHeaders() })
+                      alert(r.ok ? 'Cancellation executed — memberships terminated, client notified, offboarding queued.' : 'Approval recorded — the overnight run will execute the cancellation.')
+                    } catch {
+                      alert('Approval recorded — the overnight run will execute the cancellation.')
+                    }
+                  }}
+                  className="bg-red-600 text-white rounded px-4 py-2 text-sm font-semibold hover:bg-red-700"
+                >
+                  Approve cancellation
+                </button>
+                <button
+                  onClick={() => {
+                    if (!window.confirm(`Keep ${tenant.businessName}'s membership and exempt them from the overdue-cancellation process? (The debt remains payable.)`)) return
+                    updateTenant(tenant.id, { autoCancelExempt: true, overdueCancelPending: null, overdueCancelApproved: null })
+                  }}
+                  className="border border-red-300 text-red-700 rounded px-4 py-2 text-sm font-medium hover:bg-red-100"
+                >
+                  Keep membership
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Stats bar */}
           <div className="bg-card border-b border-border px-8 py-5 grid grid-cols-4 gap-6 shrink-0">
             {[

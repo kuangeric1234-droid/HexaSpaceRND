@@ -57,7 +57,8 @@ function invoiceTotal(inv) {
 // emailType 'overdue_final_warning' / 'membership_cancelled'); falls back to a
 // built-in. `v` is the placeholder map. Returns { subject, html }.
 function renderOverdueEmail(kind, v, templates) {
-  const type = kind === 'cancelled' ? 'membership_cancelled' : 'overdue_final_warning'
+  const type = kind === 'cancelled' ? 'membership_cancelled'
+    : kind === 'pending' ? 'overdue_pending_cancellation' : 'overdue_final_warning'
   const fill = (s) => String(s || '').replace(/\{\{(\w+)\}\}/g, (m, k) => (k in v ? String(v[k]) : m))
   const tpl = (templates ?? []).find((t) => t.category === 'email' && t.emailType === type && t.content)
   if (tpl) {
@@ -65,6 +66,17 @@ function renderOverdueEmail(kind, v, templates) {
       ? `Membership cancelled — overdue account (${v.company})`
       : `Action required — membership cancels ${v.cancelDate} unless paid (${v.company})`)
     return { subject, html: brandFrame(fill(tpl.content), { footerLabel: 'Accounts' }) }
+  }
+  if (kind === 'pending') {
+    const inner =
+      bKicker('Final Notice') +
+      bH1('Your membership is pending cancellation') +
+      bP(`Hi ${v.tenantName},`) +
+      bP(`The outstanding balance of <strong>${v.amountOwing}</strong> on ${v.company}'s account is now <strong>${v.daysOverdue} days overdue</strong>. Your membership has been referred for cancellation in line with your licence agreement.`) +
+      bP(`<strong>Immediate payment is required to keep your membership.</strong> If the balance is settled before cancellation is finalised, your membership continues unaffected — pay online from the portal or by bank transfer.`) +
+      bP('If you believe this is in error, or you\'d like to discuss a payment arrangement, reply to this email today.') +
+      bSmall('Automated account notice from Hexa Space.')
+    return { subject: `FINAL NOTICE — membership pending cancellation (${v.company})`, html: brandFrame(inner, { footerLabel: 'Accounts' }) }
   }
   if (kind === 'cancelled') {
     const inner =
@@ -328,7 +340,7 @@ export default async function handler(req, res) {
     // step 5 below revokes KS access this run). Paying off clears the warning
     // state. Opt-in + per-tenant exemptable (tenant.autoCancelExempt) + dry-run
     // aware because it cancels memberships and revokes access.
-    out.overdueWarned = []; out.overdueCancelled = []
+    out.overdueWarned = []; out.overdueCancelled = []; out.overduePendingApproval = []
     const acOn = settings?.billingRules?.autoCancelOverdue === true
     if (acOn) {
       const cancelDays = Number(settings?.billingRules?.autoCancelDays) > 0
@@ -346,25 +358,41 @@ export default async function handler(req, res) {
       const addDaysISO = (iso, n) => {
         const d = new Date(`${iso}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().split('T')[0]
       }
+      // Only debts from the platform-billing era drive cancellation — the
+      // migrated pre-July-2026 balances are unreliable as-recorded (Xero is
+      // truth for those) and are a manual collections matter, not grounds for
+      // an automated final notice. Configurable via billingRules.autoCancelSince.
+      const sinceISO = settings?.billingRules?.autoCancelSince || '2026-07-01'
       const isUnpaidDue = (inv) =>
         inv.invoiceType !== 'bond_refund' && inv.voided !== true &&
         !['paid', 'void', 'cancelled', 'draft'].includes(String(inv.status)) &&
-        inv.dueDate && inv.dueDate < todayISO
+        inv.dueDate && inv.dueDate < todayISO && inv.dueDate >= sinceISO
 
       const fromName = settings?.emails?.fromName || 'Hexa Space'
       const fromEmail = settings?.emails?.fromEmail || 'info@hexaspace.com.au'
       const from = `${fromName} <${fromEmail}>`
       const portalUrl = 'https://portal.hexaspace.com.au'
       const website = settings?.company?.website || 'hexaspace.com.au'
+      // Admin copies of every stage (warnings, final notice, cancellation).
+      const adminTo = [...new Set(['eric@hexaspace.com.au', 'info@hexaspace.com.au', settings?.emails?.notificationEmail].filter(Boolean).map((e) => e.toLowerCase()))]
 
       for (const tenant of tenants) {
         if (tenant.autoCancelExempt === true || tenant.overdueCancelledAt) continue
+        // Cancellation is about LIVE memberships. Companies with nothing to
+        // cancel (former members, migrated historical debts) are a collections
+        // matter, not a cancellation workflow — never warn or final-notice them.
+        const hasLiveMembership = leases.some((l) => l.tenantId === tenant.id
+          && ['active', 'pending'].includes(String(l.status)) && !l.offboardedAt)
+        if (!hasLiveMembership) continue
         const overdue = invoices.filter((inv) => inv.tenantId === tenant.id && isUnpaidDue(inv))
         const warned = Array.isArray(tenant.overdueCancelWarned) ? tenant.overdueCancelWarned : []
 
-        // Paid off (or never overdue) → clear any warning state and move on.
+        // Paid off (or never overdue) → clear warning AND pending state — a
+        // settled account is never cancelled, even if approval was requested.
         if (overdue.length === 0) {
-          if (warned.length) await saveRow('tenants', tenant.id, { ...tenant, overdueCancelWarned: [] })
+          if (warned.length || tenant.overdueCancelPending || tenant.overdueCancelApproved) {
+            await saveRow('tenants', tenant.id, { ...tenant, overdueCancelWarned: [], overdueCancelPending: null, overdueCancelApproved: null })
+          }
           continue
         }
 
@@ -382,26 +410,58 @@ export default async function handler(req, res) {
           cancelDate, oldestDueDate: oldestDue, portalUrl, website,
         }
 
-        // TERMINATE at/after the cutoff.
+        // AT/AFTER the cutoff: cancellation ALWAYS requires an admin's click.
         if (daysOverdue >= cancelDays) {
-          const live = leases.filter((l) => l.tenantId === tenant.id
-            && ['active', 'pending'].includes(String(l.status)) && !l.offboardedAt)
-          if (!dryRun) {
-            for (const l of live) {
-              await saveRow('leases', l.id, {
-                ...l, status: 'terminated', needsOffboard: true,
-                terminatedAt: new Date().toISOString(), terminationReason: 'overdue_auto',
-              })
-              l.status = 'terminated'; l.needsOffboard = true // step 5 must see no live lease
+          // Approved by an admin (company profile → Approve cancellation) →
+          // terminate now and notify the client (admin bcc'd).
+          if (tenant.overdueCancelApproved) {
+            const live = leases.filter((l) => l.tenantId === tenant.id
+              && ['active', 'pending'].includes(String(l.status)) && !l.offboardedAt)
+            if (!dryRun) {
+              for (const l of live) {
+                await saveRow('leases', l.id, {
+                  ...l, status: 'terminated', needsOffboard: true,
+                  terminatedAt: new Date().toISOString(), terminationReason: 'overdue_approved',
+                })
+                l.status = 'terminated'; l.needsOffboard = true // step 5 must see no live lease
+              }
+              await saveRow('tenants', tenant.id, { ...tenant, overdueCancelledAt: todayISO, overdueCancelPending: null })
             }
-            await saveRow('tenants', tenant.id, { ...tenant, overdueCancelledAt: todayISO })
+            if (resendKey && to) {
+              const em = renderOverdueEmail('cancelled', vars, templates)
+              await sendResendEmail({ from, to, bcc: adminTo, subject: em.subject, html: em.html })
+                .catch((e) => out.errors.push(`cancel email ${label}: ${e.message}`))
+            }
+            out.overdueCancelled.push(`${label}${live.length ? '' : ' (no live lease)'}`)
+            continue
           }
-          if (resendKey && to) {
-            const em = renderOverdueEmail('cancelled', vars, templates)
-            await sendResendEmail({ from, to, subject: em.subject, html: em.html })
-              .catch((e) => out.errors.push(`cancel email ${label}: ${e.message}`))
+
+          // Not yet approved → enter (or remain in) pending-approval: one final
+          // notice to the client + an approval request to the admins, then it
+          // waits — listed in the daily digest until approved, exempted or paid.
+          if (!tenant.overdueCancelPending) {
+            if (!dryRun) await saveRow('tenants', tenant.id, { ...tenant, overdueCancelPending: todayISO })
+            if (resendKey) {
+              if (to) {
+                const em = renderOverdueEmail('pending', vars, templates)
+                await sendResendEmail({ from, to, bcc: adminTo, subject: em.subject, html: em.html })
+                  .catch((e) => out.errors.push(`pending email ${label}: ${e.message}`))
+              }
+              const adminInner =
+                bKicker('Cancellation approval needed') +
+                bH1(`${tenant.businessName ?? tenant.id}`) +
+                bP(`<strong>${vars.amountOwing}</strong> outstanding · oldest invoice <strong>${daysOverdue} days overdue</strong> (due ${dmy(oldestDue)}).`) +
+                bP(`The cut-off has passed and the client has been sent their final notice. <strong>Nothing is cancelled until you approve it</strong> — open the company profile in the admin portal and click “Approve cancellation”, or mark them exempt to stop the process.`) +
+                bBtn('Open the admin portal', `${portalUrl}/companies`) +
+                bSmall('Sent by the daily reconcile. This company stays listed in the daily digest until actioned.')
+              await sendResendEmail({
+                from, to: adminTo,
+                subject: `Approval needed — cancel ${tenant.businessName ?? tenant.id}? (${daysOverdue}d overdue, ${vars.amountOwing})`,
+                html: brandFrame(adminInner, { footerLabel: 'Accounts' }),
+              }).catch((e) => out.errors.push(`approval email ${label}: ${e.message}`))
+            }
           }
-          out.overdueCancelled.push(`${label}${live.length ? '' : ' (no live lease)'}`)
+          out.overduePendingApproval.push(`${label} — awaiting admin approval${tenant.overdueCancelPending ? ` since ${dmy(tenant.overdueCancelPending)}` : ''}`)
           continue
         }
 
@@ -412,7 +472,7 @@ export default async function handler(req, res) {
         if (unsent.length === 0) continue
         if (resendKey && to) {
           const em = renderOverdueEmail('warning', vars, templates)
-          await sendResendEmail({ from, to, subject: em.subject, html: em.html })
+          await sendResendEmail({ from, to, bcc: adminTo, subject: em.subject, html: em.html })
             .catch((e) => out.errors.push(`warn email ${label}: ${e.message}`))
         }
         if (!dryRun) {
@@ -566,7 +626,7 @@ export default async function handler(req, res) {
     } catch (e) { out.errors.push(`directory sync: ${e.message}`) }
 
     // ── Admin digest (only when something happened or needs attention) ──────
-    const anything = out.occupied.length + out.onboarded.length + out.expired.length + out.bondOverdue.length + out.saltoSwept.length + (out.cardReminders?.length ?? 0) + out.overdueWarned.length + out.overdueCancelled.length + out.renewed.length + out.renewalEmailed.length + out.directorySynced.length + out.errors.length > 0
+    const anything = out.occupied.length + out.onboarded.length + out.expired.length + out.bondOverdue.length + out.saltoSwept.length + (out.cardReminders?.length ?? 0) + out.overdueWarned.length + out.overdueCancelled.length + out.overduePendingApproval.length + out.renewed.length + out.renewalEmailed.length + out.directorySynced.length + out.errors.length > 0
     if (anything && resendKey && !dryRun) {
       const list = (items) => bPanel(items.map((i) => `<div style="font-family:${SANS};font-size:13px;color:${INK};padding:4px 0">${i}</div>`).join(''))
       const section = (title, items) => items.length ? bH2(title) + list(items) : ''
@@ -580,7 +640,8 @@ export default async function handler(req, res) {
         section(`🔄 ${out.renewed.length} lease(s) auto-renewed`, out.renewed) +
         section(`⚠ ${out.bondOverdue.length} bond refund(s) overdue`, out.bondOverdue) +
         section(`⏳ ${out.overdueWarned.length} cancellation warning(s) sent`, out.overdueWarned) +
-        section(`⛔ ${out.overdueCancelled.length} membership(s) auto-cancelled (90d overdue)`, out.overdueCancelled) +
+        section(`🖐 ${out.overduePendingApproval.length} cancellation(s) AWAITING YOUR APPROVAL`, out.overduePendingApproval) +
+        section(`⛔ ${out.overdueCancelled.length} membership(s) cancelled (admin-approved)`, out.overdueCancelled) +
         section(`🔑 ${out.saltoSwept.length} door access revocation(s) swept`, out.saltoSwept) +
         section(`💳 ${(out.cardReminders ?? []).length} card-on-file reminder(s) sent`, out.cardReminders ?? []) +
         section(`📺 ${out.directorySynced.length} directory board(s) refreshed`, out.directorySynced) +
