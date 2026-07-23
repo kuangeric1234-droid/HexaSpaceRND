@@ -374,6 +374,53 @@ export function portalWelcomeInvitePayload({ tenant, space, settings }) {
   }
 }
 
+// ── Getting-started pack (sent alongside the signed copy at countersign) ───────
+
+// The exact address a member should use for business registration, Google,
+// bank and mail. Offices carry their suite; VO/desk memberships use the
+// Level 4 coworking address.
+export function registeredAddressFor(space) {
+  const BASE = '830 Whitehorse Road, Box Hill VIC 3128'
+  const level = { l2: 'Level 2', l4: 'Level 4', l5: 'Level 5' }[space?.floor] ?? 'Level 4'
+  return space?.type === 'office' && space?.unitNumber
+    ? `${space.unitNumber}, ${level}/${BASE}`
+    : `${level}/${BASE}`
+}
+
+export function gettingStartedEmailHtml({ tenant, space, settings, directoryLink }) {
+  const name = settings?.company?.name || 'Hexa Space'
+  const website = settings?.company?.website || 'hexaspace.com.au'
+  const portal = settings?.portalUrl || PORTAL_URL
+  const wifi = settings?.wifi ?? {}
+  const address = registeredAddressFor(space)
+  const appUrl = `${portal}/app`
+  const inner =
+    _k('Getting started') +
+    _h('Welcome aboard — your setup guide.') +
+    _p(`Hi ${tenant?.contactName || tenant?.businessName || 'there'},`) +
+    _p(`Your agreement is fully signed — welcome to ${name}. Here's everything you need to get ${tenant?.businessName || 'your business'} set up.`) +
+    _box('Your business address',
+      `<p style="font-family:${_SANS};font-size:13px;color:#3a3a3a;line-height:1.6;margin:0 0 10px">Use this exact address for your business registration (ASIC), Google Business profile, bank, website and deliveries:</p>` +
+      `<p style="font-family:${_SANS};font-size:16px;font-weight:600;color:${_INK};margin:0 0 10px">${address}</p>` +
+      `<p style="font-family:${_SANS};font-size:12px;color:${_MUTE};margin:0">Mail and packages are received at reception — we'll let you know when something arrives for you.</p>`) +
+    (directoryLink
+      ? _box('Your directory listing',
+          `<p style="font-family:${_SANS};font-size:13px;color:#3a3a3a;line-height:1.6;margin:0 0 12px">Your business appears on our lobby digital directory. Tell us exactly how you'd like your name shown — you can add a second line (e.g. a Chinese name):</p>` +
+          _btn('Confirm your directory listing', directoryLink))
+      : '') +
+    _box('Your member portal & password',
+      `<p style="font-family:${_SANS};font-size:13px;color:#3a3a3a;line-height:1.6;margin:0 0 12px">A separate email with your personal <strong>set-password link</strong> is on its way. Once you're in, your invoices, bookings and team all live in the portal. Can't find the invite? Go to the portal and use “Forgot password?” with this email address.</p>` +
+      _btn('Open the portal', portal)) +
+    _box('Wi-Fi',
+      `<p style="font-family:${_SANS};font-size:13px;color:#3a3a3a;line-height:1.6;margin:0">Network <strong style="color:${_INK}">${wifi.ssid || 'Hexa Spaces'}</strong>${wifi.password ? ` &nbsp;·&nbsp; password <strong style="color:${_INK}">${wifi.password}</strong>` : ' — password available at reception'}</p>`) +
+    _box('On your phone',
+      `<p style="font-family:${_SANS};font-size:13px;color:#3a3a3a;line-height:1.8;margin:0">After you've set your password, open <a href="${appUrl}" style="color:${_OLIVE};font-weight:600">portal.hexaspace.com.au/app</a> and add it to your home screen so it opens like an app:<br>` +
+      `<strong>iPhone</strong> — open in Safari, tap Share, then &ldquo;Add to Home Screen&rdquo;.<br>` +
+      `<strong>Android</strong> — open in Chrome, tap the &#8942; menu, then &ldquo;Add to Home screen&rdquo;.</p>`) +
+    _small(`${name} · ${address}`)
+  return oShell(inner, { company: name, website })
+}
+
 // ── Bond refund (offboarding) email ─────────────────────────────────────────────
 
 export function resolveBondRefundCopy({ invoice, tenant, space, settings, amount }) {

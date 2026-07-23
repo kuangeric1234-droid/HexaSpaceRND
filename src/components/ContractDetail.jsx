@@ -4,7 +4,7 @@ import { format, parseISO, differenceInDays } from 'date-fns'
 import { ArrowLeft, MoreHorizontal, Pencil, Trash2, FileDown, ChevronDown, LayoutGrid, FileText, CheckCircle2 } from 'lucide-react'
 import ContractTemplate from './ContractTemplate.jsx'
 import SignatureCanvas from './SignatureCanvas.jsx'
-import { sendEmail, eSignEmailHtml, renderEsignTemplate, renderSignedTemplate, PORTAL_URL } from '../lib/sendEmail.js'
+import { sendEmail, eSignEmailHtml, renderEsignTemplate, renderSignedTemplate, PORTAL_URL, makePayToken } from '../lib/sendEmail.js'
 import { supabase } from '../lib/supabase.js'
 import { jsPDF } from 'jspdf'
 import DocumentsPanel from './DocumentsPanel.jsx'
@@ -14,7 +14,7 @@ import { stepMonthly } from '../lib/leasePricing.js'
 import { leaseInclusions } from '../lib/voInclusions.js'
 import { resolvePrimaryContact } from '../lib/leaseContact.js'
 import { sendLeaseForSigning } from '../lib/esign.js'
-import { requiresCardOnFile, portalWelcomeInvitePayload } from '../lib/onboarding.js'
+import { requiresCardOnFile, portalWelcomeInvitePayload, gettingStartedEmailHtml } from '../lib/onboarding.js'
 
 const SIG_STATUS = {
   manually_signed: { label: 'Manually Signed', cls: 'bg-green-500 text-white' },
@@ -184,11 +184,42 @@ export default function ContractDetail({
       try {
         await sendPortalWelcome()
       } catch (e) { console.error('Portal welcome failed:', e) }
+
+      // Getting-started pack: business address, directory-listing link,
+      // Wi-Fi and phone-app guide — so nothing gets lost after signing.
+      try {
+        await sendGettingStarted()
+      } catch (e) { console.error('Getting-started email failed:', e) }
     } catch (err) {
       alert(`Error: ${err.message}`)
     } finally {
       setCountersigning(false)
     }
+  }
+
+  // Getting-started pack: registered business address, directory-listing
+  // confirmation link, portal/password pointer, Wi-Fi and phone-app guide.
+  // Sent to the client (not the admin CCs) right after countersign; resendable
+  // from the top bar. The directory link is token-gated per lease.
+  async function sendGettingStarted({ force = false } = {}) {
+    if (lease.gettingStartedSentAt && !force) return
+    const email = primaryContact?.email || tenant?.email
+    if (!email) return
+    let welcomeToken = lease.welcomeToken
+    if (!welcomeToken) {
+      welcomeToken = makePayToken()
+      onUpdateLease?.(lease.id, { welcomeToken })
+    }
+    const directoryLink = `${PORTAL_URL}/directory-name/${welcomeToken}`
+    await sendEmail({
+      to: email,
+      subject: `Getting started at ${settings?.company?.name ?? 'Hexa Space'} — your address, Wi-Fi & directory listing`,
+      html: gettingStartedEmailHtml({ tenant, space, settings, directoryLink }),
+      settings, tenantId: tenant?.id, emailType: 'gettingStarted',
+    })
+    onUpdateLease?.(lease.id, { gettingStartedSentAt: new Date().toISOString() })
+    logAudit('email', 'lease', lease.id, contractNum, `Getting-started pack sent to ${email}`)
+    return email
   }
 
   // Portal-signup welcome for a brand-new client: one email with the set-password
@@ -778,6 +809,19 @@ export default function ContractDetail({
                 className="flex items-center gap-1.5 border border-blue-300 text-blue-700 rounded px-3 py-1.5 text-sm hover:bg-blue-50 font-medium"
               >
                 Send Signed Copy
+              </button>
+              <button
+                onClick={async () => {
+                  const to = primaryContact?.email || tenant?.email
+                  if (!to) { alert('No email address on file.'); return }
+                  if (!window.confirm(`Send the getting-started pack (address, directory link, Wi-Fi, app guide) to ${to}?`)) return
+                  try { await sendGettingStarted({ force: true }); alert(`Getting-started pack sent to ${to}`) }
+                  catch (err) { alert(`Failed to send: ${err.message}`) }
+                }}
+                className="flex items-center gap-1.5 border border-blue-300 text-blue-700 rounded px-3 py-1.5 text-sm hover:bg-blue-50 font-medium"
+                title={lease.gettingStartedSentAt ? `Last sent ${format(parseISO(lease.gettingStartedSentAt), 'dd/MM/yyyy')}` : 'Not sent yet'}
+              >
+                Getting Started
               </button>
             </>
           )}

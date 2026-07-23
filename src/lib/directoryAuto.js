@@ -34,7 +34,14 @@ const leaseSpaceIds = (l) =>
 
 export function buildDirectoryBoard(level, prev, { tenants, leases, spaces }) {
   const t = todayISO()
-  const tenantName = (id) => tenants.find((x) => x.id === id)?.businessName ?? ''
+  const tenantOf = (id) => tenants.find((x) => x.id === id)
+  // A member-confirmed directoryName (getting-started email → /directory-name
+  // page) always wins over the raw business name.
+  const tenantName = (id) => {
+    const ten = tenantOf(id)
+    return ten?.directoryName?.trim() || ten?.businessName || ''
+  }
+  const hasConfirmedName = (id) => !!tenantOf(id)?.directoryName?.trim()
   const active = leases.filter((l) => l.status === 'active' && (l.startDate ?? '') <= t)
 
   // spaceId → occupying tenant ids
@@ -61,13 +68,18 @@ export function buildDirectoryBoard(level, prev, { tenants, leases, spaces }) {
       const prevEntry = prevSuites.find((p) => String(p.suite).trim() === suite)
       // Same occupant → keep the admin's display text. Auto rows match by
       // tenantKey; legacy manual rows match if the text contains the name.
+      // A member-confirmed directoryName overrides preserved text: multi-line
+      // names stay as typed for sole occupants, flatten when sharing a suite.
+      const anyConfirmed = ids.some(hasConfirmedName)
       const unchanged =
+        !anyConfirmed &&
         prevEntry &&
         (prevEntry.tenantKey === tenantKey ||
           (!prevEntry.tenantKey && names.some((n) => norm(n).length >= 3 && norm(prevEntry.name).includes(norm(n)))))
+      const freshName = names.length === 1 ? names[0] : names.map((n) => n.replace(/\n+/g, ' ')).join(' / ')
       return {
         suite,
-        name: unchanged ? prevEntry.name : names.join(' / '),
+        name: unchanged ? prevEntry.name : freshName,
         tenantKey,
         _k: Number.parseInt(suite, 10) || 9999,
       }
@@ -85,14 +97,17 @@ export function buildDirectoryBoard(level, prev, { tenants, leases, spaces }) {
   const community = [
     ...new Set(
       [...commIds]
-        .map(tenantName)
-        .filter(Boolean)
-        .map((n) => {
+        .map((id) => {
+          // Community rows are single-line — flatten a two-line confirmed name.
+          const n = tenantName(id).replace(/\n+/g, ' ').trim()
+          if (!n) return ''
+          if (hasConfirmedName(id)) return n // member's confirmed spelling wins
           const k = norm(n)
           if (k.length < 3) return n
           // Keep the admin's existing spelling of this company if present.
           return prevComm.find((p) => norm(p).includes(k) || k.includes(norm(p))) ?? n
         })
+        .filter(Boolean)
     ),
   ].sort((a, b) => sortKeyOf(a).localeCompare(sortKeyOf(b), 'en', { sensitivity: 'base' }))
 

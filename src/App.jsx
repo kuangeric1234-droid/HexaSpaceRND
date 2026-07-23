@@ -8,6 +8,7 @@ import ReferrerDashboard from './components/ReferrerDashboard.jsx'
 import ProposalAccept from './components/ProposalAccept.jsx'
 import GiveNoticePage from './components/GiveNoticePage.jsx'
 import PayInvoicePage from './components/PayInvoicePage.jsx'
+import DirectoryNamePage from './components/DirectoryNamePage.jsx'
 import DirectoryDisplay from './components/DirectoryDisplay.jsx'
 import PortalApp from './portal/PortalApp.jsx'
 import AdminApp from './AdminApp.jsx'
@@ -115,6 +116,9 @@ export default function App() {
 
   const payMatch = path.match(/^\/pay\/([^/]+)/)
   if (payMatch) return <PayInvoicePage invoiceId={payMatch[1]} />
+
+  const dirNameMatch = path.match(/^\/directory-name\/([^/]+)/)
+  if (dirNameMatch) return <DirectoryNamePage token={dirNameMatch[1]} />
 
 
   return <RootAuth />
