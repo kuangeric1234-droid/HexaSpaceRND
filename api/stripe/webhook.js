@@ -5,6 +5,7 @@
 
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
+import { sendInvoiceReceipt } from '../_receipt.js'
 
 export const config = { api: { bodyParser: false } }
 
@@ -115,6 +116,8 @@ export default async function handler(req, res) {
           invoice.status = 'paid'
           invoice.stripeSessionId = session.id
           await supabase.from('invoices').upsert({ id: invoice.id, data: invoice, updated_at: new Date().toISOString() })
+          const { data: tRow } = await supabase.from('tenants').select('data').eq('id', invoice.tenantId).single()
+          await sendInvoiceReceipt(supabase, invoice, tRow?.data, (session.amount_total ?? 0) / 100)
         }
       }
     }

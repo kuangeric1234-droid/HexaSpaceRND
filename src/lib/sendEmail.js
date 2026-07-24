@@ -216,6 +216,35 @@ export function invoiceEmailHtml({ invoice, tenant, settings, payLink }) {
   return brandShell(inner, { company: name, website })
 }
 
+// Payment receipt — sent automatically when an invoice is marked paid.
+export function receiptEmailHtml({ invoice, tenant, settings, amount }) {
+  const company = settings?.company ?? {}
+  const billing = settings?.billing ?? {}
+  const name = billing.businessName || company.name || 'Hexa Space'
+  const address = billing.address || '402/830 Whitehorse Road, Box Hill VIC 3128'
+  const website = company.website || 'hexaspace.com.au'
+  const total = (invoice.lineItems ?? []).reduce((s, l) => s + Math.round(l.unitPrice * l.qty * (1 - (l.discountPct ?? 0) / 100) * 100) / 100, 0)
+  const gst = invoice.vatEnabled !== false ? Math.round(total * 0.1 * 100) / 100 : 0
+  const paid = amount != null ? Number(amount) : total + gst
+  const paidStr = `$${paid.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`
+  const when = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+  const intro = (settings?.emailTemplates?.receipt?.intro || 'Thank you — your payment of {{amount}} for invoice {{number}} has been received.')
+    .replace(/\{\{amount\}\}/g, paidStr).replace(/\{\{number\}\}/g, invoice.number ?? '')
+  const cell = `padding:11px 15px;font-family:${SANS};font-size:14px`
+  const inner = `${bKicker('Payment Receipt')}${bH1('Payment received — thank you.')}` +
+    bP(`Hi ${tenant?.contactName ?? tenant?.businessName ?? 'there'},`) +
+    bP(intro) +
+    `      <table style="width:100%;border-collapse:collapse;margin:6px 0 22px">
+        <tr style="background:${GREIGE}"><td style="${cell};font-weight:600;color:${INK}">Invoice Number</td><td style="${cell}">${invoice.number}</td></tr>
+        <tr><td style="${cell};font-weight:600;color:${INK}">Period</td><td style="${cell}">${invoice.periodStart ?? ''} – ${invoice.periodEnd ?? ''}</td></tr>
+        <tr style="background:${GREIGE}"><td style="${cell};font-weight:600;color:${INK}">Date Paid</td><td style="${cell}">${when}</td></tr>
+        <tr><td style="${cell};font-weight:600;color:${INK}">Amount Paid</td><td style="${cell};font-family:${SERIF};font-size:22px;color:${OLIVE}">${paidStr} AUD</td></tr>
+      </table>
+      ${bSmall(`This confirms payment for invoice ${invoice.number}. No further action is needed — keep this email for your records.`)}
+      ${bSmall(`${name} · ${address}`)}`
+  return brandShell(inner, { company: name, website })
+}
+
 export function eSignEmailHtml({ lease, tenant, settings }) {
   const company = settings?.company ?? {}
   const contracts = settings?.contracts ?? {}

@@ -10,6 +10,7 @@ import {
   DEFAULT_LEAD_FOLLOWUP_SUBJECT, DEFAULT_LEAD_FOLLOWUP_HTML, DEFAULT_LEAD_FINAL_SUBJECT, DEFAULT_LEAD_FINAL_HTML,
   DEFAULT_PROPOSAL_EMAIL_SUBJECT, DEFAULT_PROPOSAL_EMAIL_HTML,
   DEFAULT_TOUR_CONFIRMATION_SUBJECT, DEFAULT_TOUR_CONFIRMATION_HTML,
+  receiptEmailHtml,
 } from '../lib/sendEmail.js'
 import {
   DEFAULT_FUNCTION_BROCHURE_SUBJECT, DEFAULT_FUNCTION_BROCHURE_HTML,
@@ -1674,14 +1675,43 @@ export function useStore() {
   }, [addInvoice])
   useEffect(() => { raiseSigningInvoicesRef.current = raiseSigningInvoices }, [raiseSigningInvoices])
 
+  // Auto-send a payment receipt when an invoice becomes paid. Idempotent via
+  // receiptSentAt; skips refunds (bond_refund) and zero/credit invoices. Emails
+  // the company's billing contact.
+  const sendPaymentReceipt = useCallback((invoice) => {
+    try {
+      if (!invoice || invoice.status !== 'paid' || invoice.receiptSentAt) return
+      if (invoice.invoiceType === 'bond_refund' || invoice.creditNoteForId) return
+      const total = (invoice.lineItems ?? []).reduce((s, l) => s + (Number(l.unitPrice) || 0) * (Number(l.qty) || 1) * (1 - (Number(l.discountPct) || 0) / 100), 0)
+      if (total <= 0) return
+      const settings = settingsRef.current || {}
+      const tenant = tenantsRef.current.find((t) => t.id === invoice.tenantId)
+      const mine = (membersRef.current || []).filter((m) => m.companyId === invoice.tenantId && m.email)
+      const to = tenant?.email || (mine.find((m) => m.billingPerson) ?? mine.find((m) => m.contactPerson) ?? mine[0])?.email || invoice.clientEmail
+      if (!to) return
+      const paid = (invoice.payments ?? []).reduce((s, p) => s + Number(p.amount || 0), 0) || null
+      sendEmail({ to, subject: `Payment receipt — ${invoice.number}`, html: receiptEmailHtml({ invoice, tenant, settings, amount: paid }), settings, emailType: 'receipt', tenantId: invoice.tenantId })
+      setInvoices((prev) => {
+        const next = prev.map((i) => (i.id === invoice.id ? { ...i, receiptSentAt: new Date().toISOString() } : i))
+        const u = next.find((i) => i.id === invoice.id); if (u) syncRow('invoices', invoice.id, u)
+        return next
+      })
+    } catch (e) { console.error('Payment receipt send failed:', e) }
+  }, [])
+
   const updateInvoice = useCallback((id, updates) => {
+    let paidNow = null
     setInvoices((prev) => {
+      const old = prev.find((i) => i.id === id)
       const next = prev.map((i) => (i.id === id ? { ...i, ...updates } : i))
       const updated = next.find((i) => i.id === id)
       if (updated) syncRow('invoices', id, updated)
+      // Just transitioned to paid → queue a receipt (after state settles).
+      if (updated && updates.status === 'paid' && old?.status !== 'paid') paidNow = updated
       return next
     })
-  }, [])
+    if (paidNow) setTimeout(() => sendPaymentReceipt(paidNow), 0)
+  }, [sendPaymentReceipt])
 
   const voidInvoice = useCallback((id) => {
     setInvoices((prev) => {
@@ -1705,21 +1735,26 @@ export function useStore() {
 
   const addPaymentToInvoice = useCallback((invoiceId, payment) => {
     let affectedLeaseId = null
+    let paidInvoice = null
     setInvoices((prev) => {
       const inv = prev.find((i) => i.id === invoiceId)
       affectedLeaseId = inv?.leaseId ?? null
+      const wasPaid = inv?.status === 'paid'
       logAudit('payment', 'invoice', invoiceId, inv?.number ?? invoiceId, `$${Number(payment.amount).toFixed(2)} via ${payment.method ?? '—'}`)
       const next = prev.map((i) => i.id === invoiceId
         ? { ...i, payments: [...(i.payments ?? []), { ...payment, id: `pay${Date.now()}` }], status: 'paid' }
         : i)
       const updated = next.find((i) => i.id === invoiceId)
       if (updated) syncRow('invoices', invoiceId, updated)
+      if (updated && !wasPaid) paidInvoice = updated
       return next
     })
     // Re-check the access gate after refs settle (post-render): a paid deposit +
     // first invoice may now unlock occupancy + onboarding for this lease.
     if (affectedLeaseId) setTimeout(() => provisionAndOnboardLease(affectedLeaseId), 0)
-  }, [provisionAndOnboardLease])
+    // Email the payer a receipt (idempotent, skips refunds/zero invoices).
+    if (paidInvoice) setTimeout(() => sendPaymentReceipt(paidInvoice), 0)
+  }, [provisionAndOnboardLease, sendPaymentReceipt])
 
   const addCommentToInvoice = useCallback((invoiceId, text) => {
     setInvoices((prev) => {

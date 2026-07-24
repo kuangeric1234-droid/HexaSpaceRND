@@ -1,5 +1,6 @@
 // Shared Stripe REST helpers — form-encoded fetch, no SDK dependency.
 // Used by api/stripe/* (checkout, setup, charge, webhook) and the overdue cron.
+import { sendInvoiceReceipt } from './_receipt.js'
 
 const API = 'https://api.stripe.com/v1'
 
@@ -93,5 +94,6 @@ export async function chargeInvoiceOffSession(supabase, invoice, tenant) {
     }],
   }
   await supabase.from('invoices').upsert({ id: invoice.id, data: updated, updated_at: new Date().toISOString() })
+  await sendInvoiceReceipt(supabase, updated, tenant, due)
   return { ok: true, amount: due, paymentIntentId: r.json.id, invoice: updated }
 }
