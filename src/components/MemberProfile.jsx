@@ -352,7 +352,21 @@ export default function MemberProfile({ member, ctx, onBack, onEdit }) {
 
         {/* Right sidebar */}
         <aside className="w-56 shrink-0 space-y-5 hidden xl:block">
-          {['Payment Details', 'Attachments', 'Opportunities'].map((t) => (
+          <div className="bg-card border border-border rounded-xl shadow-sm p-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">Payment Details</div>
+            {company?.cardLast4 || company?.stripePaymentMethodId ? (
+              <div className="text-xs text-foreground space-y-1">
+                <div className="font-medium">{(company.cardBrand || 'Card').toUpperCase()} •••• {company.cardLast4 || '????'}</div>
+                {company.cardExpMonth && <div className="text-muted-foreground">Expires {String(company.cardExpMonth).padStart(2, '0')}/{company.cardExpYear}</div>}
+                <div className={company.cardAuthorityAccepted ? 'text-green-600' : 'text-muted-foreground'}>
+                  {company.cardAuthorityAccepted ? 'Charge authority on file' : 'No charge authority yet'}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">No card on file.</p>
+            )}
+          </div>
+          {['Attachments', 'Opportunities'].map((t) => (
             <div key={t} className="bg-card border border-border rounded-xl shadow-sm p-4">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">{t}</div>
               <p className="text-xs text-muted-foreground">Nothing to show.</p>
