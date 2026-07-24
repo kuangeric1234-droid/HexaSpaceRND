@@ -20,11 +20,16 @@ export default function PortalLogin() {
   async function handleReset(e) {
     e.preventDefault()
     setLoading(true); setError('')
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin,
-    })
-    if (error) setError(error.message)
-    else setResetSent(true)
+    // Reset via our own endpoint (Resend-backed, reliable) rather than Supabase's
+    // built-in Auth email. Always resolves to "sent" — no account enumeration.
+    try {
+      const r = await fetch('/api/auth/reset-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || 'Could not send the reset email.') }
+      setResetSent(true)
+    } catch (err) { setError(err.message) }
     setLoading(false)
   }
 
@@ -67,7 +72,7 @@ export default function PortalLogin() {
               <p className="hx-prose mb-6">We'll send a reset link to your email.</p>
               {resetSent ? (
                 <div className="text-sm text-hexa-green bg-hexa-green/5 border border-hexa-green/30 px-3 py-3 text-center">
-                  Check your email for a reset link.
+                  If an account exists for that email, a reset link is on its way. Check your inbox (and spam).
                 </div>
               ) : (
                 <>
